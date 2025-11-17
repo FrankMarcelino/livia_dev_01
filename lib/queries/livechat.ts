@@ -2,9 +2,10 @@
  * Livechat Queries - Funções de busca para o Livechat
  *
  * IMPORTANTE: Todas as queries validam tenant_id para multi-tenancy
+ * TEMPORÁRIO: Usando admin client para bypass RLS
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   ContactWithConversations,
   ConversationWithLastMessage,
@@ -22,7 +23,7 @@ export async function getContactsWithConversations(
   tenantId: string,
   filters?: ContactFilters
 ): Promise<ContactWithConversations[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from('contacts')
@@ -79,7 +80,7 @@ export async function getMessages(
   conversationId: string,
   limit = 50
 ): Promise<MessageWithSender[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -109,7 +110,7 @@ export async function getConversation(
   conversationId: string,
   tenantId: string
 ): Promise<ConversationWithLastMessage | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('conversations')
@@ -144,7 +145,7 @@ export async function getConversation(
 export async function getQuickReplies(
   tenantId: string
 ): Promise<QuickReplyTemplate[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('quick_reply_templates')
@@ -165,7 +166,7 @@ export async function getQuickReplies(
  * @param tenantId - ID do tenant (validação)
  */
 export async function getContact(contactId: string, tenantId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('contacts')
