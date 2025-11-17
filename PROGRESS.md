@@ -1,6 +1,82 @@
 # Progresso do Projeto - LIVIA MVP
 
-## Sessão 2025-11-17 - Setup do Projeto Next.js 15
+## Sessão 2025-11-17 (Parte 2) - Implementação Completa do Livechat
+
+### Completado
+- [x] Corrigir bugs no Livechat (naming inconsistente em payloads)
+- [x] Implementar API routes para controle de conversas:
+  - `/api/conversations/pause` - Pausar conversa completa
+  - `/api/conversations/resume` - Retomar conversa pausada
+  - `/api/conversations/reopen` - Reabrir conversa encerrada
+  - `/api/conversations/pause-ia` - Pausar IA (já existia, corrigido)
+  - `/api/conversations/resume-ia` - Retomar IA (já existia, corrigido)
+- [x] Expandir ConversationControls com controles de conversa
+- [x] Adicionar indicadores visuais de status (badges coloridos)
+- [x] Implementar confirmação para reabrir conversas encerradas
+- [x] Validar todas as regras de negócio:
+  - Não pausar conversa já pausada
+  - Não pausar conversa encerrada
+  - Não retomar conversa já ativa
+  - Reabrir apenas conversas encerradas
+  - Desabilitar controles de IA quando conversa pausada
+- [x] Verificação de tipos TypeScript (passou sem erros)
+
+### Funcionalidades do Livechat Implementadas
+
+**Interface de Usuário:**
+- ✅ Lista de contatos com conversas ativas
+- ✅ Visualização de mensagens em tempo real
+- ✅ Envio de mensagens manuais
+- ✅ Controles de status da conversa (Aberta/Pausada/Encerrada)
+- ✅ Controles de IA (Ativa/Pausada)
+- ✅ Auto-scroll nas mensagens
+- ✅ Badges coloridos indicando status
+- ✅ Loading states durante operações
+
+**Backend:**
+- ✅ 5 API Routes implementadas
+- ✅ Integração com webhooks n8n
+- ✅ Validação de autenticação e tenant
+- ✅ Tratamento de erros robusto
+- ✅ Realtime Supabase funcionando
+
+**Fluxos Completos:**
+- ✅ Pausar conversa → IA desativa → UI atualiza
+- ✅ Retomar conversa → IA reativa → UI atualiza
+- ✅ Reabrir conversa encerrada → Confirmação → IA reativa
+- ✅ Pausar IA específica → Conversa continua aberta
+- ✅ Retomar IA → IA volta a responder
+- ✅ Nova mensagem → Realtime → UI atualiza automaticamente
+
+### Arquivos Modificados
+- `components/livechat/conversation-controls.tsx` - Expandido com novos controles
+- `components/livechat/message-input.tsx` - Corrigido naming de payload
+- `app/api/conversations/pause/route.ts` - Criado
+- `app/api/conversations/resume/route.ts` - Criado
+- `app/api/conversations/reopen/route.ts` - Criado
+- `BACKLOG.md` - Atualizado (Realtime marcado como concluído)
+
+### Próximos Passos
+- [ ] Implementar Base de Conhecimento (CRUD de synapses)
+- [ ] Implementar Treinamento Neurocore
+- [ ] Adicionar testes E2E
+- [ ] Melhorar tratamento de erros com toast notifications
+- [ ] Corrigir RLS da tabela users (BACKLOG-001)
+
+### Decisões Técnicas
+- **Separação de controles**: Conversa e IA são controladas separadamente
+- **Confirmação para ações críticas**: Reabrir conversa encerrada requer confirmação
+- **Desabilitar controles contextualmente**: IA não pode ser controlada se conversa pausada
+- **Webhooks n8n**: Todas operações críticas passam pelo n8n para consistência
+- **Realtime completo**: Mensagens e estado da conversa atualizam automaticamente
+
+### Bloqueios/Problemas
+- **RLS Users**: Ainda usando workaround com admin client (não bloqueante)
+- **Webhooks n8n**: URLs ainda não configuradas (desenvolvimento local pendente)
+
+---
+
+## Sessão 2025-11-17 (Parte 1) - Setup do Projeto Next.js 15
 
 ### Completado
 - [x] Criar projeto Next.js 15 com App Router

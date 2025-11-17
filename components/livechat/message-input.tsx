@@ -30,8 +30,8 @@ export function MessageInput({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversation_id: conversationId,
-          tenant_id: tenantId,
+          conversationId: conversationId,
+          tenantId: tenantId,
           content: content.trim(),
         }),
       });

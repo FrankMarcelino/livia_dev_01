@@ -47,16 +47,18 @@ Lista de tarefas técnicas pendentes e melhorias futuras.
 ### [BACKLOG-002] Implementar Supabase Realtime
 
 **Prioridade:** Média
-**Status:** Não iniciado
+**Status:** ✅ Concluído
+**Concluído em:** 2025-11-17
 
 **Descrição:**
 - Subscribe em conversas para atualização automática
 - Subscribe em mensagens para chat em tempo real
 - Atualizar UI automaticamente quando houver novas mensagens
 
-**Arquivos:**
-- `lib/hooks/use-realtime-conversation.ts` - Já existe (implementar)
-- `lib/hooks/use-realtime-messages.ts` - Já existe (implementar)
+**Arquivos Implementados:**
+- ✅ `lib/hooks/use-realtime-conversation.ts` - Hook implementado
+- ✅ `lib/hooks/use-realtime-messages.ts` - Hook implementado
+- ✅ `components/livechat/conversation-view.tsx` - Integração com hooks
 
 ---
 
