@@ -35,7 +35,11 @@ export async function login(email: string, password: string) {
   }
 
   // Verificar se usuário existe na tabela users
-  const { data: userData, error: userError } = await supabase
+  // TEMPORÁRIO: Usando admin client para bypass RLS enquanto corrigimos políticas
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const adminClient = createAdminClient();
+
+  const { data: userData, error: userError } = await adminClient
     .from('users')
     .select('id, tenant_id, full_name')
     .eq('id', data.user.id)
