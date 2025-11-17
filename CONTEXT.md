@@ -71,30 +71,57 @@ Interface de teste e validação do comportamento da IA. Permite:
 
 ## Estrutura do Projeto
 ```
-projeto/
-├── .claude/
-│   └── skills/
-│       └── livia-mvp/
-│           ├── SKILL.md                    # Skill principal
-│           ├── n8n-reference.md            # Padrões de integração n8n
-│           ├── supabase-reference.md       # Queries e Realtime
-│           ├── frontend-reference.md       # Next.js e shadcn/ui
-│           ├── states-and-flows.md         # Estados e fluxos do sistema
-│           └── webhooks-livia.md           # Webhooks específicos LIVIA
-├── docs/
-│   ├── database-schema.md                  # Documentação completa do schema
-│   ├── types-example.ts                    # Exemplo de tipos TypeScript
+projeto/                                    ← Raiz = Projeto Next.js ✅
+├── app/                                    ← App Router (páginas Next.js)
+│   ├── page.tsx                            # Home page
+│   ├── layout.tsx                          # Layout raiz
+│   ├── globals.css                         # Estilos globais
+│   ├── livechat/page.tsx                   # Página Livechat
+│   └── api/                                # API Routes
+│       ├── conversations/pause-ia/
+│       ├── conversations/resume-ia/
+│       └── n8n/send-message/
+├── components/                             ← Componentes React
+│   ├── livechat/                           # Componentes Livechat
+│   └── ui/                                 # shadcn/ui components
+├── lib/                                    ← Bibliotecas e utilidades
+│   ├── supabase/                           # Cliente Supabase
+│   ├── queries/                            # Queries Supabase
+│   ├── hooks/                              # React hooks
+│   └── utils.ts                            # Funções auxiliares
+├── types/                                  ← Tipos TypeScript
+│   ├── database.ts                         # Tipos gerados Supabase
+│   └── livechat.ts                         # Tipos Livechat
+├── public/                                 ← Assets estáticos
+├── scripts/                                ← Scripts utilitários
+│   ├── test-supabase.js
+│   ├── seed-database.js
+│   ├── clean-database.js
+│   └── verify-seed.js
+├── .claude/skills/livia-mvp/              ← Skills Claude Code
+│   ├── SKILL.md                            # Skill principal
+│   ├── n8n-reference.md                    # Padrões de integração n8n
+│   ├── supabase-reference.md               # Queries e Realtime
+│   ├── frontend-reference.md               # Next.js e shadcn/ui
+│   ├── states-and-flows.md                 # Estados e fluxos
+│   └── webhooks-livia.md                   # Webhooks LIVIA
+├── docs/                                   ← Documentação técnica
+│   ├── database-schema.md
+│   ├── types-example.ts
+│   ├── SETUP.md
+│   ├── webhook-implementation-notes.md
 │   └── migrations/
-│       ├── 001_schema_improvements.sql     # Migração v1 (obsoleto)
-│       └── 001_schema_improvements_v2.sql  # Migração v2 (idempotente) ✅
+│       ├── 001_schema_improvements.sql
+│       └── 001_schema_improvements_v2.sql  ✅
+├── package.json                            ← Dependências (consolidado)
+├── next.config.ts                          ← Config Next.js
+├── tsconfig.json                           ← Config TypeScript
+├── tailwind.config.ts                      ← Config Tailwind
+├── .env.local                              ← Variáveis de ambiente
 ├── CONTEXT.md
 ├── PROGRESS.md
 ├── DECISIONS.md
-├── prototypes/
-├── components/
-└── tests/
-
-[Próxima sessão: adicionar estrutura do Next.js app]
+└── REFACTORING_PLAN.md                     ← Plano de refatoração ✅
 ```
 
 ## Dependências Principais
