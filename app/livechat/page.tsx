@@ -85,9 +85,6 @@ export default async function LivechatPage({
           <ContactList
             contacts={contacts}
             selectedContactId={selectedContactId}
-            onSelectContact={(contactId) => {
-              window.location.href = `/livechat?contact=${contactId}`;
-            }}
           />
         </aside>
 

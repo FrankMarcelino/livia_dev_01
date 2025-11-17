@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
@@ -11,14 +12,13 @@ import type { ConversationStatus } from '@/types/database';
 interface ContactListProps {
   contacts: ContactWithConversations[];
   selectedContactId?: string;
-  onSelectContact?: (contactId: string) => void;
 }
 
 export function ContactList({
   contacts,
   selectedContactId,
-  onSelectContact,
 }: ContactListProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ConversationStatus | 'all'>('all');
@@ -95,7 +95,7 @@ export function ContactList({
               key={contact.id}
               contact={contact}
               isSelected={selectedContactId === contact.id}
-              onClick={() => onSelectContact?.(contact.id)}
+              onClick={() => router.push(`/livechat?contact=${contact.id}`)}
             />
           ))
         )}
