@@ -75,6 +75,7 @@ export function ConversationView({
       <MessageInput
         conversationId={conversation.id}
         tenantId={tenantId}
+        contactName={contactName}
         disabled={conversation.status === 'closed'}
       />
     </div>

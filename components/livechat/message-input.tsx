@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
+import { QuickRepliesPanel } from './quick-replies-panel';
 
 interface MessageInputProps {
   conversationId: string;
   tenantId: string;
+  contactName: string;
   onSend?: () => void;
   disabled?: boolean;
 }
@@ -15,6 +17,7 @@ interface MessageInputProps {
 export function MessageInput({
   conversationId,
   tenantId,
+  contactName,
   onSend,
   disabled = false,
 }: MessageInputProps) {
@@ -57,8 +60,19 @@ export function MessageInput({
     }
   };
 
+  const handleQuickReplySelect = (message: string) => {
+    setContent(message);
+  };
+
   return (
     <div className="flex gap-2 p-4 border-t">
+      <QuickRepliesPanel
+        conversationId={conversationId}
+        tenantId={tenantId}
+        contactName={contactName}
+        onSelect={handleQuickReplySelect}
+        disabled={disabled || isSending}
+      />
       <Textarea
         placeholder="Digite sua mensagem..."
         value={content}
