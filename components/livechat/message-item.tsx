@@ -3,13 +3,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { MessageFeedbackButtons } from './message-feedback-buttons';
 import type { MessageWithSender } from '@/types/livechat';
 
 interface MessageItemProps {
   message: MessageWithSender;
+  conversationId?: string;
+  tenantId?: string;
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, conversationId, tenantId }: MessageItemProps) {
   const isCustomer = message.sender_type === 'customer';
   const isAttendant = message.sender_type === 'attendant';
   const isIA = message.sender_type === 'ai';
@@ -62,12 +65,22 @@ export function MessageItem({ message }: MessageItemProps) {
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         </div>
 
-        <span className="text-xs text-muted-foreground">
-          {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+
+          {isIA && conversationId && tenantId && (
+            <MessageFeedbackButtons
+              messageId={message.id}
+              conversationId={conversationId}
+              tenantId={tenantId}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

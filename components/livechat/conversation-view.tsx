@@ -58,7 +58,12 @@ export function ConversationView({
             </div>
           ) : (
             messages.map((message) => (
-              <MessageItem key={message.id} message={message} />
+              <MessageItem
+                key={message.id}
+                message={message}
+                conversationId={conversation.id}
+                tenantId={tenantId}
+              />
             ))
           )}
         </div>
