@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { MessageItem } from './message-item';
 import { MessageInput } from './message-input';
 import { ConversationControls } from './conversation-controls';
+import { ScrollToBottomButton } from './scroll-to-bottom-button';
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages';
 import { useRealtimeConversation } from '@/lib/hooks/use-realtime-conversation';
+import { useChatScroll } from '@/lib/hooks/use-chat-scroll';
 import type { Conversation } from '@/types/database';
 import type { MessageWithSender } from '@/types/livechat';
 
@@ -24,19 +24,14 @@ export function ConversationView({
   tenantId,
   contactName,
 }: ConversationViewProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const { messages } = useRealtimeMessages(
     initialConversation.id,
     initialMessages
   );
   const { conversation } = useRealtimeConversation(initialConversation);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  const { scrollRef, isAtBottom, unreadCount, scrollToBottom } =
+    useChatScroll(messages);
 
   return (
     <div className="flex flex-col h-full">
@@ -52,17 +47,28 @@ export function ConversationView({
         tenantId={tenantId}
       />
 
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        {messages.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Nenhuma mensagem ainda
-          </div>
-        ) : (
-          messages.map((message) => (
-            <MessageItem key={message.id} message={message} />
-          ))
-        )}
-      </ScrollArea>
+      <div className="flex-1 relative overflow-hidden">
+        <div
+          ref={scrollRef}
+          className="h-full overflow-y-auto p-4 scroll-smooth"
+        >
+          {messages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma mensagem ainda
+            </div>
+          ) : (
+            messages.map((message) => (
+              <MessageItem key={message.id} message={message} />
+            ))
+          )}
+        </div>
+
+        <ScrollToBottomButton
+          show={!isAtBottom}
+          unreadCount={unreadCount}
+          onClick={() => scrollToBottom()}
+        />
+      </div>
 
       <Separator />
 

@@ -15,6 +15,12 @@ export function useRealtimeConversation(initialConversation: Conversation) {
   const [conversation, setConversation] = useState<Conversation>(initialConversation);
   const supabase = createClient();
 
+  // Reset conversation when it changes
+  useEffect(() => {
+    setConversation(initialConversation);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialConversation.id]);
+
   useEffect(() => {
     const channel = supabase
       .channel(`conversation:${initialConversation.id}:state`)

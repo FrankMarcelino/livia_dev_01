@@ -1130,24 +1130,12 @@ export const Constants = {
   },
 } as const
 
-// ============================================================================
-// Helper type exports for convenience
-// ============================================================================
+// Convenience type exports
+export type Message = Tables<'messages'>
+export type Conversation = Tables<'conversations'>
+export type Contact = Tables<'contacts'>
+export type User = Tables<'users'>
+export type QuickReplyTemplate = Tables<'quick_reply_templates'>
+export type ConversationStatus = Enums<'conversation_status_enum'>
+export type MessageSenderType = Enums<'message_sender_type_enum'>
 
-export type Contact = Database['public']['Tables']['contacts']['Row'];
-export type Conversation = Database['public']['Tables']['conversations']['Row'];
-export type Message = Database['public']['Tables']['messages']['Row'];
-export type User = Database['public']['Tables']['users']['Row'];
-export type QuickReplyTemplate = Database['public']['Tables']['quick_reply_templates']['Row'];
-export type Agent = Database['public']['Tables']['agents']['Row'];
-export type Channel = Database['public']['Tables']['channels']['Row'];
-export type BaseConhecimento = Database['public']['Tables']['base_conhecimentos']['Row'];
-export type Synapse = Database['public']['Tables']['synapses']['Row'];
-export type Tenant = Database['public']['Tables']['tenants']['Row'];
-
-// Enum exports
-export type ConversationStatus = Database['public']['Enums']['conversation_status_enum'];
-export type ContactStatus = Database['public']['Enums']['contact_status_enum'];
-export type MessageSenderType = Database['public']['Enums']['message_sender_type_enum'];
-export type SynapseStatus = Database['public']['Enums']['synapse_status_enum'];
-export type FeedbackType = Database['public']['Enums']['feedback_type_enum'];

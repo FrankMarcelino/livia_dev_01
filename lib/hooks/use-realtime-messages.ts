@@ -15,6 +15,12 @@ export function useRealtimeMessages(conversationId: string, initialMessages: Mes
   const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);
   const supabase = createClient();
 
+  // Reset messages when conversation changes
+  useEffect(() => {
+    setMessages(initialMessages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
   useEffect(() => {
     // Subscribe to new messages
     const channel = supabase

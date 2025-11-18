@@ -22,11 +22,7 @@ export default async function LivechatPage({
     redirect('/login');
   }
 
-  // TEMPORÁRIO: Usando admin client para bypass RLS
-  const { createAdminClient } = await import('@/lib/supabase/admin');
-  const adminClient = createAdminClient();
-
-  const { data: userData } = await adminClient
+  const { data: userData } = await supabase
     .from('users')
     .select('tenant_id, full_name, email, avatar_url')
     .eq('id', authData.user.id)
