@@ -9,36 +9,32 @@ Lista de tarefas técnicas pendentes e melhorias futuras.
 ### [BACKLOG-001] Corrigir Políticas RLS da Tabela Users
 
 **Prioridade:** Alta (Antes de produção)
-**Status:** Pendente
+**Status:** ✅ Concluído
 **Criado em:** 2025-11-17
+**Concluído em:** 2025-11-17
 
-**Problema:**
-- Tabela `users` tem políticas RLS causando recursão infinita
-- Atualmente usando workaround com Service Role Key (bypassa RLS)
-- Não é seguro para produção
+**Problema resolvido:**
+- ~~Tabela `users` tinha políticas RLS causando recursão infinita~~
+- ~~Estava usando workaround com Service Role Key (bypassa RLS)~~
 
-**Solução:**
-1. Executar SQL no Supabase Dashboard:
-   ```sql
-   -- Opção 1: Desabilitar RLS temporariamente
-   ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+**Solução aplicada via MCP:**
+1. ✅ Removidas todas as políticas problemáticas:
+   - "Super_admin pode gerenciar todos os usuários" (causava recursão)
+   - "User pode ver seus colegas de tenant" (causava recursão)
 
-   -- Opção 2: Corrigir políticas (ver scripts/fix-rls-users.sql)
-   ```
+2. ✅ Criadas políticas seguras sem recursão:
+   - "Users can read own data" - SELECT usando `auth.uid() = id`
+   - "Users can update own data" - UPDATE usando `auth.uid() = id`
 
-2. Remover workaround do código:
-   - `lib/supabase/admin.ts` - Deletar ou manter apenas para casos específicos
-   - `app/actions/auth.ts` - Voltar a usar cliente normal
-   - `app/livechat/page.tsx` - Voltar a usar cliente normal
+3. ✅ Workaround removido dos arquivos:
+   - `app/actions/auth.ts` - Usando cliente normal
+   - `app/livechat/page.tsx` - Usando cliente normal
+   - `lib/queries/livechat.ts` - Todas as 5 funções usando cliente normal
 
-**Arquivos relacionados:**
-- `scripts/fix-rls-users.sql` - SQL de correção
-- `scripts/check-user.js` - Script de diagnóstico
-- `lib/supabase/admin.ts` - Cliente admin (remover após fix)
+**Migration aplicada:**
+- `fix_users_rls_policies` - Executada via MCP Supabase
 
-**Referências:**
-- Commit: 3d40271 "fix: adicionar workaround RLS com admin client"
-- DECISIONS.md - Adicionar decisão sobre RLS
+**Nota:** O arquivo `lib/supabase/admin.ts` foi mantido para casos futuros onde bypass de RLS seja necessário (ex: criação de usuários via backend).
 
 ---
 
@@ -103,11 +99,22 @@ Lista de tarefas técnicas pendentes e melhorias futuras.
 ### [BACKLOG-006] Gerar Types Supabase Automaticamente
 
 **Prioridade:** Baixa
-**Status:** Não iniciado
+**Status:** ✅ Parcialmente Concluído
+**Concluído em:** 2025-11-17
 
 **Descrição:**
-- Script para regenerar `types/database.ts` quando schema mudar
-- Configurar CI/CD para atualizar types automaticamente
+- ✅ Types regenerados via MCP Supabase (`generate_typescript_types`)
+- ✅ Arquivo `types/database.ts` atualizado (1132 linhas)
+- ⏳ Pendente: Criar script NPM para facilitar regeneração
+- ⏳ Pendente: Configurar CI/CD para atualizar types automaticamente
+
+**Como regenerar manualmente:**
+```bash
+# Usar MCP do Supabase via curl
+curl -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  "https://mcp.supabase.com/mcp?project_ref=$SUPABASE_PROJECT_REF" \
+  -d '{"method":"tools/call","params":{"name":"generate_typescript_types"}}'
+```
 
 ---
 
@@ -131,6 +138,47 @@ Lista de tarefas técnicas pendentes e melhorias futuras.
 - Testes unitários para Server Actions
 - Testes E2E para fluxo de autenticação
 - Testes de integração com Supabase
+
+---
+
+### [BACKLOG-009] Otimizações de Performance (Banco de Dados)
+
+**Prioridade:** Média (Antes de escala)
+**Status:** Identificado
+**Criado em:** 2025-11-17
+
+**Avisos detectados via MCP Supabase Advisors:**
+
+1. **Unindexed Foreign Keys (25 ocorrências)**
+   - Problema: Foreign keys sem índice podem impactar performance em queries com JOINs
+   - Tabelas afetadas: `base_conhecimentos`, `channels`, `contacts`, `conversations`, `messages`, `feedbacks`, `synapses`, `tenants`, `users`, etc.
+   - Impacto: INFO (não crítico para MVP)
+   - Solução: Criar índices nas colunas de foreign keys mais consultadas
+
+2. **Auth RLS Initialization Plan (35+ ocorrências)**
+   - Problema: Políticas RLS re-avaliam `auth.uid()` para cada linha
+   - Solução: Substituir `auth.uid()` por `(select auth.uid())` nas políticas
+   - Exemplo:
+     ```sql
+     -- Antes (lento)
+     USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid()))
+
+     -- Depois (rápido)
+     USING (EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid())))
+     ```
+
+3. **Function Search Path Mutable**
+   - Função: `update_updated_at_column`
+   - Solução: Definir `search_path` na função
+
+4. **Leaked Password Protection Disabled**
+   - Proteção contra senhas vazadas desabilitada
+   - Solução: Habilitar via Dashboard Supabase → Authentication → Password Settings
+
+**Quando implementar:**
+- Índices: Quando houver degradação de performance em produção
+- RLS optimization: Quando escalar para 10k+ linhas por tabela
+- Password protection: Implementar antes de produção
 
 ---
 
