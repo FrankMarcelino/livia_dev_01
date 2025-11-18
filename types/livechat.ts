@@ -125,3 +125,96 @@ export interface ConversationControlsState {
   isResumingIA: boolean;
   error: string | null;
 }
+
+// ============================================================================
+// QUICK REPLIES
+// ============================================================================
+
+/**
+ * Quick Reply do tenant
+ */
+export interface QuickReply {
+  id: string;
+  tenant_id: string;
+  title: string;
+  message: string;
+  icon: string | null;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Payload para criar quick reply
+ */
+export interface QuickReplyCreatePayload {
+  title: string;
+  message: string;
+  icon?: string;
+  tenantId: string;
+}
+
+/**
+ * Payload para incrementar uso de quick reply
+ */
+export interface QuickReplyUsagePayload {
+  quickReplyId: string;
+  tenantId: string;
+}
+
+// ============================================================================
+// MESSAGE FEEDBACK
+// ============================================================================
+
+/**
+ * Feedback de mensagem da IA
+ */
+export interface MessageFeedback {
+  id: string;
+  tenant_id: string;
+  message_id: string;
+  conversation_id: string;
+  rating: 'positive' | 'negative';
+  comment: string | null;
+  user_id: string;
+  created_at: string;
+}
+
+/**
+ * Payload para criar feedback
+ */
+export interface MessageFeedbackPayload {
+  messageId: string;
+  conversationId: string;
+  rating: 'positive' | 'negative';
+  comment?: string;
+  tenantId: string;
+}
+
+// ============================================================================
+// CONTACT DATA
+// ============================================================================
+
+/**
+ * Histórico de alteração de dados do contato
+ */
+export interface ContactDataChange {
+  id: string;
+  tenant_id: string;
+  contact_id: string;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string;
+  changed_at: string;
+}
+
+/**
+ * Payload para atualizar campo do contato
+ */
+export interface ContactUpdatePayload {
+  contactId: string;
+  field: string;
+  value: unknown;
+  tenantId: string;
+}

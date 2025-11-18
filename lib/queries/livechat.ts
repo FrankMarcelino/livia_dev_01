@@ -146,11 +146,10 @@ export async function getQuickReplies(
 ): Promise<QuickReplyTemplate[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('quick_reply_templates')
     .select('*')
     .eq('tenant_id', tenantId)
-    .eq('is_active', true)
     .order('usage_count', { ascending: false })
     .limit(10);
 
