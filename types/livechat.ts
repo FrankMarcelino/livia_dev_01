@@ -210,11 +210,26 @@ export interface ContactDataChange {
 }
 
 /**
- * Payload para atualizar campo do contato
+ * Payload para atualizar campo do contato (update de campo único)
  */
 export interface ContactUpdatePayload {
   contactId: string;
   field: string;
   value: unknown;
   tenantId: string;
+}
+
+/**
+ * Payload para atualizar múltiplos campos do contato
+ */
+export interface ContactBulkUpdatePayload {
+  name: string;
+  email?: string | null;
+  cpf?: string | null;
+  phone_secondary?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  city?: string | null;
+  zip_code?: string | null;
 }

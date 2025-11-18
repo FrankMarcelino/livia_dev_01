@@ -6,6 +6,7 @@ import {
   getMessages,
 } from '@/lib/queries/livechat';
 import { ContactList, ConversationView } from '@/components/livechat';
+import { CustomerDataPanel } from '@/components/livechat/customer-data-panel';
 import { Header } from '@/components/auth/header';
 
 interface LivechatPageProps {
@@ -103,6 +104,15 @@ export default async function LivechatPage({
             </div>
           )}
         </main>
+
+        {selectedContactId && (
+          <aside className="w-80 border-l">
+            <CustomerDataPanel
+              contactId={selectedContactId}
+              tenantId={tenantId}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );
