@@ -382,9 +382,122 @@ await supabase
 
 ---
 
+## Decisão #006: Sidebar com shadcn/ui e Auto-Collapse Baseado em Rota
+
+**Data:** 2025-11-18
+
+**Status:** ✅ Implementado
+
+### Contexto
+Necessidade de adicionar navegação entre features (Livechat, Base de Conhecimento, Treinamento Neurocore). O Livechat requer layout de 3 colunas (ContactList | ConversationView | CustomerDataPanel), então o sidebar precisa colapsar automaticamente nessa rota.
+
+### Opções Consideradas
+
+1. **Context API manual + Sidebar customizado**
+   - Prós: Controle total, sem dependências
+   - Contras: Muito trabalho, sem acessibilidade, sem animações
+
+2. **Props drilling + Sidebar customizado**
+   - Prós: Simples conceitualmente, explícito
+   - Contras: Acoplamento alto, difícil manutenção
+
+3. **shadcn/ui Sidebar + Hook customizado**
+   - Prós: Acessibilidade completa, animações, responsivo, keyboard shortcuts
+   - Contras: +10KB no bundle, dependência externa
+
+### Decisão
+**Usar shadcn/ui Sidebar component** com hook customizado `useSidebarAutoCollapse`.
+
+**Arquitetura:**
+- **Route Groups**: `(auth)` para login, `(dashboard)` para features autenticadas
+- **SidebarProvider**: Contexto nativo do shadcn gerencia estado
+- **Hook customizado**: `useSidebarAutoCollapse(['/livechat'])` aplica auto-collapse
+- **Wrapper Component**: `SidebarAutoCollapseWrapper` permite Server Component usar hook
+- **Modo icon**: Sidebar colapsa mostrando apenas ícones (collapsible="icon")
+
+### Implementação
+
+**Arquivos criados:**
+- [lib/hooks/use-sidebar-auto-collapse.ts](lib/hooks/use-sidebar-auto-collapse.ts) - Hook de auto-collapse
+- [components/layout/app-sidebar.tsx](components/layout/app-sidebar.tsx) - Sidebar principal
+- [components/layout/nav-items.tsx](components/layout/nav-items.tsx) - Configuração de navegação
+- [components/layout/sidebar-auto-collapse-wrapper.tsx](components/layout/sidebar-auto-collapse-wrapper.tsx) - Wrapper client
+- [app/(dashboard)/layout.tsx](app/(dashboard)/layout.tsx) - Layout com SidebarProvider
+- [app/(dashboard)/knowledge-base/page.tsx](app/(dashboard)/knowledge-base/page.tsx) - Placeholder
+- [app/(dashboard)/neurocore/page.tsx](app/(dashboard)/neurocore/page.tsx) - Placeholder
+
+**Arquivos modificados:**
+- [components/auth/header.tsx](components/auth/header.tsx) - Adicionado SidebarTrigger
+- [components/ui/sidebar.tsx](components/ui/sidebar.tsx) - Corrigido Math.random → useState
+- [app/(dashboard)/livechat/page.tsx](app/(dashboard)/livechat/page.tsx) - Removido Header duplicado
+- [app/page.tsx](app/page.tsx) - Redirect para /livechat
+
+### Comportamento
+
+**Livechat:**
+- Sidebar **auto-colapsa** em modo icon (apenas ícones)
+- Dá espaço para as 3 colunas do chat
+
+**Outras rotas:**
+- Sidebar permanece **expandida** mostrando nomes das features
+- Estado persiste entre navegações (cookies)
+
+**Controles:**
+- Botão no header permite toggle manual
+- Keyboard: Ctrl+B (Win) / Cmd+B (Mac)
+- Acessibilidade: ARIA labels, foco no teclado
+
+### Princípios SOLID Aplicados
+
+1. **Single Responsibility**
+   - `useSidebarAutoCollapse`: Apenas gerencia auto-collapse
+   - `AppSidebar`: Apenas renderiza sidebar
+   - `nav-items.tsx`: Apenas configuração de navegação
+
+2. **Open/Closed**
+   - Sidebar extensível via `navItems` array
+   - Fechado para modificação (usa shadcn)
+
+3. **Dependency Inversion**
+   - Hook depende de abstração `useSidebar` (shadcn)
+   - Componentes dependem de props, não de implementações
+
+### Consequências
+
+**Positivas:**
+✅ Acessibilidade completa (ARIA, keyboard shortcuts)
+✅ Responsivo (Sheet em mobile)
+✅ Persistência de estado (cookies)
+✅ Animações suaves (CSS transitions)
+✅ Zero erros TypeScript ou ESLint
+✅ Build passou com sucesso
+✅ Economia de 4-6 horas de desenvolvimento
+
+**Negativas:**
+⚠️ shadcn sidebar adiciona ~10KB ao bundle
+⚠️ Dependência de biblioteca externa
+
+**Trade-offs aceitos:**
+- Bundle maior vs UX superior
+- Dependência vs tempo de desenvolvimento
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ ESLint (zero erros nos arquivos novos)
+✅ Build production (sucesso)
+✅ Rotas criadas: `/`, `/login`, `/livechat`, `/knowledge-base`, `/neurocore`
+
+### Referências
+- [shadcn/ui Sidebar Documentation](https://ui.shadcn.com/docs/components/sidebar)
+- [Next.js Route Groups](https://nextjs.org/docs/app/building-your-application/routing/route-groups)
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
 ---------|-------------|------------------
 2025-11-16 | shadcn/ui para componentes | Consistência visual, acessibilidade, manutenção facilitada
 2025-11-16 | Server Components por padrão | Melhor performance, menor bundle, acesso direto a dados
+2025-11-18 | Sidebar modo icon no livechat | Layout de 3 colunas requer mais espaço horizontal

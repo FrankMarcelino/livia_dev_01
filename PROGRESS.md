@@ -1,5 +1,79 @@
 # Progresso do Projeto - LIVIA MVP
 
+## Sessão 2025-11-18 - Implementação de Sidebar com Auto-Collapse
+
+### Completado
+- [x] Consultar documentação atualizada do shadcn/ui sidebar
+- [x] Instalar componente sidebar do shadcn/ui
+- [x] Criar hook customizado `useSidebarAutoCollapse` seguindo SOLID
+- [x] Criar route groups `(auth)` e `(dashboard)`
+- [x] Implementar componente AppSidebar com navegação
+- [x] Criar layout do dashboard com SidebarProvider
+- [x] Mover páginas existentes para route groups apropriados
+- [x] Criar páginas placeholder (Knowledge Base, Neurocore)
+- [x] Corrigir bug: sidebar expande ao sair do livechat
+- [x] Executar testes de tipo (TypeScript) - Zero erros
+- [x] Executar ESLint - Zero erros nos arquivos novos
+- [x] Build production - Sucesso
+- [x] Documentar decisão #006 em DECISIONS.md
+
+### Funcionalidades Implementadas
+
+**Sidebar de Navegação:**
+- ✅ Componente shadcn/ui sidebar profissional
+- ✅ Auto-collapse no `/livechat` (modo icon)
+- ✅ Auto-expand ao sair do livechat
+- ✅ 3 items de navegação (Livechat, Knowledge Base, Neurocore)
+- ✅ Persistência de estado via cookies
+- ✅ Keyboard shortcuts (Ctrl+B / Cmd+B)
+- ✅ Acessibilidade completa (ARIA labels)
+- ✅ Animações suaves de transição
+- ✅ SidebarTrigger no header
+
+**Arquitetura:**
+- ✅ Route Groups: `(auth)` e `(dashboard)`
+- ✅ Hook customizado: `useSidebarAutoCollapse`
+- ✅ Wrapper Component para Server Components
+- ✅ Layout unificado no dashboard
+
+### Arquivos Criados
+- `lib/hooks/use-sidebar-auto-collapse.ts` - Hook de auto-collapse
+- `lib/hooks/index.ts` - Export barrel
+- `components/layout/app-sidebar.tsx` - Sidebar principal
+- `components/layout/nav-items.tsx` - Configuração de navegação
+- `components/layout/sidebar-auto-collapse-wrapper.tsx` - Wrapper client
+- `components/layout/index.ts` - Export barrel
+- `app/(dashboard)/layout.tsx` - Layout com SidebarProvider
+- `app/(dashboard)/livechat/page.tsx` - Livechat ajustado
+- `app/(dashboard)/knowledge-base/page.tsx` - Placeholder
+- `app/(dashboard)/neurocore/page.tsx` - Placeholder
+- `app/(auth)/login/page.tsx` - Movido de app/login
+
+### Arquivos Modificados
+- `components/auth/header.tsx` - Adicionado SidebarTrigger + Separator
+- `components/ui/sidebar.tsx` - Corrigido Math.random → useState
+- `app/page.tsx` - Redirect para /livechat
+
+### Próximos Passos
+- [ ] Implementar Base de Conhecimento (CRUD de synapses)
+- [ ] Implementar Treinamento Neurocore
+- [ ] Adicionar testes E2E
+- [ ] Corrigir RLS da tabela users (BACKLOG-001)
+
+### Decisões Técnicas
+- **shadcn/ui Sidebar**: Escolhido por acessibilidade, animações e keyboard shortcuts
+- **Hook customizado**: `useSidebarAutoCollapse` aplica lógica baseada em rota
+- **Route Groups**: Organiza rotas autenticadas vs públicas
+- **Auto-collapse bidirecional**: Colapsa no livechat, expande ao sair
+- **Princípios SOLID**: Single Responsibility, Open/Closed, Dependency Inversion
+
+### Bloqueios/Problemas
+- ✅ Bug corrigido: Sidebar não expandia ao sair do livechat
+- ✅ ESLint warning: Fragment desnecessário (corrigido)
+- ✅ Math.random em render (corrigido para useState)
+
+---
+
 ## Sessão 2025-11-17 (Parte 2) - Implementação Completa do Livechat
 
 ### Completado
