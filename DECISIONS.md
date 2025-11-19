@@ -494,6 +494,101 @@ Necessidade de adicionar navegação entre features (Livechat, Base de Conhecime
 
 ---
 
+## Decisão #007: CRUD Simples de Synapses (Sem Webhook de Publicação)
+
+**Data:** 2025-11-18
+
+**Status:** ✅ Implementado
+
+### Contexto
+Ao implementar a Base de Conhecimento (CRUD de synapses), surgiu a questão: usar webhook n8n para publicar synapses ou deixar n8n monitorar mudanças em background?
+
+### Opções Consideradas
+
+1. **CRUD Simples (sem webhook)**
+   - Prós: Simplicidade, offline-first, UX não bloqueante, menos dependências
+   - Contras: Menos controle, sem feedback imediato, possível delay
+
+2. **Com Webhook Explícito**
+   - Prós: Controle explícito, feedback imediato, validação síncrona
+   - Contras: Complexidade, dependência de n8n, UX bloqueante, mais latência
+
+3. **Híbrida**
+   - Prós: Flexibilidade, UX não bloqueante + controle quando necessário
+   - Contras: Mais complexo, confusão do usuário
+
+### Decisão
+**CRUD Simples (sem webhook de publicação)** para MVP.
+
+**Arquitetura:**
+- Frontend faz CRUD completo (criar, editar, deletar)
+- Toggle `is_enabled` via UPDATE direto no banco
+- n8n monitora synapses com `is_enabled = true` via Supabase Realtime
+- n8n cria embeddings automaticamente em background
+- n8n atualiza campo `status` (draft → indexing → publishing → error)
+- Frontend exibe status visual (badges coloridos)
+
+### Fluxo de Publicação
+
+```
+1. Usuário cria synapse → Salva no Supabase (status: 'draft', is_enabled: false)
+2. Usuário edita conteúdo → UPDATE direto
+3. Usuário ativa (toggle is_enabled = true) → UPDATE direto
+4. n8n detecta mudança via Realtime → Atualiza status para 'indexing'
+5. n8n cria embeddings → Atualiza status para 'publishing'
+6. IA passa a usar a synapse automaticamente
+```
+
+### Estados da Synapse
+
+| Status | Cor | Descrição |
+|--------|-----|-----------|
+| draft | 🔵 Azul | Synapse criada, não ativa |
+| indexing | 🟡 Amarelo | Ativa, embeddings sendo criados |
+| publishing | 🟢 Verde | Ativa, IA usando (embeddings prontos) |
+| error | 🔴 Vermelho | Falha no processamento |
+
+### Consequências
+
+**Positivas:**
+✅ Simplicidade máxima (menos código, menos bugs)
+✅ Frontend funciona offline (não depende de n8n)
+✅ UX não bloqueante (operações instantâneas)
+✅ Escalável (n8n processa em background)
+✅ Menos latência (sem HTTP requests ao n8n)
+
+**Negativas:**
+⚠️ Usuário não recebe confirmação imediata de sucesso
+⚠️ Possível delay entre ativar synapse e IA começar a usar
+⚠️ Menos controle sobre timing de processamento
+
+**Trade-offs aceitos:**
+- Feedback imediato vs Simplicidade → Escolhemos simplicidade
+- Controle explícito vs Autonomia do n8n → Escolhemos autonomia
+
+### Desafios e Soluções
+
+**Desafio 1:** Como usuário sabe se embedding foi criado?
+- **Solução:** Badge de status visual atualizado por n8n via Realtime
+
+**Desafio 2:** Synapse ativa mas sem embedding (delay)
+- **Solução:** n8n valida e reprocessa synapses órfãs periodicamente
+
+**Desafio 3:** Sincronização n8n
+- **Solução:** n8n monitora via Supabase Realtime + polling de fallback
+
+### Revisão Futura
+Considerar webhook explícito SE:
+- Usuários reclamarem de falta de feedback imediato
+- Validação síncrona se tornar necessária
+- Controle explícito for crítico para o negócio
+
+### Referências
+- [Decisão #003: Base Vetorial Gerenciada pelo n8n](DECISIONS.md#decisão-003-base-vetorial-gerenciada-pelo-n8n)
+- Análise de trade-offs documentada em conversa
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
@@ -501,3 +596,4 @@ Necessidade de adicionar navegação entre features (Livechat, Base de Conhecime
 2025-11-16 | shadcn/ui para componentes | Consistência visual, acessibilidade, manutenção facilitada
 2025-11-16 | Server Components por padrão | Melhor performance, menor bundle, acesso direto a dados
 2025-11-18 | Sidebar modo icon no livechat | Layout de 3 colunas requer mais espaço horizontal
+2025-11-18 | CRUD simples para synapses | Simplicidade, offline-first, n8n em background
