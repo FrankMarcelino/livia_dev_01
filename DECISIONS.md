@@ -9,6 +9,7 @@
 6. [Sidebar com Auto-Collapse](#decisão-006-sidebar-com-shadcnui-e-auto-collapse-baseado-em-rota)
 7. [CRUD Simples de Synapses](#decisão-007-crud-simples-de-synapses-sem-webhook-de-publicação)
 8. [Treinamento Neurocore com Modo Mock](#decisão-008-treinamento-neurocore-com-modo-mock)
+9. [Hierarquia Base de Conhecimento → Synapses](#decisão-009-hierarquia-base-de-conhecimento--synapses)
 
 ---
 
@@ -711,6 +712,77 @@ Necessidade de implementar interface para testar e validar respostas da IA antes
 
 ---
 
+## Decisão #009: Hierarquia Base de Conhecimento → Synapses
+
+**Data:** 2025-11-19
+
+**Status:** Implementada
+
+### Contexto
+A implementação inicial do MVP colocou synapses diretamente na página `/knowledge-base`, usando um `baseConhecimentoId` hardcoded ('00000000-...'). O MVP descrito especifica uma hierarquia clara: **Bases de Conhecimento** agrupam **Synapses** relacionadas, permitindo organização temática (ex: "Políticas de Devolução", "Suporte Técnico").
+
+Esta decisão resolve o **Gap #1** identificado no [MVP_CONTRAST_ANALYSIS.md](docs/MVP_CONTRAST_ANALYSIS.md).
+
+### Opções Consideradas
+
+1. **Modal Aninhado** (Escolhida): Alinha com MVP, menor refactor, reutiliza componentes - 12-15h
+2. **Navegação com Subrotas**: UX mais clean, mas refactor maior e perde contexto - 16-20h
+3. **Accordion/Expansível**: Simples mas não alinha com MVP, não escalável - 6-8h
+
+### Decisão
+Implementar hierarquia usando **Modal Aninhado** com tabela de synapses aninhada dentro do BaseConhecimentoDialog.
+
+**Razões:** Alinha com MVP, reutiliza SynapseDialog/SynapsesTable, mantém contexto, desktop-first.
+
+### Implementação
+
+**Arquivos Criados:**
+- `types/knowledge-base.ts` - Tipos BaseConhecimento, BaseConhecimentoWithCount, BaseConhecimentoWithSynapses
+- `lib/queries/knowledge-base.ts` - 9 queries para CRUD de bases
+- `app/actions/base-conhecimento.ts` - 4 Server Actions
+- `components/knowledge-base/base-conhecimento-table.tsx`
+- `components/knowledge-base/base-conhecimento-dialog.tsx`
+- `components/knowledge-base/knowledge-base-container.tsx`
+- `app/api/bases/[baseId]/synapses/route.ts`
+- `migrations/base-conhecimento-hierarchy.sql`
+
+**Modificados:** knowledge-base/page.tsx, synapses-table.tsx, synapse-dialog.tsx, delete-synapse-dialog.tsx, synapse-actions.tsx (adicionados callbacks)
+
+### Aplicação de SOLID
+
+- **SRP**: Cada componente com responsabilidade única
+- **OCP**: Callbacks (onSuccess, onSynapseChange) para extensibilidade
+- **LSP**: SynapsesTable reutilizável em múltiplos contextos
+- **ISP**: Props específicas, callbacks opcionais
+- **DIP**: Queries abstraídas, componentes usam callbacks
+
+### Consequências
+
+**Positivas:** Organização temática, alinha 100% com MVP, reutilização máxima, UX fluida (callbacks), escalável
+
+**Negativas:** Modal aninhado (não ideal mobile, mas MVP é desktop), pode ficar pesado com >50 synapses
+
+### Migração de Dados
+
+Executar `migrations/base-conhecimento-hierarchy.sql`:
+1. Cria base padrão para cada tenant
+2. Migra synapses órfãs (baseConhecimentoId='00000000...')
+3. Valida ausência de órfãos
+4. Gera estatísticas
+
+### Testes Realizados
+
+✅ TypeScript type-check
+✅ Build production (18.4s)
+✅ API route `/api/bases/[baseId]/synapses` criada
+✅ Queries com JOIN (evita N+1)
+
+### Referências
+- [BASE_CONHECIMENTO_REFACTOR_PLAN.md](docs/BASE_CONHECIMENTO_REFACTOR_PLAN.md) - Análise completa (600 linhas)
+- [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
@@ -722,3 +794,6 @@ Necessidade de implementar interface para testar e validar respostas da IA antes
 2025-11-19 | Neurocore com modo mock | Desenvolvimento frontend independente do n8n
 2025-11-19 | Estado local (não persistir queries) | Simplicidade MVP, histórico não crítico
 2025-11-19 | react-markdown para respostas | Padrão de mercado, seguro, 12M downloads/sem
+2025-11-19 | Modal aninhado para hierarquia | Alinha MVP, reutiliza componentes, mantém contexto
+2025-11-19 | Callbacks para refresh local | UX fluida sem fechar modal, SOLID (OCP/DIP)
+2025-11-19 | API route para synapses | Client component precisa fetch, não pode usar server queries

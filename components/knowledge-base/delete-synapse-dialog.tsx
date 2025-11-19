@@ -22,6 +22,7 @@ interface DeleteSynapseDialogProps {
   onOpenChange: (open: boolean) => void;
   synapse: Synapse;
   tenantId: string;
+  onSuccess?: () => void; // Callback chamado após sucesso (opcional)
 }
 
 /**
@@ -29,12 +30,15 @@ interface DeleteSynapseDialogProps {
  *
  * Princípios SOLID:
  * - Single Responsibility: Apenas confirma e deleta synapse
+ * - Open/Closed: Extensível via callback onSuccess
+ * - Dependency Inversion: Aceita callback abstrato
  */
 export function DeleteSynapseDialog({
   open,
   onOpenChange,
   synapse,
   tenantId,
+  onSuccess,
 }: DeleteSynapseDialogProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +52,14 @@ export function DeleteSynapseDialog({
       if (result.success) {
         toast.success('Synapse deletada com sucesso!');
         onOpenChange(false);
-        router.refresh();
+
+        // Se callback fornecido, chamar (ex: refresh dados no dialog pai)
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Fallback: refresh page
+          router.refresh();
+        }
       } else {
         toast.error(result.error || 'Erro ao deletar synapse');
       }

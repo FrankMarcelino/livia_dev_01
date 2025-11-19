@@ -461,3 +461,111 @@ Nenhum bloqueio identificado.
 - **Total de componentes criados:** 0 (próxima sessão)
 - **Testes implementados:** 0 (próxima sessão)
 - **Protótipos validados:** 0 (próxima sessão)
+
+---
+
+## Sessão: 2025-11-19 (Continuação - Hierarquia Base de Conhecimento)
+
+**Foco:** Implementação de hierarquia Base de Conhecimento → Synapses (Gap #1 do MVP)
+
+**Completado:**
+- [x] Sprint 1: Types, Queries e Server Actions para Base de Conhecimento
+  - Criados 6 tipos (BaseConhecimento, BaseConhecimentoWithCount, etc.)
+  - Criadas 9 queries (getBaseConhecimentos, createBaseConhecimento, etc.)
+  - Criadas 4 Server Actions (create, update, delete, toggle)
+- [x] Sprint 2: Componentes UI com Modal Aninhado
+  - BaseConhecimentoTable (lista de bases)
+  - BaseConhecimentoDialog (form + synapses aninhadas)
+  - KnowledgeBaseContainer (client wrapper para estado)
+  - Refatorado SynapsesTable, SynapseDialog, DeleteSynapseDialog (callbacks onSuccess)
+- [x] Sprint 3: Integração e Migração
+  - Refatorado /knowledge-base page para usar hierarquia
+  - Criado API route /api/bases/[baseId]/synapses (client component fetch)
+  - Criado script SQL de migração (base padrão + reassign synapses órfãs)
+- [x] Sprint 4: Validações (já implementadas nos componentes)
+- [x] Sprint 5: Testes e Documentação
+  - ✅ TypeScript type-check
+  - ✅ Build production (18.4s)
+  - ✅ Decisão #009 documentada
+  - ✅ 3 decisões rápidas adicionadas
+
+**Aprendizados:**
+- Modal aninhado funciona bem com shadcn/ui (portals gerenciam z-index)
+- Callbacks (onSuccess, onSynapseChange) permitem UX fluida sem fechar modal
+- Client components não podem usar queries de server.ts → usar API routes
+- JOIN com count evita N+1 queries (getBaseConhecimentos)
+- Migração SQL idempotente é crítica (verificações IF NOT EXISTS)
+- SOLID aplicado previne refactors grandes (componentes reutilizáveis)
+
+**Decisões Tomadas:**
+- Modal Aninhado (vs Subrotas ou Accordion) - alinha MVP, 12-15h
+- Callbacks para refresh local (vs router.refresh que perde contexto)
+- API route para fetch de synapses (client component limitation)
+- shadcn/ui Select component adicionado
+
+**Problemas Encontrados e Resolvidos:**
+1. **Build Error: Client component importing server queries**
+   - Problema: BaseConhecimentoDialog importava getSynapsesByBase que usa createClient(server.ts)
+   - Causa: next/headers só funciona em Server Components
+   - Solução: Criada API route /api/bases/[baseId]/synapses, client usa fetch()
+
+2. **Select component não instalado**
+   - Problema: Import error em BaseConhecimentoDialog
+   - Solução: `npx shadcn@latest add select`
+
+3. **Unused request parameter**
+   - Problema: TypeScript error em API route
+   - Solução: Prefixado com `_request`
+
+**Arquivos Criados (Total: 8):**
+- types/knowledge-base.ts (6 novos tipos)
+- lib/queries/knowledge-base.ts (9 queries)
+- app/actions/base-conhecimento.ts (4 Server Actions)
+- components/knowledge-base/base-conhecimento-table.tsx
+- components/knowledge-base/base-conhecimento-dialog.tsx
+- components/knowledge-base/knowledge-base-container.tsx
+- app/api/bases/[baseId]/synapses/route.ts
+- migrations/base-conhecimento-hierarchy.sql
+
+**Arquivos Modificados (Total: 6):**
+- app/(dashboard)/knowledge-base/page.tsx (refatorado para hierarquia)
+- components/knowledge-base/synapses-table.tsx (callback onSynapseChange)
+- components/knowledge-base/synapse-dialog.tsx (callback onSuccess)
+- components/knowledge-base/delete-synapse-dialog.tsx (callback onSuccess)
+- components/knowledge-base/synapse-actions.tsx (passa callbacks)
+- components/knowledge-base/index.ts (exports)
+
+**SOLID Aplicado:**
+- **SRP**: Cada componente tem responsabilidade única
+- **OCP**: Componentes extensíveis via callbacks, fechados para modificação
+- **LSP**: SynapsesTable substituível em múltiplos contextos
+- **ISP**: Props específicas, callbacks opcionais
+- **DIP**: Queries abstraídas, componentes usam callbacks não implementações
+
+---
+
+## Métricas Atualizadas
+- **Decisões documentadas:** 9 (adicionado #009)
+- **Decisões rápidas:** 9 (3 novas sobre hierarquia)
+- **Componentes criados:** 3 (BaseConhecimentoTable, Dialog, Container)
+- **Componentes refatorados:** 4 (SynapsesTable, SynapseDialog, DeleteDialog, Actions)
+- **API routes criadas:** 1 (/api/bases/[baseId]/synapses)
+- **Queries criadas:** 9 (bases de conhecimento)
+- **Server Actions criadas:** 4 (CRUD de bases)
+- **Migrações SQL criadas:** 1 (hierarchy migration)
+- **Build time:** 18.4s
+- **Gaps do MVP resolvidos:** 1/4 (Gap #1: Hierarquia)
+
+---
+
+## Próximos Passos (Prioridade Alta)
+1. **Executar migração SQL** `migrations/base-conhecimento-hierarchy.sql`
+2. **Gap #2: Livechat Layout** - Ajustar para 4 colunas (conversations sidebar)
+3. **Gap #3: Feedback de Mensagens** - Implementar like/dislike no livechat
+4. **Gap #4: Quick Replies** - Respostas rápidas no livechat
+
+## Próximos Passos (Prioridade Média)
+- Refatorar SynapseDialog para reutilização no Neurocore
+- Adicionar paginação se base tiver >50 synapses
+- Adicionar busca/filtros em bases e synapses
+- Melhorar empty states com call-to-action

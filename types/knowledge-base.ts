@@ -59,3 +59,71 @@ export interface SynapsesFilters {
   is_enabled?: boolean;
   search?: string; // Busca em title/description
 }
+
+/**
+ * Base de Conhecimento - Agrupa synapses relacionadas
+ *
+ * Estrutura hierárquica:
+ * Base de Conhecimento → Synapses
+ *
+ * Exemplos:
+ * - Base: "Políticas de Devolução" → Synapses sobre prazos, produtos não devolúveis, etc.
+ * - Base: "Suporte Técnico" → Synapses sobre reset de senha, problemas de login, etc.
+ */
+export interface BaseConhecimento {
+  id: string;
+  tenant_id: string;
+  neurocore_id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Base de Conhecimento com contagem de synapses
+ *
+ * Usado na listagem de bases para exibir quantidade de synapses
+ */
+export interface BaseConhecimentoWithCount extends BaseConhecimento {
+  synapses_count: number;
+}
+
+/**
+ * Base de Conhecimento com synapses relacionadas
+ *
+ * Usado no modal de edição para exibir base + synapses juntas
+ */
+export interface BaseConhecimentoWithSynapses extends BaseConhecimento {
+  synapses: Synapse[];
+}
+
+/**
+ * Base de Conhecimento com informações do NeuroCore
+ *
+ * Usado para exibir nome do NeuroCore no select disabled
+ */
+export interface BaseConhecimentoWithNeuroCore extends BaseConhecimento {
+  neurocores: {
+    id: string;
+    name: string;
+  };
+}
+
+/**
+ * Dados para criar uma nova base de conhecimento
+ */
+export interface CreateBaseConhecimentoData {
+  name: string;
+  description?: string;
+}
+
+/**
+ * Dados para atualizar uma base de conhecimento existente
+ */
+export interface UpdateBaseConhecimentoData {
+  name?: string;
+  description?: string | null;
+  is_active?: boolean;
+}

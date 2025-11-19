@@ -23,6 +23,7 @@ interface SynapsesTableProps {
   synapses: Synapse[];
   tenantId: string;
   baseConhecimentoId: string;
+  onSynapseChange?: () => void; // Callback para quando synapse muda (criar/editar/deletar)
 }
 
 /**
@@ -30,11 +31,13 @@ interface SynapsesTableProps {
  *
  * Princípios SOLID:
  * - Single Responsibility: Apenas renderiza e gerencia tabela de synapses
+ * - Open/Closed: Aceita callback onSynapseChange para extensibilidade
  */
 export function SynapsesTable({
   synapses,
   tenantId,
   baseConhecimentoId,
+  onSynapseChange,
 }: SynapsesTableProps) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -56,7 +59,14 @@ export function SynapsesTable({
             ? 'Synapse desativada'
             : 'Synapse ativada! n8n processará em breve'
         );
-        router.refresh();
+
+        // Se callback fornecido, chamar (ex: refresh dados no dialog)
+        if (onSynapseChange) {
+          onSynapseChange();
+        } else {
+          // Fallback: refresh page
+          router.refresh();
+        }
       } else {
         toast.error(result.error || 'Erro ao atualizar synapse');
       }
@@ -88,6 +98,7 @@ export function SynapsesTable({
           onOpenChange={setCreateOpen}
           tenantId={tenantId}
           baseConhecimentoId={baseConhecimentoId}
+          onSuccess={onSynapseChange}
         />
       </>
     );
@@ -127,6 +138,7 @@ export function SynapsesTable({
                     synapse={synapse}
                     tenantId={tenantId}
                     baseConhecimentoId={baseConhecimentoId}
+                    onSuccess={onSynapseChange}
                   />
                 </TableCell>
               </TableRow>
@@ -140,6 +152,7 @@ export function SynapsesTable({
         onOpenChange={setCreateOpen}
         tenantId={tenantId}
         baseConhecimentoId={baseConhecimentoId}
+        onSuccess={onSynapseChange}
       />
     </>
   );

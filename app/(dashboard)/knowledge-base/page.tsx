@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getSynapses } from '@/lib/queries/knowledge-base';
-import { SynapsesTable } from '@/components/knowledge-base';
+import { getBaseConhecimentos } from '@/lib/queries/knowledge-base';
+import { KnowledgeBaseContainer } from '@/components/knowledge-base';
 
 export default async function KnowledgeBasePage() {
   const supabase = await createClient();
@@ -30,33 +30,49 @@ export default async function KnowledgeBasePage() {
     );
   }
 
-  // TODO: Buscar base_conhecimento_id real do tenant
-  // Por enquanto, usando um ID fixo para MVP
-  const baseConhecimentoId = '00000000-0000-0000-0000-000000000000';
+  // Buscar dados do tenant (incluindo neurocore)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tenantData } = (await supabase
+    .from('tenants')
+    .select(
+      `
+      id,
+      neurocore_id,
+      neurocores(id, name)
+    `
+    )
+    .eq('id', tenantId)
+    .single()) as any;
 
-  const synapses = await getSynapses(tenantId);
+  if (!tenantData || !tenantData.neurocore_id || !tenantData.neurocores) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">
+          Erro: Tenant sem NeuroCore configurado
+        </p>
+      </div>
+    );
+  }
+
+  const neurocoreId = tenantData.neurocore_id;
+  const neurocoreName = tenantData.neurocores.name;
+
+  // Buscar bases de conhecimento
+  const bases = await getBaseConhecimentos(tenantId);
 
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Base de Conhecimento</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie as synapses usadas pela IA
-          </p>
-        </div>
-      </div>
-
-      <SynapsesTable
-        synapses={synapses}
+      <KnowledgeBaseContainer
+        bases={bases}
         tenantId={tenantId}
-        baseConhecimentoId={baseConhecimentoId}
+        neurocoreId={neurocoreId}
+        neurocoreName={neurocoreName}
       />
 
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          💡 <strong>Dica:</strong> Synapses ativas serão processadas pelo n8n
-          em background. O status será atualizado automaticamente.
+          💡 <strong>Dica:</strong> Organize synapses em bases temáticas para
+          facilitar o gerenciamento do conhecimento da IA.
         </p>
       </div>
     </div>

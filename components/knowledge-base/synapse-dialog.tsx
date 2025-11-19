@@ -28,6 +28,7 @@ interface SynapseDialogProps {
   tenantId: string;
   baseConhecimentoId: string;
   synapse?: Synapse; // Se fornecido, está editando
+  onSuccess?: () => void; // Callback chamado após sucesso (opcional)
 }
 
 /**
@@ -35,7 +36,8 @@ interface SynapseDialogProps {
  *
  * Princípios SOLID:
  * - Single Responsibility: Apenas gerencia formulário de synapse
- * - Open/Closed: Extensível via props, fechado para modificação
+ * - Open/Closed: Extensível via props (onSuccess callback), fechado para modificação
+ * - Dependency Inversion: Aceita callback abstrato, não depende de implementação
  */
 export function SynapseDialog({
   open,
@@ -43,6 +45,7 @@ export function SynapseDialog({
   tenantId,
   baseConhecimentoId,
   synapse,
+  onSuccess,
 }: SynapseDialogProps) {
   const router = useRouter();
   const isEditing = !!synapse;
@@ -80,7 +83,14 @@ export function SynapseDialog({
           isEditing ? 'Synapse atualizada!' : 'Synapse criada com sucesso!'
         );
         onOpenChange(false);
-        router.refresh();
+
+        // Se callback fornecido, chamar (ex: refresh dados no dialog pai)
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Fallback: refresh page
+          router.refresh();
+        }
 
         // Limpar form se for criação
         if (!isEditing) {

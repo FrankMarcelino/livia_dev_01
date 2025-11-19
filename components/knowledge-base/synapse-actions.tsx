@@ -18,6 +18,7 @@ interface SynapseActionsProps {
   synapse: Synapse;
   tenantId: string;
   baseConhecimentoId: string;
+  onSuccess?: () => void; // Callback para quando operação tem sucesso
 }
 
 /**
@@ -25,11 +26,13 @@ interface SynapseActionsProps {
  *
  * Princípios SOLID:
  * - Single Responsibility: Apenas gerencia ações da synapse
+ * - Open/Closed: Aceita callback para extensibilidade
  */
 export function SynapseActions({
   synapse,
   tenantId,
   baseConhecimentoId,
+  onSuccess,
 }: SynapseActionsProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -65,6 +68,7 @@ export function SynapseActions({
         tenantId={tenantId}
         baseConhecimentoId={baseConhecimentoId}
         synapse={synapse}
+        onSuccess={onSuccess}
       />
 
       <DeleteSynapseDialog
@@ -72,6 +76,7 @@ export function SynapseActions({
         onOpenChange={setDeleteOpen}
         synapse={synapse}
         tenantId={tenantId}
+        onSuccess={onSuccess}
       />
     </>
   );
