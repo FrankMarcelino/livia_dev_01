@@ -7,6 +7,11 @@ import {
   deleteSynapse,
   toggleSynapseEnabled,
 } from '@/lib/queries/knowledge-base';
+import {
+  syncSynapseWebhook,
+  deleteSynapseEmbeddingsWebhook,
+  toggleSynapseEmbeddingsWebhook,
+} from '@/lib/utils/n8n-webhooks';
 import type { CreateSynapseData, UpdateSynapseData } from '@/types/knowledge-base';
 
 /**
@@ -15,6 +20,10 @@ import type { CreateSynapseData, UpdateSynapseData } from '@/types/knowledge-bas
  * Princípios SOLID:
  * - Single Responsibility: Cada action faz uma operação específica
  * - Dependency Inversion: Depende das abstrações de queries
+ *
+ * Features:
+ * - Chamadas de webhook N8N para gerenciar embeddings
+ * - Webhooks não bloqueiam CRUD (error handling robusto)
  */
 
 export async function createSynapseAction(
@@ -25,6 +34,17 @@ export async function createSynapseAction(
   try {
     const synapse = await createSynapse(tenantId, baseConhecimentoId, data);
     revalidatePath('/knowledge-base');
+
+    // Chamar webhook N8N para criar embeddings (não bloqueia CRUD)
+    await syncSynapseWebhook({
+      synapseId: synapse.id,
+      baseConhecimentoId: synapse.base_conhecimento_id,
+      tenantId: synapse.tenant_id,
+      operation: 'create',
+      content: synapse.content,
+      title: synapse.title,
+    });
+
     return { success: true, data: synapse };
   } catch (error) {
     return {
@@ -42,6 +62,17 @@ export async function updateSynapseAction(
   try {
     const synapse = await updateSynapse(synapseId, tenantId, data);
     revalidatePath('/knowledge-base');
+
+    // Chamar webhook N8N para atualizar embeddings (não bloqueia CRUD)
+    await syncSynapseWebhook({
+      synapseId: synapse.id,
+      baseConhecimentoId: synapse.base_conhecimento_id,
+      tenantId: synapse.tenant_id,
+      operation: 'update',
+      content: synapse.content,
+      title: synapse.title,
+    });
+
     return { success: true, data: synapse };
   } catch (error) {
     return {
@@ -55,6 +86,13 @@ export async function deleteSynapseAction(synapseId: string, tenantId: string) {
   try {
     await deleteSynapse(synapseId, tenantId);
     revalidatePath('/knowledge-base');
+
+    // Chamar webhook N8N para deletar embeddings (não bloqueia CRUD)
+    await deleteSynapseEmbeddingsWebhook({
+      synapseId,
+      tenantId,
+    });
+
     return { success: true };
   } catch (error) {
     return {
@@ -72,6 +110,14 @@ export async function toggleSynapseEnabledAction(
   try {
     const synapse = await toggleSynapseEnabled(synapseId, tenantId, isEnabled);
     revalidatePath('/knowledge-base');
+
+    // Chamar webhook N8N para ativar/desativar embeddings (não bloqueia CRUD)
+    await toggleSynapseEmbeddingsWebhook({
+      synapseId: synapse.id,
+      tenantId: synapse.tenant_id,
+      isEnabled,
+    });
+
     return { success: true, data: synapse };
   } catch (error) {
     return {

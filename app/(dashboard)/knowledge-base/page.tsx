@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getBaseConhecimentos } from '@/lib/queries/knowledge-base';
-import { KnowledgeBaseContainer } from '@/components/knowledge-base';
+import { KnowledgeBaseMasterDetail } from '@/components/knowledge-base';
 
 export default async function KnowledgeBasePage() {
   const supabase = await createClient();
@@ -61,15 +61,15 @@ export default async function KnowledgeBasePage() {
   const bases = await getBaseConhecimentos(tenantId);
 
   return (
-    <div className="flex h-full flex-col p-6">
-      <KnowledgeBaseContainer
+    <div className="flex h-full flex-col p-6 w-full overflow-x-hidden">
+      <KnowledgeBaseMasterDetail
         bases={bases}
         tenantId={tenantId}
         neurocoreId={neurocoreId}
         neurocoreName={neurocoreName}
       />
 
-      <div className="mt-4 text-sm text-muted-foreground">
+      <div className="mt-8 text-sm text-muted-foreground">
         <p>
           💡 <strong>Dica:</strong> Organize synapses em bases temáticas para
           facilitar o gerenciamento do conhecimento da IA.

@@ -44,7 +44,7 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar />
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col w-full overflow-x-hidden">
         <Header
           userName={user?.full_name || 'Usuário'}
           userEmail={user?.email}

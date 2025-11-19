@@ -1,6 +1,147 @@
 # Progresso do Projeto - LIVIA MVP
 
-## Sessão 2025-11-19 - Implementação do Treinamento Neurocore
+## Sessão 2025-11-19 (Tarde) - Refatoração Master-Detail + Webhooks N8N
+
+### Completado
+- [x] Criar plano detalhado KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md (736 linhas)
+- [x] Documentar Decisão #010 em DECISIONS.md
+- [x] Sprint 1: Remover 3 componentes antigos (modal aninhado)
+- [x] Sprint 2: Criar 4 componentes novos (master-detail)
+- [x] Sprint 3: Adicionar webhooks N8N para embeddings
+- [x] Sprint 4: Atualizar página principal
+- [x] Sprint 5: Executar testes (type-check, build) - Sucesso
+- [x] Sprint 6: Atualizar documentação (DECISIONS.md, PROGRESS.md)
+
+### Funcionalidades Implementadas
+
+**Layout Master-Detail:**
+- ✅ Scroll horizontal de cards (BaseConhecimentoCarousel)
+- ✅ Card individual com highlight quando selecionado
+- ✅ Badge com contador de synapses
+- ✅ Toggle Ativa/Desativa em cada card
+- ✅ Tabela de synapses exibida abaixo ao selecionar base
+- ✅ Modal simples para criar/editar base (sem synapses aninhadas)
+- ✅ Empty state quando não há bases
+- ✅ Loading state ao carregar synapses
+
+**Integração N8N:**
+- ✅ Helper function para webhooks (`lib/utils/n8n-webhooks.ts`)
+- ✅ Modo mock configurável via `N8N_MOCK=true`
+- ✅ 4 webhooks implementados:
+  - Sync Synapse (create/update) → gera embeddings
+  - Delete Synapse Embeddings → remove embeddings
+  - Toggle Synapse Embeddings → ativa/desativa embeddings
+  - Inactivate Base → inativa base (synapses inacessíveis)
+- ✅ Error handling robusto (webhooks não bloqueiam CRUD)
+- ✅ Timeout de 10s para cada webhook
+- ✅ Logs detalhados para debug
+
+**Regras de Negócio:**
+- ✅ Base inativa → todas synapses ficam inacessíveis
+- ✅ Synapse desativada → webhook remove embeddings
+- ✅ Delete de base → apenas soft delete (toggle inactive)
+- ✅ Webhooks assíncronos (não bloqueiam UI)
+
+### Arquivos Criados
+- `components/knowledge-base/base-conhecimento-card.tsx` - Card individual
+- `components/knowledge-base/base-conhecimento-carousel.tsx` - Scroll horizontal
+- `components/knowledge-base/base-conhecimento-form-dialog.tsx` - Modal simples
+- `components/knowledge-base/knowledge-base-master-detail.tsx` - Orquestrador
+- `lib/utils/n8n-webhooks.ts` - Helper + types para webhooks
+- `docs/KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md` - Plano completo (736 linhas)
+
+### Arquivos Deletados
+- `components/knowledge-base/base-conhecimento-dialog.tsx` - Modal aninhado antigo
+- `components/knowledge-base/base-conhecimento-table.tsx` - DataTable antiga
+- `components/knowledge-base/knowledge-base-container.tsx` - Orquestrador antigo
+
+### Arquivos Modificados
+- `components/knowledge-base/index.ts` - Exports atualizados
+- `app/(dashboard)/knowledge-base/page.tsx` - Usa KnowledgeBaseMasterDetail
+- `app/actions/synapses.ts` - Adicionadas 4 chamadas de webhook
+- `app/actions/base-conhecimento.ts` - Adicionada 1 chamada de webhook
+- `.env.local.example` - Variáveis N8N + flag N8N_MOCK
+- `DECISIONS.md` - Decisão #010 adicionada
+
+### Componentes Reutilizados (sem modificar)
+- `SynapsesTable` - Já tinha callbacks perfeitos
+- `SynapseDialog` - Já tinha onSuccess callback
+- `DeleteSynapseDialog` - Já funcionava
+- `SynapseActions` - Já passava callbacks
+
+### Princípios SOLID Aplicados
+**Single Responsibility:**
+- Cada componente tem responsabilidade única e clara
+- BaseConhecimentoCard: apenas renderiza card
+- BaseConhecimentoCarousel: apenas layout de scroll
+- BaseConhecimentoFormDialog: apenas form de base
+- KnowledgeBaseMasterDetail: apenas orquestra estado
+
+**Open/Closed:**
+- Componentes extensíveis via callbacks
+- Fechados para modificação (lógica interna estável)
+
+**Dependency Inversion:**
+- Componentes dependem de callbacks abstratos
+- Não dependem de router.refresh (usar callbacks)
+- Queries abstraídas em lib/queries
+
+### Decisões Técnicas
+- **Layout Master-Detail**: Alinha 100% com wireframe do usuário
+- **Webhooks N8N**: Integração real para vetorização de synapses
+- **Modo mock N8N**: Desenvolvimento sem dependência de N8N estar configurado
+- **Error handling**: Webhooks não bloqueiam CRUD (logs + continue)
+- **Estado local**: Refetch synapses ao trocar base (simplicidade MVP)
+- **Callbacks**: onSuccess, onSynapseChange para refresh sem fechar modal
+
+### Variáveis de Ambiente Adicionadas
+```bash
+# Webhooks N8N
+N8N_DELETE_SYNAPSE_EMBEDDINGS_WEBHOOK=/webhook/livia/delete-synapse-embeddings
+N8N_TOGGLE_SYNAPSE_EMBEDDINGS_WEBHOOK=/webhook/livia/toggle-synapse-embeddings
+N8N_INACTIVATE_BASE_WEBHOOK=/webhook/livia/inactivate-base
+
+# Mock Mode
+N8N_MOCK=true  # Modo mock para desenvolvimento
+```
+
+### Bloqueios/Problemas Resolvidos
+- ✅ Button importado mas não usado → Removido import
+- ✅ Nome incorreto de action → toggleBaseConhecimentoActiveAction
+- ✅ TypeScript errors → Corrigidos (type-check passou)
+- ✅ Build errors → Nenhum (build passou)
+- ✅ **Scroll horizontal na página toda** → Sidebar influenciava largura total
+  - Solução: Adicionado `w-full overflow-x-hidden` no SidebarInset e todos containers
+  - Arquivos: layout.tsx, page.tsx, master-detail.tsx, carousel.tsx
+- ✅ **Toggle da sidebar não funcionava** → Hook forçava estado continuamente
+  - Solução: Refatorado hook com useRef para detectar mudança de rota
+  - Arquivo: use-sidebar-auto-collapse.ts
+  - Comportamento: Agora permite toggle manual sem interferência do hook
+
+### Métricas
+- **Arquivos criados**: 5
+- **Arquivos deletados**: 3
+- **Arquivos modificados**: 10 (6 iniciais + 4 correções finais)
+- **Componentes criados**: 4 (master-detail)
+- **Webhooks implementados**: 4
+- **Linhas de código**: ~800 (componentes + webhooks + types)
+- **Documentação**: ~900 linhas (plano + decisão)
+- **Build time**: 14.1s (melhor que antes: 18.4s)
+- **Type-check**: ✅ Zero erros
+- **ESLint**: ✅ Zero erros
+- **Tempo total**: ~3 horas (plano + implementação + testes + docs)
+
+### Próximos Passos
+1. ✅ **Refatoração Master-Detail** - COMPLETO
+2. Testar layout manualmente (aguarda ambiente dev)
+3. Configurar webhooks N8N reais (trocar N8N_MOCK=false)
+4. Feedback de Mensagens no Livechat (like/dislike em balões)
+5. Respostas Rápidas no Livechat (comando "/" + sheet)
+6. Dashboard (KPIs, gráficos)
+
+---
+
+## Sessão 2025-11-19 (Manhã) - Implementação do Treinamento Neurocore
 
 ### Completado
 - [x] Analisar MVP descrito vs implementado (análise de contraste)

@@ -10,6 +10,7 @@
 7. [CRUD Simples de Synapses](#decisão-007-crud-simples-de-synapses-sem-webhook-de-publicação)
 8. [Treinamento Neurocore com Modo Mock](#decisão-008-treinamento-neurocore-com-modo-mock)
 9. [Hierarquia Base de Conhecimento → Synapses](#decisão-009-hierarquia-base-de-conhecimento--synapses)
+10. [Refatoração Master-Detail com N8N Webhooks](#decisão-010-refatoração-master-detail-com-n8n-webhooks)
 
 ---
 
@@ -780,6 +781,187 @@ Executar `migrations/base-conhecimento-hierarchy.sql`:
 ### Referências
 - [BASE_CONHECIMENTO_REFACTOR_PLAN.md](docs/BASE_CONHECIMENTO_REFACTOR_PLAN.md) - Análise completa (600 linhas)
 - [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+
+---
+
+## Decisão #010: Refatoração Master-Detail com N8N Webhooks
+
+**Data:** 2025-11-19
+
+**Status:** 🚧 Em Implementação
+
+### Contexto
+A Decisão #009 implementou a hierarquia Base de Conhecimento usando **modal aninhado** (Grid de Cards → Modal Base com synapses aninhadas). Após feedback visual do usuário com wireframe, identificou-se que a UX desejada era um **layout master-detail** com scroll horizontal de cards e synapses exibidas abaixo (não dentro de modal).
+
+Além disso, surgiu a necessidade de integrar webhooks N8N para gerenciar embeddings das synapses (criar, deletar, ativar/desativar).
+
+### Opções Consideradas
+
+1. **Manter Modal Aninhado + Adicionar Webhooks**
+   - Prós: Menos refactor, aproveitaria código existente
+   - Contras: Não alinha com wireframe do usuário, UX inferior
+
+2. **Refatorar para Master-Detail com Webhooks**
+   - Prós: Alinha 100% com wireframe, UX superior, melhor performance, integração N8N
+   - Contras: Refactor maior (deletar 3 componentes, criar 4 novos), 8-10h de trabalho
+
+### Decisão
+**Refatorar para layout Master-Detail** com integração de webhooks N8N.
+
+**Arquitetura:**
+- **Master:** Scroll horizontal de cards (BaseConhecimentoCarousel)
+- **Detail:** Tabela de synapses abaixo (SynapsesTable reutilizada)
+- **Modal Simples:** BaseConhecimentoFormDialog (sem synapses aninhadas)
+- **Webhooks N8N:** Integração para sync/delete/toggle synapses e bases
+
+### Mudanças no Layout
+
+**❌ ANTES (Modal Aninhado):**
+```
+Grid de Cards → Click card → Modal Base (com synapses aninhadas)
+                              └─> Click ADD SYNAPSE → Sub-modal Synapse
+```
+
+**✅ DEPOIS (Master-Detail):**
+```
+Scroll Horizontal de Cards (Master)
+  ↓ Click card seleciona
+Tabela de Synapses abaixo (Detail)
+  ↓ Click ADD SYNAPSE
+Modal Synapse (apenas form, não aninhado)
+```
+
+### Componentes
+
+**A DELETAR:**
+1. `BaseConhecimentoDialog.tsx` - Modal grande com synapses aninhadas
+2. `BaseConhecimentoTable.tsx` - DataTable (substituído por carousel)
+3. `KnowledgeBaseContainer.tsx` - Container antigo
+
+**A CRIAR:**
+1. `BaseConhecimentoCard.tsx` - Card individual com highlight quando selecionado
+2. `BaseConhecimentoCarousel.tsx` - Scroll horizontal de cards
+3. `BaseConhecimentoFormDialog.tsx` - Modal simples para create/edit base
+4. `KnowledgeBaseMasterDetail.tsx` - Orquestrador do layout master-detail
+5. `lib/utils/n8n-webhooks.ts` - Helper para chamar webhooks N8N
+
+**A REUTILIZAR (sem modificar):**
+- `SynapsesTable.tsx` - Já tem callbacks perfeitos
+- `SynapseDialog.tsx` - Já tem onSuccess callback
+- `DeleteSynapseDialog.tsx` - Já funciona
+- `SynapseActions.tsx` - Já passa callbacks
+
+### Webhooks N8N
+
+**Webhooks a adicionar:**
+
+1. **Sync Synapse** (`/webhook/livia/sync-synapse`)
+   - Quando: Criar ou editar synapse
+   - Payload: `{ synapseId, baseConhecimentoId, tenantId, operation, content, title }`
+
+2. **Delete Synapse Embeddings** (`/webhook/livia/delete-synapse-embeddings`)
+   - Quando: Deletar synapse
+   - Payload: `{ synapseId, tenantId }`
+
+3. **Toggle Synapse Embeddings** (`/webhook/livia/toggle-synapse-embeddings`)
+   - Quando: Ativar/desativar synapse
+   - Payload: `{ synapseId, tenantId, isEnabled }`
+
+4. **Inactivate Base** (`/webhook/livia/inactivate-base`)
+   - Quando: Ativar/desativar base
+   - Payload: `{ baseConhecimentoId, tenantId, isActive }`
+
+**Modo Mock:** Similar ao `NEUROCORE_MOCK`, criar flag `N8N_MOCK=true` para desenvolvimento sem depender de N8N estar configurado.
+
+### Regras de Negócio Confirmadas
+
+1. **Base inativa:** Synapses ficam inacessíveis (N8N ignora embeddings)
+2. **Synapse desativada:** Webhook remove embeddings
+3. **Feedback de processamento:** Pode demorar ~1 minuto, status muda automaticamente
+4. **Delete de base:** Apenas soft delete (marcar como inativa), sem botão de hard delete
+5. **Batch operations:** Não necessário (N8N trata individualmente)
+
+### Aplicação de SOLID
+
+**Single Responsibility:**
+- `BaseConhecimentoCard`: Apenas renderiza card
+- `BaseConhecimentoCarousel`: Apenas layout de scroll
+- `BaseConhecimentoFormDialog`: Apenas form de base
+- `KnowledgeBaseMasterDetail`: Apenas orquestra estado
+
+**Open/Closed:**
+- Componentes extensíveis via callbacks (onSelect, onToggleActive, onSuccess)
+- Fechados para modificação (lógica interna estável)
+
+**Dependency Inversion:**
+- Componentes dependem de callbacks abstratos
+- Não dependem de router.refresh (usar callbacks)
+- Queries abstraídas em lib/queries
+
+### Consequências
+
+**Positivas:**
+✅ Alinha 100% com wireframe do usuário
+✅ Melhor UX (pattern master-detail conhecido)
+✅ Menos z-index complexity (sem modal aninhado)
+✅ Melhor performance (renderiza apenas synapses da base selecionada)
+✅ Scroll horizontal suporta muitas bases
+✅ Reutilização máxima de componentes existentes
+✅ Integração N8N para embeddings
+✅ Modo mock facilita desenvolvimento
+
+**Negativas:**
+⚠️ Refactor significativo (deletar 3, criar 4 componentes)
+⚠️ Scroll horizontal pode esconder bases (mitigação: indicadores visuais ◄ ►)
+⚠️ Webhooks podem falhar (mitigação: N8N_MOCK + error handling)
+⚠️ Estado local de synapses requer refetch ao trocar base (simplicidade MVP)
+
+**Trade-offs aceitos:**
+- Refactor maior vs UX superior → UX vence
+- Estado local vs Cache complexo → Simplicidade MVP
+- Webhooks bloqueantes vs Não bloqueantes → Não bloqueantes (não bloqueia CRUD)
+
+### Desafios e Soluções
+
+**Desafio 1:** Scroll horizontal pode ser difícil em mobile
+- **Solução:** CSS overflow-x-auto + -webkit-overflow-scrolling: touch + indicadores visuais
+
+**Desafio 2:** Estado de synapses ao trocar base
+- **Solução:** Sempre refetch ao selecionar (simplicidade MVP)
+
+**Desafio 3:** Webhook N8N falha
+- **Solução:** Try/catch em Server Actions, não bloqueia CRUD, toast de aviso
+
+**Desafio 4:** Base inativa vs Synapse inativa
+- **Solução:** Base inativa prevalece (TODAS synapses ficam inacessíveis)
+
+**Desafio 5:** Performance com muitas bases/synapses
+- **Solução:** Scroll horizontal suporta muitas bases, renderiza apenas synapses da base selecionada
+
+### Plano de Implementação
+
+**Sprint 1:** Remover componentes antigos (30min)
+**Sprint 2:** Criar componentes novos (3-4h)
+**Sprint 3:** Adicionar webhooks N8N (2-3h)
+**Sprint 4:** Atualizar página principal (1h)
+**Sprint 5:** Testes (1-2h)
+**Sprint 6:** Documentação (30min)
+
+**Estimativa Total:** 8-10 horas
+
+Plano detalhado disponível em: [KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md](docs/KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md)
+
+### Revisão Futura
+Considerar otimizações SE:
+- Scroll horizontal for problemático em mobile (grid 2 colunas)
+- Performance com cache local (Map<baseId, Synapse[]>)
+- Supabase Realtime para atualizar badges de status automaticamente
+- Animações de transição ao trocar base
+
+### Referências
+- [Decisão #009: Hierarquia Base de Conhecimento](DECISIONS.md#decisão-009-hierarquia-base-de-conhecimento--synapses)
+- [KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md](docs/KNOWLEDGE_BASE_MASTER_DETAIL_PLAN.md) - Plano completo (736 linhas)
+- [Master-Detail Pattern](https://www.nngroup.com/articles/master-detail/)
 
 ---
 
