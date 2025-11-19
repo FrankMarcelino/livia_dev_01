@@ -39,6 +39,8 @@
 - ✅ `components/livechat/message-feedback-buttons.tsx` - Botões 👍👎
 - ✅ Integração no MessageItem (apenas mensagens IA)
 - ✅ Feedback visual com cores e toast
+- ✅ Dialog com campo de comentário opcional (max 500 caracteres)
+- ✅ Contador de caracteres em tempo real
 
 ### 5. Infraestrutura
 - ✅ Toaster adicionado no layout principal
@@ -147,6 +149,8 @@ Execute o conteúdo completo do arquivo para criar a tabela de feedback.
 ### Message Feedback
 - 👍 Botão feedback positivo
 - 👎 Botão feedback negativo
+- 💬 Dialog para comentário opcional (max 500 caracteres)
+- 📊 Contador de caracteres em tempo real
 - 🎨 Feedback visual com cores
 - 🔔 Toast notifications
 - 🔄 Upsert automático (atualiza se já existe)
@@ -175,8 +179,11 @@ Execute o conteúdo completo do arquivo para criar a tabela de feedback.
 1. Abrir uma conversa com mensagens da IA
 2. Localizar botões 👍👎 ao lado do horário
 3. Clicar em um dos botões
-4. Ver feedback visual (cor) e toast
-5. Clicar novamente para remover/trocar
+4. Dialog abrirá com campo de comentário opcional
+5. Adicionar comentário (opcional, máx 500 caracteres)
+6. Clicar em "Enviar Feedback"
+7. Ver feedback visual (cor) e toast
+8. Clicar novamente no mesmo botão para remover feedback
 
 ---
 
