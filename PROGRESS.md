@@ -1,5 +1,123 @@
 # Progresso do Projeto - LIVIA MVP
 
+## Sessão 2025-11-19 - Implementação do Treinamento Neurocore
+
+### Completado
+- [x] Analisar MVP descrito vs implementado (análise de contraste)
+- [x] Criar plano detalhado de implementação (400+ linhas)
+- [x] Instalar dependências (react-markdown, remark-gfm, uuid, sonner)
+- [x] Criar types completos para Neurocore
+- [x] Implementar API route com modo mock configurável
+- [x] Implementar Server Action para feedback
+- [x] Criar 5 componentes (NeurocoreChat, TrainingQueryInput, etc.)
+- [x] Integrar componentes na página Neurocore
+- [x] Adicionar error handling e loading states
+- [x] Executar testes (type-check, lint, build) - Sucesso
+- [x] Documentar decisão #008 em DECISIONS.md
+- [x] Atualizar PROGRESS.md
+
+### Funcionalidades Implementadas
+
+**Treinamento Neurocore:**
+- ✅ Interface de chat para testar conhecimento da IA
+- ✅ API route com modo mock (desenvolvimento sem n8n)
+- ✅ Renderização de respostas em markdown (seguro)
+- ✅ Cards de synapses usadas com score de similaridade
+- ✅ Progress bar visual para score (0-100%)
+- ✅ Feedback like/dislike com comentário opcional
+- ✅ Auto-scroll para última resposta
+- ✅ Empty state amigável
+- ✅ Loading states animados
+- ✅ Error handling robusto
+- ✅ Timeout de 30s para n8n
+- ✅ Limite de 20 queries no histórico (performance)
+
+**Arquitetura:**
+- ✅ Estado local das queries (não persiste no banco)
+- ✅ Modo mock configurável via `NEUROCORE_MOCK=true`
+- ✅ Simulação de latência realista (2-3s)
+- ✅ Feedback salvo em `message_feedbacks` (JSON context)
+- ✅ Validação: min 3 chars, max 500 chars
+- ✅ Ctrl+Enter para enviar pergunta
+
+### Arquivos Criados
+- `types/neurocore.ts` - Types completos (TrainingQuery, TrainingResponse, etc.)
+- `app/api/neurocore/query/route.ts` - API route com mock
+- `app/actions/neurocore.ts` - Server Action para feedback
+- `components/neurocore/neurocore-chat.tsx` - Container principal
+- `components/neurocore/training-query-input.tsx` - Form de pergunta
+- `components/neurocore/training-response-card.tsx` - Card de resposta
+- `components/neurocore/synapse-used-card.tsx` - Card de synapse
+- `components/neurocore/response-feedback-dialog.tsx` - Modal de feedback
+- `components/neurocore/index.ts` - Barrel export
+- `.env.local.example` - Variáveis de ambiente documentadas
+- `docs/NEUROCORE_PLAN.md` - Plano detalhado (400 linhas)
+- `docs/MVP_CONTRAST_ANALYSIS.md` - Análise de gaps (600 linhas)
+
+### Arquivos Modificados
+- `app/(dashboard)/neurocore/page.tsx` - Integração do NeurocoreChat
+- `package.json` - Adicionadas dependências
+
+### Bibliotecas Adicionadas
+- `react-markdown` (12M downloads/semana) - Renderizar respostas
+- `remark-gfm` - GitHub Flavored Markdown
+- `uuid` + `@types/uuid` - IDs locais de queries
+- `sonner` - Toast notifications (substitui toast deprecated)
+- shadcn/ui: `progress`, `label`, `separator`
+
+### Próximos Passos (Priorizados)
+1. **Refatorar Base de Conhecimento** (hierarquia bases → synapses)
+2. **Feedback de Mensagens** no Livechat (like/dislike em balões)
+3. **Respostas Rápidas** no Livechat (comando "/" + sheet)
+4. **Refatorar SynapseDialog** para reutilização no Neurocore
+5. Dashboard (KPIs, gráficos)
+6. Personalização NeuroCore
+
+### Decisões Técnicas
+- **Modo mock**: Desenvolvimento frontend independente do n8n (trocar flag quando pronto)
+- **Estado local**: Queries não persistem no banco (simplicidade MVP)
+- **react-markdown**: Padrão de mercado, seguro (whitelist de componentes)
+- **Sonner**: Toast modern (shadcn/ui recomenda sobre toast deprecated)
+- **Limitar histórico**: 20 queries no estado (evita problemas de performance)
+- **Type assertion**: `message_feedbacks` não está no tipo gerado (aceito temporariamente)
+
+### Gaps Identificados (MVP Descrito vs Implementado)
+🔴 **Gap Crítico #1**: Base de Conhecimento sem hierarquia
+- Implementamos CRUD de synapses direto
+- MVP pede: Bases → Synapses relacionadas
+- Impacto: Arquitetura diverge, precisa refactor
+
+⚠️ **Gap #2**: Livechat - Layout pode estar divergente
+- Implementado: 3 colunas
+- MVP descrito: 4 colunas (Contatos | Conversas | Interações | Dados)
+
+⚠️ **Gap #3**: Feedback de mensagens ausente
+- Like/dislike no header da conversa
+- Hover thumb-up/down em balões
+
+⚠️ **Gap #4**: Respostas Rápidas ausentes
+- Botão lightning-bolt (10 mais usadas)
+- Comando "/" no input
+- Sheet de gerenciamento
+
+### Bloqueios/Problemas Resolvidos
+- ✅ `use-toast` deprecated → Migrado para `sonner`
+- ✅ `message_feedbacks` não no tipo → Type assertion temporário
+- ✅ `tenant_id` pode ser null → Validação explícita
+- ✅ Variável não usada no mock → Prefixada com `_`
+- ✅ Import não usado → Removido
+
+### Métricas
+- **Arquivos criados**: 11
+- **Componentes criados**: 5
+- **Linhas de código**: ~1500 (componentes + API + types)
+- **Documentação**: 1000+ linhas (planos + análise)
+- **Build time**: 20.7s
+- **Type-check**: ✅ Zero erros
+- **Testes manuais**: Pendentes (aguardando setup do ambiente)
+
+---
+
 ## Sessão 2025-11-18 - Implementação de Sidebar com Auto-Collapse
 
 ### Completado

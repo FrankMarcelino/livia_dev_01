@@ -5,6 +5,10 @@
 2. [Estrutura Híbrida de Skills](#decisão-002-estrutura-híbrida-de-skills)
 3. [Base Vetorial Gerenciada pelo n8n](#decisão-003-base-vetorial-gerenciada-pelo-n8n)
 4. [Aceitar Type Assertions `any` para Queries Supabase](#decisão-004-aceitar-type-assertions-any-para-queries-supabase)
+5. [Webhooks n8n Simplificados para MVP WhatsApp](#decisão-005-webhooks-n8n-simplificados-para-mvp-whatsapp)
+6. [Sidebar com Auto-Collapse](#decisão-006-sidebar-com-shadcnui-e-auto-collapse-baseado-em-rota)
+7. [CRUD Simples de Synapses](#decisão-007-crud-simples-de-synapses-sem-webhook-de-publicação)
+8. [Treinamento Neurocore com Modo Mock](#decisão-008-treinamento-neurocore-com-modo-mock)
 
 ---
 
@@ -589,6 +593,124 @@ Considerar webhook explícito SE:
 
 ---
 
+## Decisão #008: Treinamento Neurocore com Modo Mock
+
+**Data:** 2025-11-19
+
+**Status:** ✅ Implementado
+
+### Contexto
+Necessidade de implementar interface para testar e validar respostas da IA antes de ativar em produção. Surgiu a questão sobre como desenvolver frontend sem depender de webhook n8n estar configurado.
+
+### Opções Consideradas
+
+1. **Aguardar n8n estar pronto**
+   - Prós: Integração real desde o início
+   - Contras: Bloqueia desenvolvimento frontend, dependência externa
+
+2. **Modo mock configurável**
+   - Prós: Desenvolvimento paralelo, teste de UX independente
+   - Contras: Requer manutenção de código mock
+
+3. **Stub fixo hardcoded**
+   - Prós: Mais simples
+   - Contras: Difícil alternar para produção, menos realista
+
+### Decisão
+**Implementar modo mock configurável** via variável de ambiente `NEUROCORE_MOCK=true`.
+
+**Arquitetura:**
+- Estado local das queries (não persiste no banco)
+- API route `/api/neurocore/query` com lógica condicional
+- Mock retorna resposta fake + 3 synapses exemplo
+- Simula latência real (2-3 segundos)
+- Trocar flag quando n8n estiver pronto
+
+### Implementação
+
+**Componentes criados:**
+- `NeurocoreChat` - Container com estado local
+- `TrainingQueryInput` - Form com validação (min 3, max 500 chars)
+- `TrainingResponseCard` - Renderiza resposta + synapses
+- `SynapseUsedCard` - Card com score de similaridade visual
+- `ResponseFeedbackDialog` - Modal para feedback negativo
+
+**Bibliotecas adicionadas:**
+- `react-markdown` + `remark-gfm` - Renderizar markdown seguro
+- `uuid` - Gerar IDs locais de queries
+- `sonner` - Toast notifications
+
+**Features:**
+- Interface de chat para testes
+- Renderização markdown segura (whitelist de componentes)
+- Score de similaridade visual (progress bar)
+- Feedback like/dislike com comentário opcional
+- Auto-scroll para última resposta
+- Loading states e error handling
+- Timeout 30s para n8n
+- Limita histórico a 20 queries (performance)
+
+### Fluxo de Uso
+
+```
+1. Usuário digita pergunta → Valida (min 3 chars)
+2. Frontend chama POST /api/neurocore/query
+3. API route valida auth + tenant
+4. Se NEUROCORE_MOCK=true:
+   - Simula latência 2-3s
+   - Retorna mock response
+5. Se NEUROCORE_MOCK=false:
+   - Chama webhook n8n
+   - Timeout 30s
+6. Frontend renderiza resposta em markdown
+7. Exibe synapses usadas (cards com score)
+8. Usuário dá feedback (like/dislike)
+9. Feedback salvo em message_feedbacks (JSON context)
+```
+
+### Consequências
+
+**Positivas:**
+✅ Desenvolvimento frontend independente do n8n
+✅ UX testável antes de integração real
+✅ Mock realista (latência + múltiplas synapses)
+✅ Fácil trocar para produção (uma variável de ambiente)
+✅ Estado local evita poluir banco com testes
+✅ Feedback persiste mesmo sem histórico de queries
+
+**Negativas:**
+⚠️ Código mock precisa ser mantido
+⚠️ Queries não persistem (histórico perdido ao recarregar)
+
+**Trade-offs aceitos:**
+- Histórico local vs Simplicidade → Simplicidade (MVP)
+- Mock vs Integração real → Mock primeiro (velocidade)
+
+### Melhorias Futuras (Pós-MVP)
+
+**Não implementado agora:**
+- Botões "Publicar Synapse" e "Excluir Synapse" no dialog
+- Confirmação de exclusão customizada ("confirmo excluir synapse")
+- Refactor de SynapseDialog para reutilização
+- Histórico persistido no banco
+- Filtros e busca no histórico
+- Export de relatório (PDF)
+
+**Motivo:** MVP focou em validar UX core. Features avançadas adicionadas conforme necessidade.
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Build production (sucesso)
+✅ Rota `/neurocore` criada corretamente
+✅ Mock response funcional
+
+### Referências
+- [NEUROCORE_PLAN.md](docs/NEUROCORE_PLAN.md) - Plano detalhado (400 linhas)
+- [MVP_CONTRAST_ANALYSIS.md](docs/MVP_CONTRAST_ANALYSIS.md) - Análise de gaps
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
@@ -597,3 +719,6 @@ Considerar webhook explícito SE:
 2025-11-16 | Server Components por padrão | Melhor performance, menor bundle, acesso direto a dados
 2025-11-18 | Sidebar modo icon no livechat | Layout de 3 colunas requer mais espaço horizontal
 2025-11-18 | CRUD simples para synapses | Simplicidade, offline-first, n8n em background
+2025-11-19 | Neurocore com modo mock | Desenvolvimento frontend independente do n8n
+2025-11-19 | Estado local (não persistir queries) | Simplicidade MVP, histórico não crítico
+2025-11-19 | react-markdown para respostas | Padrão de mercado, seguro, 12M downloads/sem
