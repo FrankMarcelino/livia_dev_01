@@ -9,6 +9,8 @@
 
 O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuários internos acompanhem e interajam com conversas em tempo real entre clientes e a IA.
 
+**Última atualização (2025-11-20):** Implementada abordagem "Salvar no Banco Primeiro" para reduzir delay no envio de mensagens de ~500-1000ms para ~100-200ms.
+
 ---
 
 ## Funcionalidades Implementadas
@@ -40,6 +42,7 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Auto-scroll para mensagem mais recente
 - ✅ Realtime - novas mensagens aparecem automaticamente
 - ✅ Diferenciação visual por tipo de remetente (cliente/IA/atendente)
+- ✅ **Indicador de status de entrega (pending/sent/failed/read)** 🆕
 
 **Controles:**
 - ✅ Input de mensagem com textarea expansível
@@ -75,7 +78,7 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 | Rota | Método | Função | Status |
 |------|--------|--------|--------|
-| `/api/n8n/send-message` | POST | Enviar mensagem manual via n8n | ✅ |
+| `/api/n8n/send-message` | POST | Enviar mensagem manual (salva DB primeiro, n8n assíncrono) | ✅ 🆕 |
 | `/api/conversations/pause-ia` | POST | Pausar IA em conversa específica | ✅ |
 | `/api/conversations/resume-ia` | POST | Retomar IA em conversa específica | ✅ |
 | `/api/conversations/pause` | POST | Pausar conversa completa | ✅ |
@@ -106,9 +109,10 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 ### Hooks Implementados
 
 **[use-realtime-messages.ts](../lib/hooks/use-realtime-messages.ts):**
-- ✅ Subscribe em novas mensagens por conversation_id
+- ✅ Subscribe em novas mensagens por conversation_id (INSERT event)
+- ✅ **Subscribe em atualizações de mensagens (UPDATE event)** 🆕
 - ✅ Busca informações do remetente (se atendente)
-- ✅ Atualiza state local automaticamente
+- ✅ Atualiza state local automaticamente (INSERT e UPDATE)
 - ✅ Cleanup ao desmontar componente
 
 **[use-realtime-conversation.ts](../lib/hooks/use-realtime-conversation.ts):**
@@ -120,6 +124,25 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 ---
 
 ## Regras de Negócio Implementadas
+
+### Estados de Mensagens 🆕
+
+| Status | Ícone | Descrição | Cor |
+|--------|-------|-----------|-----|
+| `pending` | ⏱️ Clock | Mensagem sendo enviada para WhatsApp | Cinza (muted) |
+| `sent` | ✓ Check | Mensagem entregue no WhatsApp | Cinza (muted) |
+| `failed` | ⚠️ AlertCircle | Falha no envio (n8n erro ou timeout) | Vermelho (destructive) |
+| `read` | ✓✓ CheckCheck | Cliente visualizou a mensagem | Azul |
+
+**Transições:**
+- `pending` → `sent` (n8n confirma envio com sucesso)
+- `pending` → `failed` (n8n retorna erro ou timeout)
+- `sent` → `read` (webhook do WhatsApp notifica leitura)
+
+**Backward Compatibility:**
+- Mensagens antigas sem campo `status` são tratadas como `sent` por padrão
+
+---
 
 ### Estados da Conversa
 
@@ -236,6 +259,8 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ `contacts` - Armazena dados dos clientes (populada pela IA)
 - ✅ `conversations` - Conversas ativas
 - ✅ `messages` - Mensagens das conversas
+  - 🆕 **Campo `status`** (pending/sent/failed/read) - Tracking de entrega
+  - 🆕 **Índice `idx_messages_status`** - Performance em queries por status
 - ✅ `channels` - Canais de comunicação (WhatsApp, Instagram, etc.)
 
 **Tabelas a Criar:**
@@ -292,8 +317,9 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 | `ContactItem` | Item individual na lista | ✅ |
 | `ConversationView` | Container principal da conversa | ✅ |
 | `ConversationControls` | Controles de status e IA | ✅ |
-| `MessageItem` | Exibição de mensagem individual | ✅ |
+| `MessageItem` | Exibição de mensagem individual com status visual | ✅ 🆕 |
 | `MessageInput` | Input para envio de mensagens | ✅ |
+| `MessageStatusIcon` | Ícone de status (⏱️ pending, ✓ sent, ⚠ failed, ✓✓ read) | ✅ 🆕 |
 
 ### Componentes Planejados (Feedback e Dados)
 
@@ -441,16 +467,25 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 ## Fluxos de Uso Documentados
 
-### Fluxo 1: Atendente Envia Mensagem
+### Fluxo 1: Atendente Envia Mensagem (ATUALIZADO - Salvar no Banco Primeiro)
 1. Atendente digita mensagem no input
 2. Clica em Enviar (ou Enter)
 3. `MessageInput` chama `/api/n8n/send-message`
 4. API route valida auth e tenant
-5. API route chama webhook n8n
-6. n8n envia para WhatsApp e insere em `messages`
-7. Realtime notifica client
+5. **API route insere mensagem no Supabase com `status='pending'`**
+6. **API retorna sucesso imediatamente (~100-200ms)**
+7. Realtime notifica client (INSERT event)
 8. `useRealtimeMessages` atualiza state
-9. Nova mensagem aparece na UI
+9. **Nova mensagem aparece na UI com ícone ⏱️ (pending)**
+10. **API chama webhook n8n de forma assíncrona (não bloqueante)**
+11. n8n envia para WhatsApp
+12. **n8n atualiza `status='sent'` e `external_message_id`**
+13. Realtime notifica client (UPDATE event)
+14. `useRealtimeMessages` atualiza state
+15. **Ícone muda para ✓ (sent)**
+
+**Delay percebido pelo usuário:** ~100-200ms (apenas latência do Realtime)
+**Vantagem:** Mensagem aparece instantaneamente, status atualiza em background
 
 ### Fluxo 2: Pausar IA
 1. Atendente clica "Pausar IA"

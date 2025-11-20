@@ -44,14 +44,16 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar />
-      <SidebarInset className="flex flex-col w-full overflow-x-hidden">
+      <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden">
         <Header
           userName={user?.full_name || 'Usuário'}
           userEmail={user?.email}
           avatarUrl={user?.avatar_url}
         />
         <SidebarAutoCollapseWrapper>
-          {children}
+          <div className="flex-1 overflow-hidden">
+            {children}
+          </div>
         </SidebarAutoCollapseWrapper>
       </SidebarInset>
     </SidebarProvider>

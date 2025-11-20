@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
-import { Copy, Check, Loader2 } from 'lucide-react';
+import { Copy, Check, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +28,7 @@ export function CustomerDataPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Estados dos campos
   const [name, setName] = useState('');
@@ -46,20 +46,10 @@ export function CustomerDataPanel({
   const [cpfError, setCpfError] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  // Debounce para auto-save (800ms)
-  const [debouncedName] = useDebounce(name, 800);
-  const [debouncedEmail] = useDebounce(email, 800);
-  const [debouncedCpf] = useDebounce(cpf, 800);
-  const [debouncedPhoneSecondary] = useDebounce(phoneSecondary, 800);
-  const [debouncedAddressStreet] = useDebounce(addressStreet, 800);
-  const [debouncedAddressNumber] = useDebounce(addressNumber, 800);
-  const [debouncedAddressComplement] = useDebounce(addressComplement, 800);
-  const [debouncedCity] = useDebounce(city, 800);
-  const [debouncedZipCode] = useDebounce(zipCode, 800);
-
   // Carregar dados do contato
   useEffect(() => {
     loadContact();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contactId]);
 
   const loadContact = async () => {
@@ -91,79 +81,78 @@ export function CustomerDataPanel({
     }
   };
 
-  // Auto-save quando campos mudam (debounced)
+  // Detectar alterações não salvas e validar em tempo real
   useEffect(() => {
     if (!contact || isLoading) return;
 
-    // Validar antes de salvar
-    let hasErrors = false;
-
-    if (debouncedEmail && !validateEmail(debouncedEmail)) {
+    // Validar campos em tempo real
+    if (email && !validateEmail(email)) {
       setEmailError('Email inválido');
-      hasErrors = true;
     } else {
       setEmailError('');
     }
 
-    if (debouncedCpf && !validateCPF(debouncedCpf)) {
+    if (cpf && !validateCPF(cpf)) {
       setCpfError('CPF inválido');
-      hasErrors = true;
     } else {
       setCpfError('');
     }
 
-    if (debouncedPhoneSecondary && !validatePhone(debouncedPhoneSecondary)) {
+    if (phoneSecondary && !validatePhone(phoneSecondary)) {
       setPhoneError('Telefone inválido');
-      hasErrors = true;
     } else {
       setPhoneError('');
     }
 
-    if (hasErrors) return;
-
     // Verificar se algo mudou
     const hasChanges =
-      debouncedName !== (contact.name || '') ||
-      debouncedEmail !== (contact.email || '') ||
-      debouncedCpf !== (contact.cpf || '') ||
-      debouncedPhoneSecondary !== (contact.phone_secondary || '') ||
-      debouncedAddressStreet !== (contact.address_street || '') ||
-      debouncedAddressNumber !== (contact.address_number || '') ||
-      debouncedAddressComplement !== (contact.address_complement || '') ||
-      debouncedCity !== (contact.city || '') ||
-      debouncedZipCode !== (contact.zip_code || '');
+      name !== (contact.name || '') ||
+      email !== (contact.email || '') ||
+      cpf !== (contact.cpf || '') ||
+      phoneSecondary !== (contact.phone_secondary || '') ||
+      addressStreet !== (contact.address_street || '') ||
+      addressNumber !== (contact.address_number || '') ||
+      addressComplement !== (contact.address_complement || '') ||
+      city !== (contact.city || '') ||
+      zipCode !== (contact.zip_code || '');
 
-    if (hasChanges) {
-      saveContact();
-    }
+    setHasUnsavedChanges(hasChanges);
   }, [
-    debouncedName,
-    debouncedEmail,
-    debouncedCpf,
-    debouncedPhoneSecondary,
-    debouncedAddressStreet,
-    debouncedAddressNumber,
-    debouncedAddressComplement,
-    debouncedCity,
-    debouncedZipCode,
+    contact,
+    isLoading,
+    name,
+    email,
+    cpf,
+    phoneSecondary,
+    addressStreet,
+    addressNumber,
+    addressComplement,
+    city,
+    zipCode,
   ]);
 
   const saveContact = async () => {
+    // Validar antes de salvar
+    if (emailError || cpfError || phoneError) {
+      toast.error('Corrija os erros de validação antes de salvar');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: debouncedName,
-          email: debouncedEmail || null,
-          cpf: debouncedCpf || null,
-          phone_secondary: debouncedPhoneSecondary || null,
-          address_street: debouncedAddressStreet || null,
-          address_number: debouncedAddressNumber || null,
-          address_complement: debouncedAddressComplement || null,
-          city: debouncedCity || null,
-          zip_code: debouncedZipCode || null,
+          name: name,
+          email: email || null,
+          cpf: cpf || null,
+          phone_secondary: phoneSecondary || null,
+          address_street: addressStreet || null,
+          address_number: addressNumber || null,
+          address_complement: addressComplement || null,
+          city: city || null,
+          zip_code: zipCode || null,
           tenantId,
         }),
       });
@@ -175,7 +164,8 @@ export function CustomerDataPanel({
 
       const data = await response.json();
       setContact(data.data);
-      toast.success('Dados salvos automaticamente');
+      setHasUnsavedChanges(false);
+      toast.success('Alterações salvas com sucesso');
     } catch (error) {
       console.error('Erro ao salvar contato:', error);
       toast.error('Erro ao salvar dados');
@@ -233,34 +223,48 @@ export function CustomerDataPanel({
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Dados do Cliente</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopyData}
-          disabled={copied}
-        >
-          {copied ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Copiado
-            </>
-          ) : (
-            <>
-              <Copy className="h-4 w-4 mr-2" />
-              Copiar
-            </>
-          )}
-        </Button>
-      </div>
-
-      {isSaving && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Salvando...
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold mb-3">Dados do Cliente</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={saveContact}
+            disabled={!hasUnsavedChanges || isSaving || !!emailError || !!cpfError || !!phoneError}
+            className="flex-1"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Alterações
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyData}
+            disabled={copied}
+          >
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Copiado
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar
+              </>
+            )}
+          </Button>
         </div>
-      )}
+      </div>
 
       <div className="space-y-3">
         <div>

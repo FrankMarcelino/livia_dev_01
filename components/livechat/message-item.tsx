@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { MessageFeedbackButtons } from './message-feedback-buttons';
-import type { MessageWithSender } from '@/types/livechat';
+import { Check, Clock, AlertCircle, CheckCheck } from 'lucide-react';
+import type { MessageWithSender, MessageStatus } from '@/types/livechat';
 
 interface MessageItemProps {
   message: MessageWithSender;
@@ -73,6 +74,9 @@ export function MessageItem({ message, conversationId, tenantId }: MessageItemPr
             })}
           </span>
 
+          {/* Status de entrega (apenas para mensagens do atendente) */}
+          {isAttendant && <MessageStatusIcon status={message.status} />}
+
           {isIA && conversationId && tenantId && (
             <MessageFeedbackButtons
               messageId={message.id}
@@ -83,5 +87,46 @@ export function MessageItem({ message, conversationId, tenantId }: MessageItemPr
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Componente auxiliar para exibir ícone de status da mensagem
+ * SRP: Responsabilidade única de renderizar status visual
+ */
+function MessageStatusIcon({ status }: { status?: MessageStatus }) {
+  // Default para 'sent' se status não existir (backward compatibility)
+  const messageStatus = status || 'sent';
+
+  const statusConfig = {
+    pending: {
+      icon: Clock,
+      color: 'text-muted-foreground',
+      tooltip: 'Enviando...',
+    },
+    sent: {
+      icon: Check,
+      color: 'text-muted-foreground',
+      tooltip: 'Enviada',
+    },
+    failed: {
+      icon: AlertCircle,
+      color: 'text-destructive',
+      tooltip: 'Falha no envio',
+    },
+    read: {
+      icon: CheckCheck,
+      color: 'text-blue-500',
+      tooltip: 'Lida',
+    },
+  };
+
+  const config = statusConfig[messageStatus];
+  const Icon = config.icon;
+
+  return (
+    <span title={config.tooltip} aria-label={config.tooltip}>
+      <Icon className={cn('h-3 w-3', config.color)} />
+    </span>
   );
 }

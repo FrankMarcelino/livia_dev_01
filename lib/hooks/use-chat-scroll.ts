@@ -31,10 +31,14 @@ export function useChatScroll<T>(
 
   // Rola para o final
   const scrollToBottom = useCallback((instantScroll = false) => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current) {
+      return;
+    }
+
+    const { scrollHeight } = scrollRef.current;
 
     scrollRef.current.scrollTo({
-      top: scrollRef.current.scrollHeight,
+      top: scrollHeight,
       behavior: instantScroll ? 'instant' : behavior,
     });
 
@@ -75,18 +79,19 @@ export function useChatScroll<T>(
     // Se a contagem de mensagens diminuiu, é uma nova conversa
     if (newMessageCount < 0) {
       // Nova conversa - reseta e faz scroll ao final
-      setUnreadCount(0);
-      setIsAtBottom(true);
-      requestAnimationFrame(() => {
+      // Aguarda próximo frame para garantir DOM atualizado e evitar cascading renders
+      setTimeout(() => {
+        setUnreadCount(0);
+        setIsAtBottom(true);
         scrollToBottom(true);
-      });
+      }, 0);
     } else if (newMessageCount > 0) {
       // Novas mensagens na conversa atual
       if (isAtBottom) {
         // Se está no final, faz scroll automático após renderização
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           scrollToBottom();
-        });
+        }, 100); // 100ms para garantir que DOM renderizou
       } else {
         // Se não está no final, incrementa contador
         setUnreadCount((prev) => prev + newMessageCount);
@@ -98,11 +103,21 @@ export function useChatScroll<T>(
 
   // Scroll inicial ao montar (sem animação)
   useEffect(() => {
-    // Aguarda renderização completa
-    const timer = setTimeout(() => {
-      scrollToBottom(true);
-    }, 100);
+    // Aguarda renderização completa - múltiplas tentativas para garantir
+    let attempts = 0;
+    const maxAttempts = 5;
 
+    const tryScroll = () => {
+      attempts++;
+
+      if (scrollRef.current && scrollRef.current.scrollHeight > 0) {
+        scrollToBottom(true);
+      } else if (attempts < maxAttempts) {
+        setTimeout(tryScroll, 50);
+      }
+    };
+
+    const timer = setTimeout(tryScroll, 100);
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 

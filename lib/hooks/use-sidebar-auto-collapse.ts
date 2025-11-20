@@ -26,13 +26,13 @@ export function useSidebarAutoCollapse(autoCollapseRoutes: string[] = []) {
   const pathname = usePathname();
   const { setOpen, isMobile } = useSidebar();
   const previousPathname = useRef(pathname);
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
-    // Não aplicar auto-collapse em mobile (usa sheet)
-    if (isMobile) return;
-
-    // Apenas aplica auto-collapse se a rota mudou (não continuamente)
-    if (previousPathname.current === pathname) return;
+    // Se não é o primeiro mount E a rota não mudou, ignora
+    if (!isFirstMount.current && previousPathname.current === pathname) {
+      return;
+    }
 
     // Verifica se a rota atual está na lista de auto-collapse
     const shouldCollapse = autoCollapseRoutes.some((route) =>
@@ -40,10 +40,11 @@ export function useSidebarAutoCollapse(autoCollapseRoutes: string[] = []) {
     );
 
     // Auto-collapse: define estado inicial baseado na rota
-    // Mas permite que usuário faça toggle manual depois
+    // Funciona tanto no primeiro mount quanto em mudanças de rota
     setOpen(!shouldCollapse);
 
-    // Atualiza a rota anterior
+    // Atualiza flags
     previousPathname.current = pathname;
+    isFirstMount.current = false;
   }, [pathname, setOpen, isMobile, autoCollapseRoutes]);
 }

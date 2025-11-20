@@ -10,6 +10,15 @@ import type {
 } from './database';
 
 // ============================================================================
+// ENUMS
+// ============================================================================
+
+/**
+ * Status de entrega da mensagem
+ */
+export type MessageStatus = 'pending' | 'sent' | 'failed' | 'read';
+
+// ============================================================================
 // COMPOSITE TYPES
 // ============================================================================
 
@@ -32,6 +41,7 @@ export interface ConversationWithLastMessage extends Conversation {
  */
 export interface MessageWithSender extends Message {
   senderUser?: Pick<User, 'id' | 'full_name' | 'avatar_url'> | null;
+  status?: MessageStatus; // Status de entrega (adicionado na migration)
 }
 
 /**

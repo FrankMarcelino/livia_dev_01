@@ -63,21 +63,23 @@ export default async function LivechatPage({
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <aside className="w-96 border-r">
-        <div className="p-4 border-b">
+    <div className="flex h-full overflow-hidden">
+      <aside className="w-96 border-r flex flex-col h-full">
+        <div className="p-4 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold">Conversas</h2>
           <p className="text-sm text-muted-foreground">
             Atendimentos ativos • WhatsApp
           </p>
         </div>
-        <ContactList
-          contacts={contacts}
-          selectedContactId={selectedContactId}
-        />
+        <div className="flex-1 overflow-hidden">
+          <ContactList
+            contacts={contacts}
+            selectedContactId={selectedContactId}
+          />
+        </div>
       </aside>
 
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col h-full overflow-hidden">
         {conversation && messages && selectedContact ? (
           <ConversationView
             initialConversation={conversation}
@@ -98,7 +100,7 @@ export default async function LivechatPage({
       </main>
 
       {selectedContactId && (
-        <aside className="w-80 border-l">
+        <aside className="w-80 border-l flex flex-col h-full overflow-hidden">
           <CustomerDataPanel
             contactId={selectedContactId}
             tenantId={tenantId}

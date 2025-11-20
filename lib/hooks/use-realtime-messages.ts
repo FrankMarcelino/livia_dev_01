@@ -22,9 +22,10 @@ export function useRealtimeMessages(conversationId: string, initialMessages: Mes
   }, [conversationId]);
 
   useEffect(() => {
-    // Subscribe to new messages
+    // Subscribe to new messages (INSERT) and status updates (UPDATE)
     const channel = supabase
       .channel(`conversation:${conversationId}:messages`)
+      // Listener para INSERT (nova mensagem)
       .on<Message>(
         'postgres_changes',
         {
@@ -51,6 +52,26 @@ export function useRealtimeMessages(conversationId: string, initialMessages: Mes
           };
 
           setMessages((prev) => [...prev, newMessage]);
+        }
+      )
+      // Listener para UPDATE (atualização de status)
+      .on<Message>(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          // Atualizar mensagem existente no state local
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id
+                ? { ...msg, ...payload.new }
+                : msg
+            )
+          );
         }
       )
       .subscribe();
