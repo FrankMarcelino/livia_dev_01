@@ -1,5 +1,6 @@
 export { MessageItem } from './message-item';
 export { MessageInput } from './message-input';
+export { ConversationHeader } from './conversation-header';
 export { ConversationControls } from './conversation-controls';
 export { ContactItem } from './contact-item';
 export { ContactList } from './contact-list';

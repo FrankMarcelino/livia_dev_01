@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { QuickRepliesPanel } from './quick-replies-panel';
+import type { Conversation } from '@/types/database';
 
 interface MessageInputProps {
-  conversationId: string;
+  conversation: Conversation;
   tenantId: string;
   contactName: string;
   onSend?: () => void;
@@ -15,7 +17,7 @@ interface MessageInputProps {
 }
 
 export function MessageInput({
-  conversationId,
+  conversation,
   tenantId,
   contactName,
   onSend,
@@ -29,11 +31,32 @@ export function MessageInput({
 
     setIsSending(true);
     try {
+      // 1. Se conversa está pausada, retomar automaticamente
+      if (conversation.status === 'paused') {
+        const resumeResponse = await fetch('/api/conversations/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            tenantId: tenantId,
+          }),
+        });
+
+        if (!resumeResponse.ok) {
+          const errorData = await resumeResponse.json();
+          throw new Error(errorData.error || 'Erro ao retomar conversa');
+        }
+
+        // Aguarda um momento para garantir que o realtime atualizou
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+
+      // 2. Enviar mensagem normalmente
       const response = await fetch('/api/n8n/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversationId: conversationId,
+          conversationId: conversation.id,
           tenantId: tenantId,
           content: content.trim(),
         }),
@@ -47,7 +70,9 @@ export function MessageInput({
       onSend?.();
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem. Tente novamente.');
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao enviar mensagem'
+      );
     } finally {
       setIsSending(false);
     }
@@ -67,7 +92,7 @@ export function MessageInput({
   return (
     <div className="flex gap-2 p-4 border-t">
       <QuickRepliesPanel
-        conversationId={conversationId}
+        conversationId={conversation.id}
         tenantId={tenantId}
         contactName={contactName}
         onSelect={handleQuickReplySelect}

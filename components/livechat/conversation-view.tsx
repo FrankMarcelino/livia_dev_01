@@ -3,7 +3,7 @@
 import { Separator } from '@/components/ui/separator';
 import { MessageItem } from './message-item';
 import { MessageInput } from './message-input';
-import { ConversationControls } from './conversation-controls';
+import { ConversationHeader } from './conversation-header';
 import { ScrollToBottomButton } from './scroll-to-bottom-button';
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages';
 import { useRealtimeConversation } from '@/lib/hooks/use-realtime-conversation';
@@ -35,14 +35,8 @@ export function ConversationView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold">{contactName}</h2>
-        <p className="text-sm text-muted-foreground">
-          WhatsApp • {conversation.external_id}
-        </p>
-      </div>
-
-      <ConversationControls
+      <ConversationHeader
+        contactName={contactName}
         conversation={conversation}
         tenantId={tenantId}
       />
@@ -78,7 +72,7 @@ export function ConversationView({
       <Separator />
 
       <MessageInput
-        conversationId={conversation.id}
+        conversation={conversation}
         tenantId={tenantId}
         contactName={contactName}
         disabled={conversation.status === 'closed'}
