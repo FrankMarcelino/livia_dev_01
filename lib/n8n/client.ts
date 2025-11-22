@@ -17,20 +17,30 @@ interface WebhookResponse<T = unknown> {
  */
 export async function callN8nWebhook<T = unknown>(
   webhookPath: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options?: { timeout?: number }
 ): Promise<WebhookResponse<T>> {
   if (!N8N_BASE_URL) {
     throw new Error('N8N_BASE_URL not configured');
   }
 
+  const timeout = options?.timeout || 10000; // Default 10s timeout
+
   try {
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     const response = await fetch(`${N8N_BASE_URL}${webhookPath}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`n8n webhook failed: ${response.statusText}`);
@@ -39,7 +49,12 @@ export async function callN8nWebhook<T = unknown>(
     const data = await response.json();
     return { success: true, data: data as T };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return { success: false, error: message };
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return { success: false, error: `n8n timeout after ${timeout}ms` };
+      }
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: 'Unknown error' };
   }
 }
