@@ -59,6 +59,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Conversa incompleta (sem contact ou channel)' }, { status: 400 });
     }
 
+    // Garantir tipos não-null após validação
+    const contactId = conversation.contact_id;
+    const channelId = conversation.channel_id;
+
     // 4. Inserir mensagem no banco ANTES de chamar n8n
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messageData: any = {
@@ -85,7 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     const dbTime = Date.now() - startTime;
-    console.log(`[send-message] DB operations took ${dbTime}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[send-message] DB operations took ${dbTime}ms`);
+    }
 
     // 5. Chamar n8n IMEDIATAMENTE em background (não bloquear response)
     // IMPORTANTE: Usar setImmediate/Promise para desacoplar completamente
@@ -96,15 +103,18 @@ export async function POST(request: NextRequest) {
         content.trim(),
         tenantId,
         user.id,
-        conversation.contact_id,
-        conversation.channel_id
+        contactId,
+        channelId
       );
     });
 
     // 6. Retornar sucesso INSTANTÂNEO
     // Realtime do Supabase já notificou o cliente sobre a nova mensagem
     const totalTime = Date.now() - startTime;
-    console.log(`[send-message] Total response time: ${totalTime}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[send-message] Total response time: ${totalTime}ms`);
+    }
 
     return NextResponse.json({
       success: true,
@@ -139,7 +149,10 @@ async function sendToN8nAsync(
   const n8nStartTime = Date.now();
 
   try {
-    console.log(`[n8n-async] Calling n8n for message ${messageId.slice(0, 8)}...`);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[n8n-async] Calling n8n for message ${messageId.slice(0, 8)}...`);
+    }
 
     // Timeout de 5s para n8n (reduzido de 10s padrão)
     const result = await callN8nWebhook(
@@ -159,7 +172,10 @@ async function sendToN8nAsync(
     const n8nTime = Date.now() - n8nStartTime;
 
     if (result.success) {
-      console.log(`[n8n-async] N8N responded successfully in ${n8nTime}ms`);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log(`[n8n-async] N8N responded successfully in ${n8nTime}ms`);
+      }
       // N8N é responsável por atualizar status='sent' e external_message_id
     } else {
       console.error(`[n8n-async] N8N failed after ${n8nTime}ms:`, result.error);
