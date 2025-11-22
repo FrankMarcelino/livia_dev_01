@@ -89,32 +89,29 @@ export async function POST(request: NextRequest) {
     }
 
     const dbTime = Date.now() - startTime;
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log(`[send-message] DB operations took ${dbTime}ms`);
-    }
+    console.error(`[send-message] ✅ DB operations took ${dbTime}ms (message: ${message.id.slice(0, 8)})`);
 
-    // 5. Chamar n8n IMEDIATAMENTE em background (não bloquear response)
-    // IMPORTANTE: Usar setImmediate/Promise para desacoplar completamente
-    Promise.resolve().then(() => {
-      sendToN8nAsync(
-        message.id,
-        conversationId,
-        content.trim(),
-        tenantId,
-        user.id,
-        contactId,
-        channelId
-      );
-    });
+    // 5. Chamar n8n com AWAIT
+    // IMPORTANTE: Em Vercel (serverless), Promises sem AWAIT podem não executar
+    // porque o contexto é terminado após retornar a response.
+    // SOLUÇÃO: Usar AWAIT para garantir execução, mas com timeout curto
+    console.error(`[send-message] 🚀 Starting n8n call for message ${message.id.slice(0, 8)}...`);
 
-    // 6. Retornar sucesso INSTANTÂNEO
+    // AWAIT da chamada n8n para garantir que execute em ambiente serverless
+    await sendToN8nAsync(
+      message.id,
+      conversationId,
+      content.trim(),
+      tenantId,
+      user.id,
+      contactId,
+      channelId
+    );
+
+    // 6. Retornar sucesso
     // Realtime do Supabase já notificou o cliente sobre a nova mensagem
     const totalTime = Date.now() - startTime;
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log(`[send-message] Total response time: ${totalTime}ms`);
-    }
+    console.error(`[send-message] ⏱️ Total response time: ${totalTime}ms`);
 
     return NextResponse.json({
       success: true,
@@ -147,12 +144,11 @@ async function sendToN8nAsync(
   channelId: string
 ) {
   const n8nStartTime = Date.now();
+  const msgId = messageId.slice(0, 8);
 
   try {
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log(`[n8n-async] Calling n8n for message ${messageId.slice(0, 8)}...`);
-    }
+    console.error(`[n8n-async] 📞 Calling n8n webhook for message ${msgId}...`);
+    console.error(`[n8n-async] 🔗 Webhook: ${process.env.N8N_BASE_URL}${N8N_SEND_MESSAGE_WEBHOOK}`);
 
     // Timeout de 5s para n8n (reduzido de 10s padrão)
     const result = await callN8nWebhook(
@@ -172,19 +168,19 @@ async function sendToN8nAsync(
     const n8nTime = Date.now() - n8nStartTime;
 
     if (result.success) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log(`[n8n-async] N8N responded successfully in ${n8nTime}ms`);
-      }
+      console.error(`[n8n-async] ✅ N8N responded successfully in ${n8nTime}ms`);
+      console.error(`[n8n-async] 📊 Response data:`, JSON.stringify(result.data));
       // N8N é responsável por atualizar status='sent' e external_message_id
     } else {
-      console.error(`[n8n-async] N8N failed after ${n8nTime}ms:`, result.error);
+      console.error(`[n8n-async] ❌ N8N failed after ${n8nTime}ms:`, result.error);
       // Fallback: atualizar status manualmente apenas se n8n não conseguir
+      console.error(`[n8n-async] 🔄 Updating message status to 'failed'...`);
       await updateMessageStatus(messageId, 'failed');
     }
   } catch (error) {
     const n8nTime = Date.now() - n8nStartTime;
-    console.error(`[n8n-async] Exception after ${n8nTime}ms:`, error);
+    console.error(`[n8n-async] 💥 Exception after ${n8nTime}ms:`, error);
+    console.error(`[n8n-async] 🔄 Attempting to update message status to 'failed'...`);
     await updateMessageStatus(messageId, 'failed');
   }
 }

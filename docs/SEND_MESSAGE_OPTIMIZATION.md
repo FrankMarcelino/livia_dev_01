@@ -263,11 +263,24 @@ if (result.success) {
 - [x] Adicionar timeout ao fetch do n8n
 - [x] Otimizar queries da API route
 - [x] Implementar logs de performance
-- [x] Desacoplar chamada n8n da response HTTP
+- [x] **MUDANÇA CRÍTICA:** Usar AWAIT ao invés de fire-and-forget (fix para Vercel)
 - [ ] **Executar migration no Supabase** (ver [MIGRATION_003_STATUS_ENUM.md](./MIGRATION_003_STATUS_ENUM.md))
 - [ ] Regenerar types do Supabase (`npm run supabase:types`)
 - [ ] Testar envio de mensagem em produção
 - [ ] Monitorar logs de performance (`[send-message]` e `[n8n-async]`)
+
+## ⚠️ IMPORTANTE: Fix para Vercel Serverless
+
+**Problema encontrado em produção:** Promises sem AWAIT não executam em ambiente serverless (Vercel).
+
+**Solução:** Mudamos de `Promise.resolve().then()` para `await sendToN8nAsync()`.
+
+**Impacto:**
+- ✅ Garante que n8n seja chamado em produção
+- ⚠️ Adiciona latência de ~200-500ms (tempo de resposta do n8n)
+- ✅ Mensagem continua aparecendo instantaneamente na UI via Realtime
+
+Ver documentação completa: [VERCEL_SERVERLESS_FIX.md](./VERCEL_SERVERLESS_FIX.md)
 
 ---
 
