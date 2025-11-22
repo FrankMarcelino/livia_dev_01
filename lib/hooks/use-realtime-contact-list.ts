@@ -91,9 +91,9 @@ export function useRealtimeContactList(
                   ...updated[existingContactIndex],
                   activeConversations: [
                     newConversation,
-                    ...updated[existingContactIndex].activeConversations
+                    ...(updated[existingContactIndex]?.activeConversations || [])
                   ]
-                };
+                } as ContactWithConversations;
                 return sortContactsByLastMessage(updated);
               } else {
                 const newContact = {
@@ -178,9 +178,9 @@ export function useRealtimeContactList(
                 ...updated[existingContactIndex],
                 activeConversations: [
                   newConversation,
-                  ...updated[existingContactIndex].activeConversations
+                  ...(updated[existingContactIndex]?.activeConversations || [])
                 ]
-              };
+              } as ContactWithConversations;
               return sortContactsByLastMessage(updated);
             } else {
               // Adicionar novo contato com a conversa
@@ -248,16 +248,7 @@ export function useRealtimeContactList(
           });
         }
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[realtime-contact-list] ❌ Messages channel error:', err);
-        } else if (status === 'TIMED_OUT') {
-          console.error('[realtime-contact-list] ⏱️ Messages subscription timed out');
-        } else if (status === 'CLOSED') {
-          console.warn('[realtime-contact-list] 🔌 Messages channel closed');
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(conversationsChannel);
