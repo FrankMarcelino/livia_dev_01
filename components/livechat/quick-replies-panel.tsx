@@ -40,27 +40,27 @@ export function QuickRepliesPanel({
 
   // Carregar quick replies ao abrir o popover
   useEffect(() => {
+    const loadQuickReplies = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/quick-replies?tenantId=${tenantId}`
+        );
+        if (!response.ok) throw new Error('Erro ao carregar quick replies');
+
+        const data = await response.json();
+        setQuickReplies(data.data || []);
+      } catch (error) {
+        console.error('Erro ao carregar quick replies:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (open && quickReplies.length === 0) {
       loadQuickReplies();
     }
-  }, [open]);
-
-  const loadQuickReplies = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `/api/quick-replies?tenantId=${tenantId}`
-      );
-      if (!response.ok) throw new Error('Erro ao carregar quick replies');
-
-      const data = await response.json();
-      setQuickReplies(data.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar quick replies:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [open, tenantId, quickReplies.length]);
 
   const handleSelect = (quickReply: QuickReply) => {
     // Substituir variáveis dinâmicas

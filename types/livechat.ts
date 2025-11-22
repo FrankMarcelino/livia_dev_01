@@ -37,6 +37,19 @@ export interface ConversationWithLastMessage extends Conversation {
 }
 
 /**
+ * Conversa com dados do contato e última mensagem
+ *
+ * NOVO MODELO (2025-11-22): Cada card na UI representa uma CONVERSA (não um contato).
+ * Mesmo contato pode ter múltiplos cards se tiver múltiplas conversas.
+ *
+ * Ver: docs/LIVECHAT_CONVERSATION_CARDS_REFACTOR.md
+ */
+export interface ConversationWithContact extends Conversation {
+  contact: Pick<Contact, 'id' | 'name' | 'phone' | 'email' | 'status'>;
+  lastMessage: Message | null;
+}
+
+/**
  * Mensagem com informações do remetente
  */
 export interface MessageWithSender extends Message {
@@ -101,8 +114,28 @@ export interface UseQuickReplyPayload {
 export interface ContactFilters {
   search?: string; // Busca por nome ou phone
   status?: Contact['status'];
+  includeClosedConversations?: boolean; // Se true, inclui conversas encerradas na busca
   limit?: number;
   offset?: number;
+}
+
+/**
+ * Filtros para listagem de conversas
+ */
+export interface ConversationFilters {
+  search?: string; // Busca por nome ou phone do contato
+  status?: Conversation['status']; // 'open' | 'paused' | 'closed'
+  includeClosedConversations?: boolean; // Se true, inclui conversas encerradas
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Opções de ordenação da lista de contatos
+ */
+export interface ContactListSortOptions {
+  sortBy: 'last_message' | 'name' | 'status';
+  order: 'asc' | 'desc';
 }
 
 /**

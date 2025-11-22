@@ -1,0 +1,76 @@
+
+> app@0.1.0 lint
+> eslint --quiet
+
+
+/home/frank/projeto/app/(dashboard)/knowledge-base/page.tsx
+  45:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/app/api/conversations/pause/route.ts
+  42:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/app/api/conversations/reopen/route.ts
+  42:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/app/api/conversations/resume/route.ts
+  42:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/components/auth/login-form.tsx
+  34:14  error  'err' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/knowledge-base/base-conhecimento-form-dialog.tsx
+  121:14  error  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/knowledge-base/delete-synapse-dialog.tsx
+  66:14  error  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/knowledge-base/knowledge-base-master-detail.tsx
+  94:14  error  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/knowledge-base/synapse-dialog.tsx
+  104:14  error  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/knowledge-base/synapses-table.tsx
+  73:14  error  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/frank/projeto/components/livechat/contact-list.tsx
+  29:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/components/livechat/quick-replies-panel.tsx
+  46:6  error  React Hook useEffect has missing dependencies: 'loadQuickReplies' and 'quickReplies.length'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/frank/projeto/docs/types-example.ts
+   96:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  295:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  297:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  298:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  309:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/lib/queries/contacts.ts
+  161:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/lib/queries/feedback.ts
+   20:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/frank/projeto/lib/queries/livechat.ts
+   85:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   91:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  220:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  287:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 37 problems (37 errors, 0 warnings)
+

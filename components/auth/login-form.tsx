@@ -31,7 +31,7 @@ export function LoginForm() {
       // Sucesso - Next.js vai redirecionar via middleware/server
       router.push('/livechat');
       router.refresh();
-    } catch (err) {
+    } catch (_err) {
       setError('Erro ao fazer login. Tente novamente.');
       setIsLoading(false);
     }

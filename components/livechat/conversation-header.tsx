@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, MessageSquare, Bot } from 'lucide-react';
+import { Pause, Play, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Conversation } from '@/types/database';
 

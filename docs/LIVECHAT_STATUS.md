@@ -1,6 +1,6 @@
 # Status de Implementação - Livechat
 
-**Última atualização:** 2025-11-17
+**Última atualização:** 2025-11-22
 **Status Geral:** ✅ MVP Funcional Completo
 
 ---
@@ -9,7 +9,9 @@
 
 O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuários internos acompanhem e interajam com conversas em tempo real entre clientes e a IA.
 
-**Última atualização (2025-11-20):** Implementada abordagem "Salvar no Banco Primeiro" para reduzir delay no envio de mensagens de ~500-1000ms para ~100-200ms.
+**Últimas atualizações:**
+- **2025-11-22:** Implementado sistema de 4 filtros (Ativas, Aguardando, Encerradas, Todas) + correção de bug no preview de mensagens
+- **2025-11-20:** Implementada abordagem "Salvar no Banco Primeiro" para reduzir delay no envio de mensagens de ~500-1000ms para ~100-200ms
 
 ---
 
@@ -30,10 +32,20 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 ### 2. Lista de Contatos ([components/livechat/contact-list.tsx](../components/livechat/contact-list.tsx))
 
-- ✅ Exibe contatos com conversas ativas
+- ✅ Exibe contatos com conversas
 - ✅ Destaque do contato selecionado
 - ✅ Informações do contato (nome, canal)
 - ✅ Scroll automático na lista
+- ✅ **Preview da última mensagem (truncado em 50 caracteres)** 🆕
+- ✅ **Horário relativo da última mensagem (Agora, 5m, 2h, 3d, DD/MM)** 🆕
+- ✅ **Ordenação cronológica (mais recente primeiro)** 🆕
+- ✅ **Sistema de 4 filtros:**
+  - **Ativas:** Conversas com status `open` (badge verde)
+  - **Aguardando:** Conversas com status `paused` (badge amarelo)
+  - **Encerradas:** Conversas com status `closed` (badge cinza)
+  - **Todas:** Inclui TODAS as conversas (open + paused + closed)
+- ✅ **Busca por nome ou telefone** 🆕
+- ✅ **Reordenação automática em tempo real** quando novas mensagens chegam 🆕
 
 ### 3. Visualização de Conversa ([components/livechat/conversation-view.tsx](../components/livechat/conversation-view.tsx))
 
@@ -120,6 +132,21 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Atualiza status, ia_active, e outros campos
 - ✅ Propaga mudanças para UI instantaneamente
 - ✅ Cleanup ao desmontar componente
+
+**[use-realtime-contact-list.ts](../lib/hooks/use-realtime-contact-list.ts):** 🆕
+- ✅ Subscribe em novas conversas (INSERT em conversations)
+- ✅ Subscribe em mudanças de status (UPDATE em conversations)
+- ✅ Subscribe em novas mensagens (INSERT em messages)
+- ✅ **Busca mensagem completa ao receber evento** (correção de bug REPLICA IDENTITY)
+- ✅ **Atualiza preview e timestamp da última mensagem em tempo real**
+- ✅ **Reordena lista automaticamente** quando nova mensagem chega
+- ✅ Remove conversas deletadas (DELETE em conversations)
+- ✅ Cleanup ao desmontar componente
+
+**Correção de Bug REPLICA IDENTITY:**
+- Problema: Realtime não retornava campo `content` da mensagem (apenas PK por padrão)
+- Solução: Query adicional para buscar mensagem completa quando evento INSERT chega
+- Impacto: Preview de mensagens agora atualiza corretamente sem precisar abrir a conversa
 
 ---
 
@@ -224,14 +251,18 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 ### Queries Principais ([lib/queries/livechat.ts](../lib/queries/livechat.ts))
 
-- ✅ `getContactsWithConversations()` - Lista contatos com conversas ativas
+- ✅ `getContactsWithConversations()` - Lista contatos com conversas (ativas ou todas)
 - ✅ `getConversation()` - Busca conversa por ID
 - ✅ `getMessages()` - Busca mensagens de uma conversa
 
-**Filtros:**
+**Filtros em `getContactsWithConversations()`:**
 - ✅ Multi-tenancy (filtro por tenant_id)
-- ✅ Apenas conversas ativas (status != closed)
-- ✅ Ordenação cronológica
+- ✅ **Conversas encerradas opcionais** - Parâmetro `includeClosedConversations` 🆕
+  - `false/undefined` → Exclui conversas `closed` (padrão)
+  - `true` → Inclui TODAS as conversas (open, paused, closed)
+- ✅ **Busca por nome ou telefone** - Parâmetro `search` 🆕
+- ✅ **Query otimizada em 2 passos** (busca apenas última mensagem de cada conversa) 🆕
+- ✅ **Ordenação cronológica client-side** (via utility `sortContactsByLastMessage`) 🆕
 
 ### Queries Planejadas (Feedback e Dados)
 
@@ -451,8 +482,9 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 ### Funcionalidades Extras
 - [ ] Busca de mensagens
-- [ ] Filtro de conversas (abertas/pausadas/encerradas)
-- [ ] Histórico de conversas encerradas
+- [x] **Filtro de conversas (abertas/pausadas/encerradas)** ✅ 🆕
+- [x] **Histórico de conversas encerradas** (via filtro "Encerradas") ✅ 🆕
+- [x] **Busca de contatos** (por nome ou telefone) ✅ 🆕
 - [ ] Notas internas na conversa
 - [ ] Tags de categorização
 - [ ] Estatísticas de atendimento

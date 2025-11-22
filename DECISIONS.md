@@ -12,6 +12,7 @@
 9. [Hierarquia Base de Conhecimento → Synapses](#decisão-009-hierarquia-base-de-conhecimento--synapses)
 10. [Refatoração Master-Detail com N8N Webhooks](#decisão-010-refatoração-master-detail-com-n8n-webhooks)
 11. [Livechat: Salvar no Banco Primeiro](#decisão-011-livechat-salvar-no-banco-primeiro)
+12. [Sistema de 4 Filtros no Livechat](#decisão-012-sistema-de-4-filtros-no-livechat)
 
 ---
 
@@ -1100,6 +1101,215 @@ Client → API → [Insere DB status=pending] → Retorna sucesso → Realtime �
 
 ---
 
+## Decisão #012: Sistema de 4 Filtros no Livechat
+
+**Data:** 2025-11-22
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Durante o desenvolvimento do Livechat, foi implementado um sistema de filtros com 3 opções: "Ativas", "Aguardando" e "Todos". No entanto, identificou-se que:
+1. O filtro "Todos" estava excluindo conversas encerradas (apenas incluía open e paused)
+2. Não havia forma de visualizar apenas conversas encerradas
+3. Era necessário poder visualizar TODAS as conversas (incluindo closed)
+
+### Decisão
+
+**Implementar sistema de 4 filtros** no Livechat:
+1. **Ativas** - Apenas conversas com status `open`
+2. **Aguardando** - Apenas conversas com status `paused`
+3. **Encerradas** - Apenas conversas com status `closed`
+4. **Todas** - TODAS as conversas (incluindo open, paused e closed)
+
+### Implementação
+
+**Arquivos Modificados:**
+
+1. **Query** ([lib/queries/livechat.ts](lib/queries/livechat.ts))
+   - Adicionado parâmetro opcional `includeClosedConversations` em `ContactFilters`
+   - Query condicional: se `false/undefined`, exclui closed; se `true`, inclui todas
+
+2. **Types** ([types/livechat.ts](types/livechat.ts))
+   - Adicionado campo `includeClosedConversations?: boolean` em `ContactFilters`
+
+3. **ContactList** ([components/livechat/contact-list.tsx](components/livechat/contact-list.tsx))
+   - Adicionado 4º badge "Encerradas"
+   - Atualizado `statusCounts` para incluir contagem de conversas `closed`
+   - Badges: Ativas, Aguardando, Encerradas, Todas
+
+4. **Livechat Page** ([app/(dashboard)/livechat/page.tsx](app/(dashboard)/livechat/page.tsx))
+   - Query inicial busca TODAS conversas (`includeClosedConversations: true`)
+   - Filtros aplicados client-side para melhor performance
+
+5. **Realtime Hook** ([lib/hooks/use-realtime-contact-list.ts](lib/hooks/use-realtime-contact-list.ts))
+   - Corrigido bug onde preview de mensagem não atualizava
+   - Adicionada query adicional para buscar mensagem completa (Realtime pode não retornar todos os campos)
+
+### Comportamento
+
+**Filtro "Ativas":**
+- Mostra apenas conversas com `status = 'open'`
+- Badge verde no card
+
+**Filtro "Aguardando":**
+- Mostra apenas conversas com `status = 'paused'`
+- Badge amarelo no card
+
+**Filtro "Encerradas":**
+- Mostra apenas conversas com `status = 'closed'`
+- Badge cinza no card
+
+**Filtro "Todas":**
+- Mostra TODAS as conversas (open + paused + closed)
+- Sem filtro de status aplicado
+
+### Correção de Bug: Preview de Mensagens
+
+Durante a implementação, foi identificado e corrigido um bug onde o card da conversa mostrava "sem mensagens" mesmo após receber uma nova mensagem via Realtime.
+
+**Causa Raiz:**
+- Supabase Realtime, por padrão, não retorna todos os campos no evento INSERT
+- Apenas campos que fazem parte da REPLICA IDENTITY são retornados
+- O campo `content` não estava disponível no `payload.new`
+
+**Solução:**
+```typescript
+async (payload) => {
+  // Buscar mensagem completa (Realtime pode não retornar todos os campos)
+  const { data: fullMessage } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('id', payload.new.id)
+    .single();
+
+  if (!fullMessage) return;
+
+  // Atualizar com mensagem completa
+  updateAndSortContacts((prev) =>
+    prev.map((contact) => ({
+      ...contact,
+      activeConversations: contact.activeConversations?.map((conv) =>
+        conv.id === fullMessage.conversation_id
+          ? {
+              ...conv,
+              lastMessage: fullMessage as Message,
+            }
+          : conv
+      ),
+    }))
+  );
+}
+```
+
+### Consequências
+
+**Positivas:**
+✅ UX melhorada: usuário pode visualizar conversas em qualquer estado
+✅ Filtro "Todas" realmente mostra TODAS as conversas
+✅ Organização clara: 4 filtros cobrem todos os casos de uso
+✅ Preview de mensagens atualiza corretamente em tempo real
+✅ Performance: query inicial busca tudo, filtros aplicados client-side
+
+**Negativas:**
+⚠️ Query adicional no Realtime para buscar mensagem completa (latência mínima ~50ms)
+⚠️ Mais conversas carregadas inicialmente (mas necessário para "Todas")
+
+**Trade-offs aceitos:**
+- Query adicional vs Preview correto → Preview correto vence
+- Carregar todas conversas vs Filtros limitados → Carregar todas vence (UX)
+
+### Testes Recomendados
+
+1. Filtro "Ativas" deve mostrar apenas conversas abertas
+2. Filtro "Aguardando" deve mostrar apenas conversas pausadas
+3. Filtro "Encerradas" deve mostrar apenas conversas fechadas
+4. Filtro "Todas" deve mostrar TODAS as conversas (verificar que closed aparecem)
+5. Preview de mensagem deve atualizar imediatamente ao receber nova mensagem via Realtime
+
+### Referências
+- [Decisão #011: Livechat: Salvar no Banco Primeiro](DECISIONS.md#decisão-011-livechat-salvar-no-banco-primeiro)
+- [LIVECHAT_STATUS.md](docs/LIVECHAT_STATUS.md) - Documentação atualizada
+- [Supabase Realtime REPLICA IDENTITY](https://supabase.com/docs/guides/realtime/postgres-changes#replica-identity)
+
+---
+
+## Decisão #013: Cards por Conversa, não por Contato
+
+**Data:** 2025-11-22
+**Status:** 📋 DOCUMENTADO - Implementação Futura
+**Contexto:** Bug descoberto durante debug de conversas "sumindo"
+
+### Problema Identificado
+
+Durante debug de Realtime, descobrimos que o Livechat mostrava apenas 6 conversas quando o banco tinha 10. Investigação revelou problema arquitetural.
+
+**Comportamento atual (INCORRETO):**
+- Query busca CONTATOS e JOIN conversas
+- UI mostra 1 card por contato
+- Quando contato tem múltiplas conversas (ex: uma fechada, uma nova), apenas primeira aparece
+- Resultado: 4 conversas "escondidas"
+
+### Comportamento Esperado (CORRETO)
+
+**Cada CARD = uma CONVERSA** (não um contato)
+
+**Razão:**
+1. Cada conversa tem ID único e é independente
+2. Quando encerrada, a conversa vira "cápsula" (fechada, imutável)
+3. Se o mesmo contato retornar, cria-se uma **nova conversa** com novo ID
+4. Mesmo contato pode ter **múltiplos cards** (um para cada conversa)
+
+**Exemplo:**
+- João fecha conversa #1 (encerrada) → CARD 1
+- João entra em contato novamente → cria conversa #2 (nova) → CARD 2
+- **Resultado esperado:** 2 cards na lista, ambos mostrando "João", mas conversas diferentes
+
+### Solução Proposta
+
+Refatorar query para buscar CONVERSAS (não contatos):
+
+```typescript
+// ✅ Correto
+SELECT * FROM conversations
+LEFT JOIN contacts ON contacts.id = conversations.contact_id
+WHERE conversations.tenant_id = 'xxx'
+```
+
+**Retorno:** `ConversationWithContact[]` em vez de `ContactWithConversations[]`
+
+### Impacto
+
+**Arquivos a modificar:**
+1. `types/livechat.ts` - Novos tipos
+2. `lib/queries/livechat.ts` - Nova query
+3. `app/(dashboard)/livechat/page.tsx` - Chamada da query
+4. `components/livechat/contact-list.tsx` - Props e renderização
+5. `components/livechat/contact-card.tsx` - Props e exibição
+6. `lib/hooks/use-realtime-contact-list.ts` - Tipo e lógica
+7. `lib/utils/contact-list.ts` - Função de ordenação
+
+**Estimativa:** 3-4 horas de desenvolvimento + testes
+
+### Decisão
+
+**DOCUMENTAR** para implementação futura prioritária.
+
+Criado documento completo em: [docs/LIVECHAT_CONVERSATION_CARDS_REFACTOR.md](docs/LIVECHAT_CONVERSATION_CARDS_REFACTOR.md)
+
+Contém:
+- Análise do problema
+- Solução detalhada com código
+- Plano de implementação passo a passo
+- Critérios de aceitação
+
+### Referências
+- [LIVECHAT_CONVERSATION_CARDS_REFACTOR.md](docs/LIVECHAT_CONVERSATION_CARDS_REFACTOR.md) - Documento completo
+- [REALTIME_DEBUG_2025-11-22.md](docs/REALTIME_DEBUG_2025-11-22.md) - Debug session
+- Conversa de debug: 2025-11-22
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
@@ -1115,3 +1325,5 @@ Client → API → [Insere DB status=pending] → Retorna sucesso → Realtime �
 2025-11-19 | Callbacks para refresh local | UX fluida sem fechar modal, SOLID (OCP/DIP)
 2025-11-19 | API route para synapses | Client component precisa fetch, não pode usar server queries
 2025-11-20 | Salvar no banco primeiro (Livechat) | Reduz delay de 500-1000ms para 100-200ms, UX superior
+2025-11-22 | 4 filtros no Livechat | Visualizar conversas em qualquer estado, "Todas" inclui closed
+2025-11-22 | Cards por Conversa (Refatoração Futura) | Card = conversa (não contato). Múltiplas conversas = múltiplos cards. Ver LIVECHAT_CONVERSATION_CARDS_REFACTOR.md

@@ -31,7 +31,7 @@ export default async function KnowledgeBasePage() {
   }
 
   // Buscar dados do tenant (incluindo neurocore)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: tenantData } = (await supabase
     .from('tenants')
     .select(
@@ -42,7 +42,7 @@ export default async function KnowledgeBasePage() {
     `
     )
     .eq('id', tenantId)
-    .single()) as any;
+    .single()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   if (!tenantData || !tenantData.neurocore_id || !tenantData.neurocores) {
     return (

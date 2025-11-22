@@ -70,7 +70,7 @@ export function SynapsesTable({
       } else {
         toast.error(result.error || 'Erro ao atualizar synapse');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro inesperado');
     } finally {
       setTogglingId(null);

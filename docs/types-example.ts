@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Tipos TypeScript gerados do Schema Supabase - LIVIA MVP
  *

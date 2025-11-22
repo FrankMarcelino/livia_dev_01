@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Feedback Queries
  * Operações relacionadas a feedback de mensagens

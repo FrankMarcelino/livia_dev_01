@@ -118,7 +118,7 @@ export function BaseConhecimentoFormDialog({
       } else {
         toast.error(result.error || 'Erro ao salvar base de conhecimento');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro inesperado ao salvar');
     } finally {
       setIsLoading(false);

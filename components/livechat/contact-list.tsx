@@ -1,52 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
 import { Search } from 'lucide-react';
 import { useRealtimeContactList } from '@/lib/hooks/use-realtime-contact-list';
-import type { ContactWithConversations } from '@/types/livechat';
+import type { ConversationWithContact } from '@/types/livechat';
 import type { ConversationStatus } from '@/types/database';
 
 interface ContactListProps {
-  initialContacts: ContactWithConversations[];
-  selectedContactId?: string;
+  initialConversations: ConversationWithContact[];
+  selectedConversationId?: string;
   tenantId: string;
 }
 
 export function ContactList({
-  initialContacts,
-  selectedContactId,
+  initialConversations,
+  selectedConversationId,
   tenantId,
 }: ContactListProps) {
-  // 🔥 Hook de Realtime para atualizar lista em tempo real
-  const { contacts } = useRealtimeContactList(tenantId, initialContacts);
+  // TODO: Substituir por useRealtimeConversationList quando implementado
+  // Por enquanto, adaptar conversas para formato antigo do hook
+  const adaptedContacts = useMemo(() => initialConversations.map((conv) => ({
+    ...conv.contact,
+    activeConversations: [conv],
+  })) as any, [initialConversations]); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  const { contacts } = useRealtimeContactList(tenantId, adaptedContacts);
+
+  // Converter de volta para conversas
+  const conversations = contacts.flatMap((contact) =>
+    (contact.activeConversations || []).map((conv) => ({
+      ...conv,
+      contact,
+    }))
+  ) as ConversationWithContact[];
+
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ConversationStatus | 'all'>('all');
 
-  const filteredContacts = contacts.filter((contact) => {
-    const matchesSearch = contact.name
+  const filteredConversations = conversations.filter((conversation) => {
+    const matchesSearch = conversation.contact.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
     if (statusFilter === 'all') return matchesSearch;
 
-    const activeConversation = contact.activeConversations?.[0];
-    return matchesSearch && activeConversation?.status === statusFilter;
+    return matchesSearch && conversation.status === statusFilter;
   });
 
   const statusCounts = {
-    all: contacts.length,
-    active: contacts.filter((c) => c.activeConversations?.[0]?.status === 'open')
-      .length,
-    waiting: contacts.filter((c) => c.activeConversations?.[0]?.status === 'paused')
-      .length,
-    ended: contacts.filter((c) => c.activeConversations?.[0]?.status === 'closed')
-      .length,
+    all: conversations.length,
+    open: conversations.filter((c) => c.status === 'open').length,
+    paused: conversations.filter((c) => c.status === 'paused').length,
+    closed: conversations.filter((c) => c.status === 'closed').length,
   };
 
   return (
@@ -63,47 +74,61 @@ export function ContactList({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-        
           <Badge
             variant={statusFilter === 'open' ? 'default' : 'outline'}
             className="cursor-pointer"
             onClick={() => setStatusFilter('open')}
           >
-            Ativas ({statusCounts.active})
+            Ativas ({statusCounts.open})
           </Badge>
           <Badge
             variant={statusFilter === 'paused' ? 'default' : 'outline'}
             className="cursor-pointer"
             onClick={() => setStatusFilter('paused')}
           >
-            Aguardando ({statusCounts.waiting})
+            Aguardando ({statusCounts.paused})
+          </Badge>
+          <Badge
+            variant={statusFilter === 'closed' ? 'default' : 'outline'}
+            className="cursor-pointer"
+            onClick={() => setStatusFilter('closed')}
+          >
+            Encerradas ({statusCounts.closed})
           </Badge>
           <Badge
             variant={statusFilter === 'all' ? 'default' : 'outline'}
             className="cursor-pointer"
             onClick={() => setStatusFilter('all')}
           >
-            Todos ({statusCounts.all})
+            Todas ({statusCounts.all})
           </Badge>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth">
-        {filteredContacts.length === 0 ? (
+        {filteredConversations.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {searchQuery
-              ? 'Nenhum contato encontrado'
+              ? 'Nenhuma conversa encontrada'
               : 'Nenhuma conversa ativa'}
           </div>
         ) : (
-          filteredContacts.map((contact) => (
-            <ContactItem
-              key={contact.id}
-              contact={contact}
-              isSelected={selectedContactId === contact.id}
-              onClick={() => router.push(`/livechat?contact=${contact.id}`)}
-            />
-          ))
+          filteredConversations.map((conversation) => {
+            // Adaptar conversa para formato antigo (temporário)
+            const adaptedContact = {
+              ...conversation.contact,
+              activeConversations: [conversation],
+            } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+            return (
+              <ContactItem
+                key={conversation.id}
+                contact={adaptedContact}
+                isSelected={selectedConversationId === conversation.id}
+                onClick={() => router.push(`/livechat?conversation=${conversation.id}`)}
+              />
+            );
+          })
         )}
       </div>
     </div>

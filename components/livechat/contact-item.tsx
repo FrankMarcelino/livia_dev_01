@@ -4,6 +4,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import {
+  formatMessagePreview,
+  formatRelativeTime,
+  getConversationLastTimestamp,
+} from '@/lib/utils/contact-list';
 import type { ContactWithConversations } from '@/types/livechat';
 
 interface ContactItemProps {
@@ -19,6 +24,11 @@ export function ContactItem({
 }: ContactItemProps) {
   const activeConversation = contact.activeConversations?.[0];
   const lastMessage = activeConversation?.lastMessage;
+
+  // Usar utilities para formatação (Single Responsibility)
+  const messagePreview = formatMessagePreview(lastMessage?.content);
+  const lastTimestamp = getConversationLastTimestamp(activeConversation);
+  const timeDisplay = formatRelativeTime(lastTimestamp);
 
   const initials = contact.name
     .split(' ')
@@ -55,21 +65,16 @@ export function ContactItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium truncate">{contact.name}</span>
-            {lastMessage && (
-              <span className="text-xs text-muted-foreground">
-                {new Date(lastMessage.timestamp).toLocaleTimeString('pt-BR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+            {timeDisplay && (
+              <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                {timeDisplay}
               </span>
             )}
           </div>
 
-          {lastMessage && (
-            <p className="text-sm text-muted-foreground truncate mb-2">
-              {lastMessage.content}
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground truncate mb-2">
+            {messagePreview}
+          </p>
 
           <div className="flex items-center gap-2">
             {activeConversation && (

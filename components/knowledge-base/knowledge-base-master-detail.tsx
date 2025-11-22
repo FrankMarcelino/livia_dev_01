@@ -91,7 +91,7 @@ export function KnowledgeBaseMasterDetail({
       } else {
         toast.error(result.error || 'Erro ao atualizar base');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro inesperado ao atualizar base');
     }
   };

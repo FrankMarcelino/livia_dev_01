@@ -101,7 +101,7 @@ export function SynapseDialog({
       } else {
         toast.error(result.error || 'Erro ao salvar synapse');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro inesperado ao salvar synapse');
     } finally {
       setIsLoading(false);

@@ -63,7 +63,7 @@ export function DeleteSynapseDialog({
       } else {
         toast.error(result.error || 'Erro ao deletar synapse');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro inesperado ao deletar synapse');
     } finally {
       setIsLoading(false);
