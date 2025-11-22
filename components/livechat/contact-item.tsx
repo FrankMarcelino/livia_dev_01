@@ -34,8 +34,8 @@ export function ContactItem({
   };
 
   const statusLabels = {
-    open: 'Ativa',
-    paused: 'Aguardando',
+    open: 'Conversa Ativa',
+    paused: 'Conversa Aguardando',
     closed: 'Encerrada',
   };
 
@@ -84,7 +84,7 @@ export function ContactItem({
                   {statusLabels[activeConversation.status]}
                 </Badge>
                 {!activeConversation.ia_active && (
-                  <Badge variant="outline">IA Pausada</Badge>
+                  <Badge variant="outline">IA Desativada</Badge>
                 )}
               </>
             )}

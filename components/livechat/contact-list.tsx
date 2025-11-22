@@ -6,18 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
 import { Search } from 'lucide-react';
+import { useRealtimeContactList } from '@/lib/hooks/use-realtime-contact-list';
 import type { ContactWithConversations } from '@/types/livechat';
 import type { ConversationStatus } from '@/types/database';
 
 interface ContactListProps {
-  contacts: ContactWithConversations[];
+  initialContacts: ContactWithConversations[];
   selectedContactId?: string;
+  tenantId: string;
 }
 
 export function ContactList({
-  contacts,
+  initialContacts,
   selectedContactId,
+  tenantId,
 }: ContactListProps) {
+  // 🔥 Hook de Realtime para atualizar lista em tempo real
+  const { contacts } = useRealtimeContactList(tenantId, initialContacts);
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
@@ -58,13 +63,7 @@ export function ContactList({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <Badge
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            className="cursor-pointer"
-            onClick={() => setStatusFilter('all')}
-          >
-            Todos ({statusCounts.all})
-          </Badge>
+        
           <Badge
             variant={statusFilter === 'open' ? 'default' : 'outline'}
             className="cursor-pointer"
@@ -78,6 +77,13 @@ export function ContactList({
             onClick={() => setStatusFilter('paused')}
           >
             Aguardando ({statusCounts.waiting})
+          </Badge>
+          <Badge
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            className="cursor-pointer"
+            onClick={() => setStatusFilter('all')}
+          >
+            Todos ({statusCounts.all})
           </Badge>
         </div>
       </div>

@@ -33,10 +33,27 @@ export function useRealtimeConversation(initialConversation: Conversation) {
           filter: `id=eq.${initialConversation.id}`,
         },
         (payload) => {
+          console.log('[realtime-conversation] UPDATE received:', {
+            conversationId: initialConversation.id,
+            old: payload.old,
+            new: payload.new,
+            ia_active: payload.new.ia_active,
+            pause_notes: payload.new.pause_notes,
+          });
           setConversation(payload.new);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[realtime-conversation] ✅ Subscribed to conversation:', initialConversation.id);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[realtime-conversation] ❌ Channel error:', err);
+        } else if (status === 'TIMED_OUT') {
+          console.error('[realtime-conversation] ⏱️ Subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('[realtime-conversation] 🔌 Channel closed');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

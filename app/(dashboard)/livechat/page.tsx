@@ -73,8 +73,9 @@ export default async function LivechatPage({
         </div>
         <div className="flex-1 overflow-hidden">
           <ContactList
-            contacts={contacts}
+            initialContacts={contacts}
             selectedContactId={selectedContactId}
+            tenantId={tenantId}
           />
         </div>
       </aside>

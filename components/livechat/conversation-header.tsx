@@ -78,11 +78,11 @@ export function ConversationHeader({
   const getStatusDisplay = () => {
     switch (conversation.status) {
       case 'open':
-        return { label: 'Ativo', variant: 'default' as const, className: 'bg-green-600' };
+        return { label: 'Conversa Ativa', variant: 'default' as const, className: 'bg-green-600' };
       case 'paused':
-        return { label: 'Aguardando', variant: 'secondary' as const, className: 'bg-yellow-600' };
+        return { label: 'Conversa Aguardando', variant: 'default' as const, className: 'bg-yellow-600' };
       case 'closed':
-        return { label: 'Encerrado', variant: 'outline' as const, className: 'bg-gray-600' };
+        return { label: 'Conversa Encerrada', variant: 'outline' as const, className: 'bg-gray-600' };
       default:
         return { label: conversation.status, variant: 'outline' as const, className: '' };
     }
@@ -130,7 +130,7 @@ export function ConversationHeader({
         <span>•</span>
 
         <div className="flex items-center gap-1.5">
-          <span>Status:</span>
+          {/* <span>Status:</span> */}
           <Badge
             variant={statusDisplay.variant}
             className={statusDisplay.className}
@@ -142,15 +142,15 @@ export function ConversationHeader({
         <span>•</span>
 
         <div className="flex items-center gap-1.5">
-          <Bot className="h-3.5 w-3.5" />
-          <span>IA:</span>
+          {/* <Bot className="h-3.5 w-3.5" /> */}
+          {/* <span>IA:</span> */}
           {conversation.ia_active ? (
             <Badge variant="default" className="bg-green-600">
-              Ativa
+              IA Ativada
             </Badge>
           ) : (
             <Badge variant="secondary">
-              Pausada
+              IA Desativada
             </Badge>
           )}
         </div>
