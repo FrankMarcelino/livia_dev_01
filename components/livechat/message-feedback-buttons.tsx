@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -32,11 +42,15 @@ export function MessageFeedbackButtons({
   const [pendingRating, setPendingRating] = useState<'positive' | 'negative' | null>(null);
   const [comment, setComment] = useState('');
 
+  // Estados para o dialog de confirmação de remoção
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [removingType, setRemovingType] = useState<'positive' | 'negative' | null>(null);
+
   const handleButtonClick = (newRating: 'positive' | 'negative') => {
-    // Se clicar no mesmo botão, remove o feedback
+    // Se clicar no mesmo botão, pede confirmação para remover
     if (rating === newRating) {
-      setRating(null);
-      toast.info('Feedback removido');
+      setRemovingType(newRating);
+      setRemoveDialogOpen(true);
       return;
     }
 
@@ -44,6 +58,17 @@ export function MessageFeedbackButtons({
     setPendingRating(newRating);
     setComment('');
     setDialogOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    setRating(null);
+    setRemoveDialogOpen(false);
+    toast.info(
+      removingType === 'positive'
+        ? 'Feedback positivo removido'
+        : 'Feedback negativo removido'
+    );
+    setRemovingType(null);
   };
 
   const handleSubmitFeedback = async () => {
@@ -155,6 +180,32 @@ export function MessageFeedbackButtons({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação para remover feedback */}
+      <AlertDialog
+        open={removeDialogOpen}
+        onOpenChange={(open) => {
+          setRemoveDialogOpen(open);
+          if (!open) setRemovingType(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Remover feedback {removingType === 'positive' ? 'positivo' : 'negativo'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o feedback {removingType === 'positive' ? 'positivo' : 'negativo'} desta mensagem?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRemove}>
+              Sim, remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
