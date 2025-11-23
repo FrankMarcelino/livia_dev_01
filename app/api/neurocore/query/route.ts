@@ -111,10 +111,16 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), N8N_TIMEOUT);
 
     try {
-      // Endpoint de produção do n8n
-      const n8nProductionUrl = 'https://acesse.ligeiratelecom.com.br/webhook/dev_question_base_conhecimento';
+      // Montar URL do webhook usando variáveis de ambiente
+      const webhookUrl = `${N8N_BASE_URL}${N8N_NEUROCORE_QUERY_WEBHOOK}`;
       
-      const n8nResponse = await fetch(n8nProductionUrl, {
+      console.log('[neurocore] 📤 Enviando query para n8n:', {
+        url: webhookUrl,
+        tenantId,
+        question: question.substring(0, 100) + (question.length > 100 ? '...' : ''),
+      });
+      
+      const n8nResponse = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,17 +132,72 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
+      console.log('[neurocore] 📥 Resposta do n8n recebida:', {
+        status: n8nResponse.status,
+        statusText: n8nResponse.statusText,
+        contentType: n8nResponse.headers.get('content-type'),
+      });
+
       if (!n8nResponse.ok) {
-        throw new Error(`n8n retornou status ${n8nResponse.status}`);
+        // Tentar capturar detalhes do erro do n8n
+        let errorDetails = '';
+        try {
+          const errorBody = await n8nResponse.text();
+          errorDetails = errorBody;
+          console.error('[neurocore] ❌ Erro do n8n:', {
+            status: n8nResponse.status,
+            statusText: n8nResponse.statusText,
+            body: errorBody,
+          });
+        } catch (e) {
+          console.error('[neurocore] ❌ Não foi possível ler corpo do erro');
+        }
+        
+        throw new Error(
+          `n8n retornou status ${n8nResponse.status}${errorDetails ? `: ${errorDetails}` : ''}`
+        );
       }
 
-      const data = await n8nResponse.json();
+      // Capturar o texto da resposta primeiro para debug
+      const responseText = await n8nResponse.text();
+      console.log('[neurocore] 📄 Corpo da resposta:', responseText.substring(0, 500));
+
+      // Validar se há conteúdo
+      if (!responseText || responseText.trim().length === 0) {
+        throw new Error('n8n retornou resposta vazia');
+      }
+
+      // Tentar fazer parse do JSON
+      let parsedData;
+      try {
+        parsedData = JSON.parse(responseText);
+      } catch (error) {
+        console.error('[neurocore] ❌ Erro ao fazer parse do JSON:', error);
+        throw new Error(`Resposta do n8n não é um JSON válido: ${responseText.substring(0, 200)}`);
+      }
+
+      // Extrair campo 'return' da resposta do n8n
+      const data = parsedData.return || parsedData;
+
+      // Validar estrutura da resposta
+      if (!data.answer) {
+        console.error('[neurocore] ❌ Estrutura inválida:', parsedData);
+        throw new Error('Resposta do n8n não contém campo "answer"');
+      }
+
       const processingTime = Date.now() - startTime;
+
+      console.log('[neurocore] ✅ Resposta processada com sucesso:', {
+        processingTime,
+        hasSynapses: !!data.synapsesUsed,
+        synapsesCount: data.synapsesUsed?.length || 0,
+      });
 
       return NextResponse.json<NeurocoreQueryResponse>({
         success: true,
         data: {
-          ...data,
+          answer: data.answer,
+          synapsesUsed: data.synapsesUsed || [],
           processingTime,
         },
       });

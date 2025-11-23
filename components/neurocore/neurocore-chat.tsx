@@ -35,6 +35,7 @@ interface NeurocoreChatProps {
 export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   const [queries, setQueries] = useState<TrainingQuery[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [feedbackDialog, setFeedbackDialog] = useState<{
     open: boolean;
     queryId: string | null;
@@ -47,6 +48,11 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Marcar como montado (client-side)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Auto-scroll para última resposta
   useEffect(() => {
     if (scrollRef.current && queries.length > 0) {
@@ -58,10 +64,11 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
    * Submete nova pergunta para o n8n
    */
   const handleSubmitQuery = async (question: string) => {
+    // Criar query com timestamp no momento da submissão (client-side only)
     const newQuery: TrainingQuery = {
       id: uuidv4(),
       question,
-      createdAt: new Date(),
+      createdAt: new Date(), // Agora é seguro pois só executa após click do usuário
     };
 
     // Adiciona query ao estado (sem resposta ainda)
@@ -228,8 +235,8 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
           </div>
         )}
 
-        {/* Lista de queries/respostas */}
-        {queries.map((query) => (
+        {/* Lista de queries/respostas - só renderiza depois de montar */}
+        {isMounted && queries.map((query) => (
           <TrainingResponseCard
             key={query.id}
             query={query}
