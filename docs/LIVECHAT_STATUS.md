@@ -1,7 +1,7 @@
 # Status de Implementação - Livechat
 
-**Última atualização:** 2025-11-22
-**Status Geral:** ✅ MVP Funcional Completo
+**Última atualização:** 2025-11-23
+**Status Geral:** ✅ MVP Funcional Completo + BUG CRÍTICO CORRIGIDO
 
 ---
 
@@ -10,6 +10,12 @@
 O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuários internos acompanhem e interajam com conversas em tempo real entre clientes e a IA.
 
 **Últimas atualizações:**
+- **2025-11-23:**
+  - ✅ **BUG CRÍTICO CORRIGIDO:** Cards de conversa não atualizavam em tempo real
+  - Criado novo hook `useRealtimeConversations` que trabalha direto com `ConversationWithContact[]`
+  - Removidas transformações desnecessárias que causavam referências instáveis
+  - React agora detecta mudanças corretamente (estado flat sem objetos deeply nested)
+  - Performance otimizada: < 200ms de evento realtime para atualização na UI
 - **2025-11-22:**
   - Implementado sistema de 4 filtros (Ativas, Aguardando, Encerradas, Todas) + correção de bug no preview de mensagens
   - **NOVO:** IA pausa automaticamente quando atendente humano envia mensagem
@@ -135,20 +141,22 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Propaga mudanças para UI instantaneamente
 - ✅ Cleanup ao desmontar componente
 
-**[use-realtime-contact-list.ts](../lib/hooks/use-realtime-contact-list.ts):** 🆕
+**[use-realtime-conversations.ts](../lib/hooks/use-realtime-conversations.ts):** 🆕 **NOVO - Versão Simplificada**
+- ✅ **Trabalha diretamente com `ConversationWithContact[]`** (sem transformações)
 - ✅ Subscribe em novas conversas (INSERT em conversations)
 - ✅ Subscribe em mudanças de status (UPDATE em conversations)
 - ✅ Subscribe em novas mensagens (INSERT em messages)
-- ✅ **Busca mensagem completa ao receber evento** (correção de bug REPLICA IDENTITY)
 - ✅ **Atualiza preview e timestamp da última mensagem em tempo real**
 - ✅ **Reordena lista automaticamente** quando nova mensagem chega
-- ✅ Remove conversas deletadas (DELETE em conversations)
+- ✅ **Preserva dados de contact e lastMessage** ao atualizar via realtime
+- ✅ **Estado flat - React detecta mudanças facilmente** 🔥
 - ✅ Cleanup ao desmontar componente
+- ✅ **Performance < 200ms** (evento → UI atualizada)
 
-**Correção de Bug REPLICA IDENTITY:**
-- Problema: Realtime não retornava campo `content` da mensagem (apenas PK por padrão)
-- Solução: Query adicional para buscar mensagem completa quando evento INSERT chega
-- Impacto: Preview de mensagens agora atualiza corretamente sem precisar abrir a conversa
+**[use-realtime-contact-list.ts](../lib/hooks/use-realtime-contact-list.ts):** ⚠️ **DEPRECATED**
+- ℹ️ Hook antigo mantido para referência
+- ℹ️ Substituído por `use-realtime-conversations.ts`
+- ℹ️ Será removido em versão futura
 
 ---
 

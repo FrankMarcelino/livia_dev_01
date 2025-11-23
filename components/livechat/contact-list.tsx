@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
 import { Search } from 'lucide-react';
-import { useRealtimeContactList } from '@/lib/hooks/use-realtime-contact-list';
+import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import type { ConversationWithContact } from '@/types/livechat';
 import type { ConversationStatus } from '@/types/database';
 
@@ -21,28 +21,15 @@ export function ContactList({
   selectedConversationId,
   tenantId,
 }: ContactListProps) {
-  // TODO: Substituir por useRealtimeConversationList quando implementado
-  // Por enquanto, adaptar conversas para formato antigo do hook
-  const adaptedContacts = useMemo(() => initialConversations.map((conv) => ({
-    ...conv.contact,
-    activeConversations: [conv],
-  })) as any, [initialConversations]); // eslint-disable-line @typescript-eslint/no-explicit-any
-
-  const { contacts } = useRealtimeContactList(tenantId, adaptedContacts);
-
-  // Converter de volta para conversas
-  const conversations = contacts.flatMap((contact) =>
-    (contact.activeConversations || []).map((conv) => ({
-      ...conv,
-      contact,
-    }))
-  ) as ConversationWithContact[];
+  // ✅ Hook simplificado - trabalha direto com conversas (sem transformações)
+  const { conversations } = useRealtimeConversations(tenantId, initialConversations);
 
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ConversationStatus | 'all'>('all');
 
+  // Filtros
   const filteredConversations = conversations.filter((conversation) => {
     const matchesSearch = conversation.contact.name
       .toLowerCase()
@@ -53,6 +40,7 @@ export function ContactList({
     return matchesSearch && conversation.status === statusFilter;
   });
 
+  // Contadores de status
   const statusCounts = {
     all: conversations.length,
     open: conversations.filter((c) => c.status === 'open').length,
@@ -113,22 +101,14 @@ export function ContactList({
               : 'Nenhuma conversa ativa'}
           </div>
         ) : (
-          filteredConversations.map((conversation) => {
-            // Adaptar conversa para formato antigo (temporário)
-            const adaptedContact = {
-              ...conversation.contact,
-              activeConversations: [conversation],
-            } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-            return (
-              <ContactItem
-                key={conversation.id}
-                contact={adaptedContact}
-                isSelected={selectedConversationId === conversation.id}
-                onClick={() => router.push(`/livechat?conversation=${conversation.id}`)}
-              />
-            );
-          })
+          filteredConversations.map((conversation) => (
+            <ContactItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={selectedConversationId === conversation.id}
+              onClick={() => router.push(`/livechat?conversation=${conversation.id}`)}
+            />
+          ))
         )}
       </div>
     </div>

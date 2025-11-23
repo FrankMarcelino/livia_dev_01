@@ -9,25 +9,24 @@ import {
   formatRelativeTime,
   getConversationLastTimestamp,
 } from '@/lib/utils/contact-list';
-import type { ContactWithConversations } from '@/types/livechat';
+import type { ConversationWithContact } from '@/types/livechat';
 
 interface ContactItemProps {
-  contact: ContactWithConversations;
+  conversation: ConversationWithContact;
   isSelected?: boolean;
   onClick?: () => void;
 }
 
 export function ContactItem({
-  contact,
+  conversation,
   isSelected = false,
   onClick,
 }: ContactItemProps) {
-  const activeConversation = contact.activeConversations?.[0];
-  const lastMessage = activeConversation?.lastMessage;
+  const { contact, lastMessage, status, ia_active } = conversation;
 
   // Usar utilities para formatação (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
-  const lastTimestamp = getConversationLastTimestamp(activeConversation);
+  const lastTimestamp = getConversationLastTimestamp(conversation);
   const timeDisplay = formatRelativeTime(lastTimestamp);
 
   const initials = contact.name
@@ -77,21 +76,17 @@ export function ContactItem({
           </p>
 
           <div className="flex items-center gap-2">
-            {activeConversation && (
-              <>
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    'text-white',
-                    statusColors[activeConversation.status]
-                  )}
-                >
-                  {statusLabels[activeConversation.status]}
-                </Badge>
-                {!activeConversation.ia_active && (
-                  <Badge variant="outline">IA Desativada</Badge>
-                )}
-              </>
+            <Badge
+              variant="secondary"
+              className={cn(
+                'text-white',
+                statusColors[status]
+              )}
+            >
+              {statusLabels[status]}
+            </Badge>
+            {!ia_active && (
+              <Badge variant="outline">IA Desativada</Badge>
             )}
           </div>
         </div>
