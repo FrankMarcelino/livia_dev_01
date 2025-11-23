@@ -111,19 +111,18 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), N8N_TIMEOUT);
 
     try {
-      const n8nResponse = await fetch(
-        `${N8N_BASE_URL}${N8N_NEUROCORE_QUERY_WEBHOOK}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            question,
-            tenantId,
-            userId: user.id,
-          }),
-          signal: controller.signal,
-        }
-      );
+      // Endpoint de produção do n8n
+      const n8nProductionUrl = 'https://acesse.ligeiratelecom.com.br/webhook/dev_question_base_conhecimento';
+      
+      const n8nResponse = await fetch(n8nProductionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_tenant: tenantId,
+          Question: question,
+        }),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 

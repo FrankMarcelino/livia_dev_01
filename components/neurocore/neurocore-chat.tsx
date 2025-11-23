@@ -238,20 +238,49 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
           />
         ))}
 
-        {/* Loading state */}
+        {/* Loading state - PENSANDO */}
         {isLoading && (
           <div className="flex items-center justify-center p-8">
-            <div className="space-y-3 text-center">
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto animate-pulse">
-                <span className="text-2xl">🧠</span>
+            <div className="space-y-4 text-center max-w-md">
+              {/* Brain icon with pulse animation */}
+              <div className="relative mx-auto w-16 h-16">
+                <div className="absolute inset-0 rounded-full bg-purple-200 animate-ping opacity-75" />
+                <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center animate-pulse shadow-lg">
+                  <span className="text-3xl">🧠</span>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Analisando conhecimento...</p>
-                <p className="text-xs text-muted-foreground">
-                  • Buscando synapses relevantes
-                  <br />• Gerando resposta
+
+              {/* Texto principal */}
+              <div className="space-y-2">
+                <p className="text-lg font-semibold text-purple-900">
+                  Pensando<span className="animate-pulse">...</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  A IA está analisando sua pergunta
                 </p>
               </div>
+
+              {/* Steps animados */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="space-y-2 text-left text-sm">
+                  <div className="flex items-center gap-2 text-purple-700">
+                    <div className="h-1.5 w-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>Buscando conhecimento relevante</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-purple-600">
+                    <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse animation-delay-200" />
+                    <span>Processando synapses</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-purple-500">
+                    <div className="h-1.5 w-1.5 rounded-full bg-purple-300 animate-pulse animation-delay-400" />
+                    <span>Gerando resposta</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground italic">
+                Isso pode levar alguns segundos...
+              </p>
             </div>
           </div>
         )}
