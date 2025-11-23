@@ -44,9 +44,6 @@ export function useRealtimeConversations(
   }, [conversations]);
 
   useEffect(() => {
-    console.log('🚀 [REALTIME] Inicializando subscrições para tenant:', tenantId);
-    console.log('📝 [REALTIME] Conversas iniciais:', initialConversations.length);
-    
     // ========================================
     // Channel 1: Mudanças em CONVERSATIONS
     // ========================================
@@ -155,19 +152,12 @@ export function useRealtimeConversations(
           // NOTA: messages não tem tenant_id, filtramos no callback
         },
         (payload) => {
-          console.log('🔔 [REALTIME] Nova mensagem recebida:', payload.new);
-          
           setConversations((prev) => {
             // Encontrar conversa pela message.conversation_id
             const index = prev.findIndex(c => c.id === payload.new.conversation_id);
             
-            console.log('🔍 [REALTIME] Procurando conversa:', payload.new.conversation_id);
-            console.log('📊 [REALTIME] Índice encontrado:', index);
-            console.log('📋 [REALTIME] Total de conversas:', prev.length);
-            
             if (index === -1) {
               // Mensagem não pertence a este tenant ou conversa filtrada
-              console.log('⚠️ [REALTIME] Mensagem ignorada - conversa não encontrada na lista');
               return prev;
             }
 
@@ -176,37 +166,21 @@ export function useRealtimeConversations(
             const existing = updated[index];
             if (!existing) return prev; // Safety check
             
-            console.log('✅ [REALTIME] Atualizando lastMessage da conversa:', existing.id);
-            
             updated[index] = {
               ...existing,
               lastMessage: payload.new,
               last_message_at: payload.new.timestamp || payload.new.created_at,
             };
 
-            console.log('🔄 [REALTIME] Preview atualizado:', {
-              conversationId: updated[index].id,
-              messageContent: payload.new.content?.substring(0, 50),
-              timestamp: updated[index].last_message_at,
-            });
-
             // Reordenar lista (conversa com nova mensagem vai para o topo)
-            const sorted = sortByLastMessage(updated);
-            console.log('📍 [REALTIME] Lista reordenada - conversa agora no índice:', 
-              sorted.findIndex(c => c.id === existing.id)
-            );
-            
-            return sorted;
+            return sortByLastMessage(updated);
           });
         }
       )
       .subscribe();
 
-    console.log('✅ [REALTIME] Channel de mensagens subscrito:', `messages:tenant:${tenantId}`);
-
     // Cleanup: remover channels ao desmontar
     return () => {
-      console.log('🔌 [REALTIME] Desconectando channels...');
       supabase.removeChannel(conversationsChannel);
       supabase.removeChannel(messagesChannel);
     };
