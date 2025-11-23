@@ -179,10 +179,12 @@ export interface ConversationControlsState {
 export interface QuickReply {
   id: string;
   tenant_id: string;
+  emoji: string | null;
   title: string;
-  message: string;
-  icon: string | null;
+  content: string;
+  active: boolean;
   usage_count: number;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }
@@ -191,10 +193,20 @@ export interface QuickReply {
  * Payload para criar quick reply
  */
 export interface QuickReplyCreatePayload {
+  emoji?: string | null;
   title: string;
-  message: string;
-  icon?: string;
+  content: string;
   tenantId: string;
+}
+
+/**
+ * Payload para atualizar quick reply
+ */
+export interface QuickReplyUpdatePayload {
+  emoji?: string | null;
+  title?: string;
+  content?: string;
+  active?: boolean;
 }
 
 /**

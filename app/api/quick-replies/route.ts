@@ -12,9 +12,9 @@ import { z } from 'zod';
 
 // Schema de validação para criação
 const createQuickReplySchema = z.object({
+  emoji: z.string().optional().nullable(),
   title: z.string().min(1, 'Título é obrigatório').max(100, 'Título muito longo'),
-  message: z.string().min(1, 'Mensagem é obrigatória').max(1000, 'Mensagem muito longa'),
-  icon: z.string().optional(),
+  content: z.string().min(1, 'Conteúdo é obrigatório').max(1000, 'Conteúdo muito longo'),
   tenantId: z.string().uuid(),
 });
 
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 4. Criar quick reply
-    const quickReply = await createQuickReply({ ...payload, tenantId });
+    // 4. Criar quick reply (nasce ativa com usage_count = 0)
+    const quickReply = await createQuickReply({ ...payload, tenantId }, user.id);
 
     return NextResponse.json({
       success: true,

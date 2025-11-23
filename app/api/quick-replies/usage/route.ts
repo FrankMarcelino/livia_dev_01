@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Incrementar uso
-    await incrementQuickReplyUsage(quickReplyId);
+    await incrementQuickReplyUsage(quickReplyId, tenantId);
 
     return NextResponse.json({ success: true });
 
