@@ -1,10 +1,12 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { MessageItem } from './message-item';
 import { MessageInput } from './message-input';
 import { ConversationHeader } from './conversation-header';
 import { ScrollToBottomButton } from './scroll-to-bottom-button';
+import { MessagesSkeleton } from './messages-skeleton';
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages';
 import { useRealtimeConversation } from '@/lib/hooks/use-realtime-conversation';
 import { useChatScroll } from '@/lib/hooks/use-chat-scroll';
@@ -33,6 +35,33 @@ export function ConversationView({
   const { scrollRef, isAtBottom, unreadCount, scrollToBottom } =
     useChatScroll(messages);
 
+  // Loading transition state
+  const [isLoadingTransition, setIsLoadingTransition] = useState(false);
+  const [currentConvId, setCurrentConvId] = useState(initialConversation.id);
+  const loadingStartTimeRef = useRef<number>(0);
+
+  // Detecta mudança de conversa
+  useEffect(() => {
+    if (initialConversation.id !== currentConvId) {
+      setIsLoadingTransition(true);
+      setCurrentConvId(initialConversation.id);
+      loadingStartTimeRef.current = Date.now();
+    }
+  }, [initialConversation.id, currentConvId]);
+
+  // Remove loading quando messages carregam (com delay mínimo)
+  useEffect(() => {
+    if (isLoadingTransition && messages.length > 0) {
+      const MIN_LOADING_TIME = 150; // ms
+      const elapsed = Date.now() - loadingStartTimeRef.current;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+
+      setTimeout(() => {
+        setIsLoadingTransition(false);
+      }, remaining);
+    }
+  }, [isLoadingTransition, messages.length]);
+
   return (
     <div className="flex flex-col h-full">
       <ConversationHeader
@@ -42,31 +71,37 @@ export function ConversationView({
       />
 
       <div className="flex-1 relative overflow-hidden">
-        <div
-          ref={scrollRef}
-          className="h-full overflow-y-auto p-4 scroll-smooth"
-        >
-          {messages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma mensagem ainda
+        {isLoadingTransition ? (
+          <MessagesSkeleton />
+        ) : (
+          <>
+            <div
+              ref={scrollRef}
+              className="h-full overflow-y-auto p-4 scroll-smooth"
+            >
+              {messages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma mensagem ainda
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <MessageItem
+                    key={message.id}
+                    message={message}
+                    conversationId={conversation.id}
+                    tenantId={tenantId}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            messages.map((message) => (
-              <MessageItem
-                key={message.id}
-                message={message}
-                conversationId={conversation.id}
-                tenantId={tenantId}
-              />
-            ))
-          )}
-        </div>
 
-        <ScrollToBottomButton
-          show={!isAtBottom}
-          unreadCount={unreadCount}
-          onClick={() => scrollToBottom()}
-        />
+            <ScrollToBottomButton
+              show={!isAtBottom}
+              unreadCount={unreadCount}
+              onClick={() => scrollToBottom()}
+            />
+          </>
+        )}
       </div>
 
       <Separator />
