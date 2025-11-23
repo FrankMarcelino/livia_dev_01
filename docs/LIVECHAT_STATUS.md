@@ -10,7 +10,9 @@
 O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuários internos acompanhem e interajam com conversas em tempo real entre clientes e a IA.
 
 **Últimas atualizações:**
-- **2025-11-22:** Implementado sistema de 4 filtros (Ativas, Aguardando, Encerradas, Todas) + correção de bug no preview de mensagens
+- **2025-11-22:**
+  - Implementado sistema de 4 filtros (Ativas, Aguardando, Encerradas, Todas) + correção de bug no preview de mensagens
+  - **NOVO:** IA pausa automaticamente quando atendente humano envia mensagem
 - **2025-11-20:** Implementada abordagem "Salvar no Banco Primeiro" para reduzir delay no envio de mensagens de ~500-1000ms para ~100-200ms
 
 ---
@@ -90,7 +92,7 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 | Rota | Método | Função | Status |
 |------|--------|--------|--------|
-| `/api/n8n/send-message` | POST | Enviar mensagem manual (salva DB primeiro, n8n assíncrono) | ✅ 🆕 |
+| `/api/n8n/send-message` | POST | Enviar mensagem manual (salva DB primeiro, n8n assíncrono, pausa IA automaticamente) | ✅ 🆕 |
 | `/api/conversations/pause-ia` | POST | Pausar IA em conversa específica | ✅ |
 | `/api/conversations/resume-ia` | POST | Retomar IA em conversa específica | ✅ |
 | `/api/conversations/pause` | POST | Pausar conversa completa | ✅ |
@@ -187,6 +189,7 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Quando conversa é pausada, IA também é pausada
 - ✅ Quando conversa é retomada, IA é reativada
 - ✅ Quando conversa é reaberta, IA é reativada
+- ✅ **NOVO:** Quando atendente humano envia mensagem, IA é pausada automaticamente 🆕
 
 ### Validações
 
@@ -218,8 +221,9 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 1. **`/webhook/livia/send-message`**
    - Envia mensagem para canal (WhatsApp)
-   - Insere registro na tabela `messages`
+   - Atualiza status da mensagem para `sent` ou `failed`
    - Notifica via Realtime
+   - **Após enviar, a API pausa IA automaticamente se estiver ativa** 🆕
 
 2. **`/webhook/livia/pause-conversation`**
    - Atualiza status da conversa para `paused`
@@ -499,7 +503,7 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 
 ## Fluxos de Uso Documentados
 
-### Fluxo 1: Atendente Envia Mensagem (ATUALIZADO - Salvar no Banco Primeiro)
+### Fluxo 1: Atendente Envia Mensagem (ATUALIZADO - Salvar no Banco Primeiro + Pausar IA Automaticamente)
 1. Atendente digita mensagem no input
 2. Clica em Enviar (ou Enter)
 3. `MessageInput` chama `/api/n8n/send-message`
@@ -515,9 +519,14 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 13. Realtime notifica client (UPDATE event)
 14. `useRealtimeMessages` atualiza state
 15. **Ícone muda para ✓ (sent)**
+16. **API verifica se `ia_active=true`** 🆕
+17. **Se IA estiver ativa, chama webhook para pausar automaticamente** 🆕
+18. **n8n atualiza `ia_active=false` e `pause_notes='Pausado automaticamente - Atendente assumiu a conversa'`** 🆕
+19. **Realtime notifica client (UPDATE em conversations)** 🆕
+20. **Badge da IA muda para "Pausada"** 🆕
 
 **Delay percebido pelo usuário:** ~100-200ms (apenas latência do Realtime)
-**Vantagem:** Mensagem aparece instantaneamente, status atualiza em background
+**Vantagem:** Mensagem aparece instantaneamente, status atualiza em background, IA pausa automaticamente
 
 ### Fluxo 2: Pausar IA
 1. Atendente clica "Pausar IA"

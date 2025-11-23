@@ -9,6 +9,7 @@
  * 2. Inserir mensagem no Supabase com status='pending'
  * 3. Retornar sucesso imediatamente (Realtime atualiza UI)
  * 4. Chamar n8n em background (atualiza status para 'sent' ou 'failed')
+ * 5. PAUSAR IA automaticamente quando atendente envia mensagem
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { callN8nWebhook } from '@/lib/n8n/client';
 
 const N8N_SEND_MESSAGE_WEBHOOK = process.env.N8N_SEND_MESSAGE_WEBHOOK!;
+const N8N_PAUSE_IA_WEBHOOK = process.env.N8N_PAUSE_IA_WEBHOOK!;
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -40,11 +42,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 3. QUERY ÚNICA: Buscar conversa + validar tenant (JOIN virtual)
+    // 3. QUERY ÚNICA: Buscar conversa + validar tenant + buscar ia_active
     // Isso substitui 2 queries separadas (users + conversations)
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('id, tenant_id, contact_id, channel_id')
+      .select('id, tenant_id, contact_id, channel_id, ia_active')
       .eq('id', conversationId)
       .eq('tenant_id', tenantId)
       .single();
@@ -62,6 +64,8 @@ export async function POST(request: NextRequest) {
     // Garantir tipos não-null após validação
     const contactId = conversation.contact_id;
     const channelId = conversation.channel_id;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const iaActive = (conversation as any).ia_active;
 
     // 4. Inserir mensagem no banco ANTES de chamar n8n
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +112,16 @@ export async function POST(request: NextRequest) {
       channelId
     );
 
-    // 6. Retornar sucesso
+    // 6. Pausar IA automaticamente quando atendente envia mensagem
+    // Só pausa se a IA estiver ativa
+    if (iaActive) {
+      console.error(`[send-message] 🤖 IA is active, pausing automatically...`);
+      await pauseIAAsync(conversationId, tenantId, user.id, supabase);
+    } else {
+      console.error(`[send-message] 🤖 IA already paused, skipping...`);
+    }
+
+    // 7. Retornar sucesso
     // Realtime do Supabase já notificou o cliente sobre a nova mensagem
     const totalTime = Date.now() - startTime;
     console.error(`[send-message] ⏱️ Total response time: ${totalTime}ms`);
@@ -198,5 +211,83 @@ async function updateMessageStatus(messageId: string, status: 'sent' | 'failed')
       .eq('id', messageId);
   } catch (error) {
     console.error('Error updating message status:', error);
+  }
+}
+
+/**
+ * Pausa IA automaticamente quando atendente envia mensagem
+ */
+async function pauseIAAsync(
+  conversationId: string,
+  tenantId: string,
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  const pauseStartTime = Date.now();
+  const convId = conversationId.slice(0, 8);
+
+  try {
+    console.error(`[pause-ia-auto] 📞 Calling n8n webhook for conversation ${convId}...`);
+
+    // Chamar webhook n8n para pausar IA
+    const result = await callN8nWebhook(
+      N8N_PAUSE_IA_WEBHOOK,
+      {
+        conversationId,
+        tenantId,
+        userId,
+        reason: 'Pausado automaticamente - Atendente assumiu a conversa',
+      },
+      { timeout: 5000 } // 5 segundos timeout
+    );
+
+    const pauseTime = Date.now() - pauseStartTime;
+
+    if (result.success) {
+      console.error(`[pause-ia-auto] ✅ IA paused successfully in ${pauseTime}ms`);
+    } else {
+      console.error(`[pause-ia-auto] ⚠️ N8N failed after ${pauseTime}ms:`, result.error);
+
+      // Fallback: Fazer UPDATE direto no banco
+      console.error(`[pause-ia-auto] 🔄 Using fallback: direct database update`);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = {
+        ia_active: false,
+        pause_notes: 'Pausado automaticamente - Atendente assumiu a conversa',
+      };
+
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update(updateData)
+        .eq('id', conversationId);
+
+      if (updateError) {
+        console.error(`[pause-ia-auto] ❌ Fallback failed:`, updateError);
+      } else {
+        console.error(`[pause-ia-auto] ✅ Fallback succeeded`);
+      }
+    }
+  } catch (error) {
+    const pauseTime = Date.now() - pauseStartTime;
+    console.error(`[pause-ia-auto] 💥 Exception after ${pauseTime}ms:`, error);
+
+    // Tentar fallback mesmo em caso de exceção
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = {
+        ia_active: false,
+        pause_notes: 'Pausado automaticamente - Atendente assumiu a conversa',
+      };
+
+      await supabase
+        .from('conversations')
+        .update(updateData)
+        .eq('id', conversationId);
+
+      console.error(`[pause-ia-auto] ✅ Fallback succeeded after exception`);
+    } catch (fallbackError) {
+      console.error(`[pause-ia-auto] ❌ Fallback also failed:`, fallbackError);
+    }
   }
 }
