@@ -73,7 +73,14 @@ export function AppSidebar() {
                             isActive && 'text-primary'
                           )}
                         />
-                        <span>{item.title}</span>
+                        <span className="flex items-center gap-2">
+                          {item.title}
+                          {item.badge === 'BETA' && (
+                            <span className="text-[10px] font-normal text-muted-foreground">
+                              BETA
+                            </span>
+                          )}
+                        </span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Brain } from 'lucide-react';
+import { MessageSquare, BookOpen, Brain, Kanban } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -25,6 +25,12 @@ export const navItems: NavItem[] = [
     title: 'Livechat',
     url: '/livechat',
     icon: MessageSquare,
+  },
+  {
+    title: 'CRM',
+    url: '/crm',
+    icon: Kanban,
+    badge: 'BETA',
   },
   {
     title: 'Base de Conhecimento',

@@ -1139,3 +1139,23 @@ export type QuickReplyTemplate = Tables<'quick_reply_templates'>
 export type ConversationStatus = Enums<'conversation_status_enum'>
 export type MessageSenderType = Enums<'message_sender_type_enum'>
 
+// CRM types (tags table structure from database)
+export interface Tag {
+  id: string
+  created_at: string
+  tag_name: string
+  id_tenant: string
+  prompt_to_ai: Json | null
+  active: boolean
+  order_index?: number
+  color?: string
+}
+
+// CRM types (conversation_tags table)
+export interface ConversationTag {
+  id: string
+  conversation_id: string
+  tag_id: string
+  created_at: string
+}
+
