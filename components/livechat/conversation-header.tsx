@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, MessageSquare } from 'lucide-react';
+import { Pause, Play, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Conversation } from '@/types/database';
+import { ConversationSummaryModal } from './conversation-summary-modal';
 
 interface ConversationHeaderProps {
   contactName: string;
@@ -90,34 +91,47 @@ export function ConversationHeader({
 
   const statusDisplay = getStatusDisplay();
   const iaDisabled = conversation.status === 'closed';
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   return (
     <div className="p-4 border-b">
-      {/* Linha 1: Nome do contato + Botão IA */}
+      {/* Linha 1: Nome do contato + Botões de Ação */}
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">{contactName}</h2>
 
-        {conversation.ia_active ? (
+        <div className="flex flex-col gap-2 items-end">
+          {conversation.ia_active ? (
+            <Button
+              onClick={handlePauseIA}
+              disabled={isUpdating || iaDisabled}
+              variant="outline"
+              size="sm"
+            >
+              <Pause className="h-4 w-4 mr-2" />
+              Pausar IA
+            </Button>
+          ) : (
+            <Button
+              onClick={handleResumeIA}
+              disabled={isUpdating || iaDisabled}
+              variant="default"
+              size="sm"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Retomar IA
+            </Button>
+          )}
+
           <Button
-            onClick={handlePauseIA}
-            disabled={isUpdating || iaDisabled}
-            variant="outline"
+            onClick={() => setIsSummaryOpen(true)}
+            variant="secondary"
             size="sm"
+            className="text-xs h-7"
           >
-            <Pause className="h-4 w-4 mr-2" />
-            Pausar IA
+            <FileText className="h-3 w-3 mr-2" />
+            Resumo da conversa
           </Button>
-        ) : (
-          <Button
-            onClick={handleResumeIA}
-            disabled={isUpdating || iaDisabled}
-            variant="default"
-            size="sm"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Retomar IA
-          </Button>
-        )}
+        </div>
       </div>
 
       {/* Linha 2: Canal • Status • IA */}
@@ -155,6 +169,12 @@ export function ConversationHeader({
           )}
         </div>
       </div>
+
+      <ConversationSummaryModal
+        contactId={conversation.contact_id}
+        isOpen={isSummaryOpen}
+        onClose={() => setIsSummaryOpen(false)}
+      />
     </div>
   );
 }
