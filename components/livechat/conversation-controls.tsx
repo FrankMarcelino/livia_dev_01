@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, Lock, Unlock } from 'lucide-react';
+import { Pause, Lock, Unlock } from 'lucide-react';
 import type { Conversation } from '@/types/database';
+import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 
 interface ConversationControlsProps {
   conversation: Conversation;
@@ -18,8 +19,13 @@ export function ConversationControls({
   onUpdate,
 }: ConversationControlsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showPauseIADialog, setShowPauseIADialog] = useState(false);
 
-  const handlePauseIA = async () => {
+  const handlePauseIAClick = () => {
+    setShowPauseIADialog(true);
+  };
+
+  const handlePauseIAConfirm = async () => {
     if (isUpdating) return;
 
     setIsUpdating(true);
@@ -30,7 +36,7 @@ export function ConversationControls({
         body: JSON.stringify({
           conversationId: conversation.id,
           tenantId: tenantId,
-          reason: 'Pausado pelo atendente via Livechat',
+          reason: 'Pausado pelo atendente via Livechat - Modo manual permanente',
         }),
       });
 
@@ -47,32 +53,6 @@ export function ConversationControls({
     }
   };
 
-  const handleResumeIA = async () => {
-    if (isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/resume-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao retomar IA');
-      }
-
-      onUpdate?.();
-    } catch (error) {
-      console.error('Erro ao retomar IA:', error);
-      alert('Erro ao retomar IA. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handlePauseConversation = async () => {
     if (isUpdating) return;
@@ -214,7 +194,7 @@ export function ConversationControls({
             size="sm"
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <Play className="h-4 w-4 mr-2" />
+            <Unlock className="h-4 w-4 mr-2" />
             Reabrir Conversa
           </Button>
         ) : null}
@@ -230,33 +210,37 @@ export function ConversationControls({
                 Ativa
               </Badge>
             ) : (
-              <Badge variant="secondary">Pausada</Badge>
+              <Badge variant="secondary" className="bg-gray-500">
+                Pausada (Modo Manual)
+              </Badge>
             )}
           </div>
 
-          {conversation.ia_active ? (
-            <Button
-              onClick={handlePauseIA}
-              disabled={isUpdating || conversation.status === 'paused'}
-              variant="outline"
-              size="sm"
-            >
-              <Pause className="h-4 w-4 mr-2" />
-              Pausar IA
-            </Button>
-          ) : (
-            <Button
-              onClick={handleResumeIA}
-              disabled={isUpdating || conversation.status === 'paused'}
-              variant="default"
-              size="sm"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Retomar IA
-            </Button>
-          )}
+          <Button
+            onClick={handlePauseIAClick}
+            disabled={!conversation.ia_active || isUpdating || conversation.status === 'paused'}
+            variant="outline"
+            size="sm"
+            title={
+              !conversation.ia_active
+                ? "IA pausada. Não pode ser retomada durante a conversa (perda de contexto). Continue em modo manual até encerrar."
+                : conversation.status === 'paused'
+                ? "Não é possível pausar IA enquanto conversa está pausada"
+                : "Pausar IA - Atendimento passará para modo manual permanente até encerrar conversa"
+            }
+          >
+            <Pause className="h-4 w-4 mr-2" />
+            Pausar IA
+          </Button>
         </div>
       )}
+
+      <PauseIAConfirmDialog
+        open={showPauseIADialog}
+        onOpenChange={setShowPauseIADialog}
+        onConfirm={handlePauseIAConfirm}
+        trigger="manual"
+      />
     </div>
   );
 }

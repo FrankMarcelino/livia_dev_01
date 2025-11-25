@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -39,12 +40,26 @@ export function AppSidebar() {
         <div className="flex h-14 items-center px-4">
           <Link
             href="/livechat"
-            className="flex items-center gap-2 font-bold text-sidebar-foreground"
+            className="flex items-center font-bold text-sidebar-foreground"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              L
-            </div>
-            <span className="group-data-[collapsible=icon]:hidden">LIVIA</span>
+            {/* Logo completa quando expandido */}
+            <Image 
+              src="/logo.png" 
+              alt="LIVIA" 
+              width={120} 
+              height={32}
+              className="object-contain group-data-[collapsible=icon]:hidden"
+              priority
+            />
+            {/* Apenas ícone quando colapsado */}
+            <Image 
+              src="/icon.png" 
+              alt="LIVIA" 
+              width={32} 
+              height={32}
+              className="object-contain hidden group-data-[collapsible=icon]:block"
+              priority
+            />
           </Link>
         </div>
       </SidebarHeader>

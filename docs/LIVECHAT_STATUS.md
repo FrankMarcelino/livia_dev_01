@@ -79,11 +79,13 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Botão "Reabrir Conversa" (quando encerrada, com confirmação)
 
 **Status da IA:**
-- ✅ Badge indicando status (Ativa/Pausada)
-- ✅ Botão "Pausar IA" (quando ativa)
-- ✅ Botão "Retomar IA" (quando pausada)
+- ✅ Badge indicando status (Ativa/Pausada - Modo Manual)
+- ✅ Botão "Pausar IA" (sempre visível, desabilitado quando já pausada)
+- ❌ ~~Botão "Retomar IA"~~ **REMOVIDO** - Não pode ser retomada durante conversa (perda de contexto)
 - ✅ Controles desabilitados quando conversa pausada
 - ✅ Seção oculta quando conversa encerrada
+- ⚠️ **IMPORTANTE:** IA pausada não pode ser retomada durante a conversa devido a problemas de perda de contexto no workflow n8n
+- ✅ IA só é reativada ao reabrir conversas encerradas (contexto novo)
 
 **Estados Visuais:**
 - ✅ Badges coloridos (verde=ativo, amarelo=pausado, cinza=encerrado)
@@ -99,8 +101,8 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 | Rota | Método | Função | Status |
 |------|--------|--------|--------|
 | `/api/n8n/send-message` | POST | Enviar mensagem manual (salva DB primeiro, n8n assíncrono, pausa IA automaticamente) | ✅ 🆕 |
-| `/api/conversations/pause-ia` | POST | Pausar IA em conversa específica | ✅ |
-| `/api/conversations/resume-ia` | POST | Retomar IA em conversa específica | ✅ |
+| `/api/conversations/pause-ia` | POST | Pausar IA em conversa específica (irreversível durante conversa) | ✅ |
+| `/api/conversations/resume-ia` | POST | ~~Retomar IA em conversa específica~~ **Uso apenas interno** (reopen/resume usam) | ✅ ⚠️ |
 | `/api/conversations/pause` | POST | Pausar conversa completa | ✅ |
 | `/api/conversations/resume` | POST | Retomar conversa pausada | ✅ |
 | `/api/conversations/reopen` | POST | Reabrir conversa encerrada | ✅ |
@@ -192,11 +194,12 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 ### Controle de IA
 
 - ✅ `ia_active: true` → IA responde automaticamente
-- ✅ `ia_active: false` → IA não responde
-- ✅ IA pode ser pausada/retomada independentemente do status da conversa
+- ✅ `ia_active: false` → IA não responde (modo manual permanente durante a conversa)
+- ❌ **IA NÃO pode ser retomada manualmente** após pausar (bug de perda de contexto no workflow n8n)
+- ✅ IA pode ser pausada independentemente do status da conversa
 - ✅ Quando conversa é pausada, IA também é pausada
-- ✅ Quando conversa é retomada, IA é reativada
-- ✅ Quando conversa é reaberta, IA é reativada
+- ✅ Quando conversa é retomada, IA é reativada **apenas se não foi pausada manualmente antes**
+- ✅ Quando conversa é reaberta (closed → open), IA é reativada com contexto limpo
 - ✅ **NOVO:** Quando atendente humano envia mensagem, IA é pausada automaticamente 🆕
 
 ### Validações
@@ -216,10 +219,15 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 - ✅ Requer confirmação do usuário
 - ✅ Reativa IA automaticamente
 
-**Pausar/Retomar IA:**
-- ❌ Controles desabilitados quando conversa pausada
-- ❌ Controles ocultos quando conversa encerrada
-- ✅ Funcionam normalmente quando conversa aberta
+**Pausar IA:**
+- ❌ Não pode pausar IA já pausada
+- ✅ Funciona apenas quando conversa está aberta
+- ⚠️ **ATENÇÃO:** Ação irreversível durante a conversa (modo manual permanente)
+- ✅ Requer confirmação do usuário antes de executar
+
+**~~Retomar IA:~~** ❌ **FUNCIONALIDADE REMOVIDA**
+- ⚠️ Não é possível retomar IA manualmente durante a conversa devido a bug de perda de contexto no workflow n8n
+- ✅ IA só retoma automaticamente ao reabrir conversas encerradas (contexto limpo)
 
 ---
 
@@ -536,24 +544,29 @@ O Livechat é o centro operacional de atendimento da LIVIA, permitindo que usuá
 **Delay percebido pelo usuário:** ~100-200ms (apenas latência do Realtime)
 **Vantagem:** Mensagem aparece instantaneamente, status atualiza em background, IA pausa automaticamente
 
-### Fluxo 2: Pausar IA
+### Fluxo 2: Pausar IA (Sem Retomada Manual)
 1. Atendente clica "Pausar IA"
-2. `ConversationControls` chama `/api/conversations/pause-ia`
-3. API route valida e chama webhook n8n
-4. n8n atualiza `conversations.ia_active = false`
-5. Realtime notifica client
-6. `useRealtimeConversation` atualiza state
-7. Badge muda para "Pausada" e botão vira "Retomar IA"
+2. Modal de confirmação aparece alertando que a ação é irreversível durante a conversa
+3. Se confirmar, `ConversationControls` chama `/api/conversations/pause-ia`
+4. API route valida e chama webhook n8n
+5. n8n atualiza `conversations.ia_active = false` e `pause_notes = 'Pausado pelo atendente via Livechat - Modo manual permanente'`
+6. Realtime notifica client
+7. `useRealtimeConversation` atualiza state
+8. Badge muda para "Pausada (Modo Manual)" e botão "Pausar IA" fica desabilitado
+9. ⚠️ **Não há forma de retomar IA durante esta conversa** (bug de perda de contexto)
+10. ✅ Atendente continua em modo manual até encerrar conversa
 
-### Fluxo 3: Reabrir Conversa Encerrada
+### Fluxo 3: Reabrir Conversa Encerrada (Única Forma de Reativar IA)
 1. Atendente clica "Reabrir Conversa"
-2. Confirmação aparece
+2. Confirmação aparece: "A IA será reativada automaticamente com contexto limpo"
 3. Se confirmar, chama `/api/conversations/reopen`
 4. API route valida estado (deve ser `closed`)
 5. API route chama webhook n8n com flag `reopen: true`
 6. n8n atualiza `status = 'open'` e `ia_active = true`
 7. Realtime notifica client
 8. UI atualiza badges e habilita controles
+9. ✅ **IA retoma com contexto limpo** (não lembra conversas anteriores desta conversa)
+10. ⚠️ **Esta é a ÚNICA forma de reativar IA após pausa manual** (contexto novo evita bug de perda de contexto)
 
 ### Fluxo 4: Dar Feedback em Mensagem da IA (Planejado)
 1. Atendente visualiza mensagem da IA no chat
@@ -705,11 +718,13 @@ O **Livechat está 100% funcional para o MVP**, com todas as funcionalidades ess
 
 ✅ Visualização de conversas em tempo real
 ✅ Envio de mensagens manuais
-✅ Controle completo de status (Conversa e IA)
+✅ Controle de status (Conversa e IA - **pausa de IA irreversível durante conversa**)
 ✅ Realtime bidirecional (Supabase)
 ✅ Integração com n8n via webhooks
 ✅ Validações de segurança e regras de negócio
 ✅ UI intuitiva e responsiva
+
+⚠️ **NOTA IMPORTANTE:** A funcionalidade de "Retomar IA" manualmente foi **removida** devido a bug de perda de contexto no workflow n8n. Uma vez pausada, a IA só pode ser reativada ao reabrir conversas encerradas (contexto limpo).
 
 ---
 

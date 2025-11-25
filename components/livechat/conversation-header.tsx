@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, MessageSquare, FileText } from 'lucide-react';
+import { Pause, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Conversation } from '@/types/database';
 import { ConversationSummaryModal } from './conversation-summary-modal';
+import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 
 interface ConversationHeaderProps {
   contactName: string;
@@ -20,8 +21,13 @@ export function ConversationHeader({
   tenantId,
 }: ConversationHeaderProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showPauseIADialog, setShowPauseIADialog] = useState(false);
 
-  const handlePauseIA = async () => {
+  const handlePauseIAClick = () => {
+    setShowPauseIADialog(true);
+  };
+
+  const handlePauseIAConfirm = async () => {
     if (isUpdating) return;
 
     setIsUpdating(true);
@@ -32,7 +38,7 @@ export function ConversationHeader({
         body: JSON.stringify({
           conversationId: conversation.id,
           tenantId: tenantId,
-          reason: 'Pausado pelo atendente via Livechat',
+          reason: 'Pausado pelo atendente via Livechat - Modo manual permanente',
         }),
       });
 
@@ -40,7 +46,7 @@ export function ConversationHeader({
         throw new Error('Erro ao pausar IA');
       }
 
-      toast.success('IA pausada com sucesso');
+      toast.success('IA pausada - Modo manual permanente');
     } catch (error) {
       console.error('Erro ao pausar IA:', error);
       toast.error('Erro ao pausar IA. Tente novamente.');
@@ -49,32 +55,6 @@ export function ConversationHeader({
     }
   };
 
-  const handleResumeIA = async () => {
-    if (isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/resume-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao retomar IA');
-      }
-
-      toast.success('IA retomada com sucesso');
-    } catch (error) {
-      console.error('Erro ao retomar IA:', error);
-      toast.error('Erro ao retomar IA. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const getStatusDisplay = () => {
     switch (conversation.status) {
@@ -100,27 +80,22 @@ export function ConversationHeader({
         <h2 className="text-lg font-semibold">{contactName}</h2>
 
         <div className="flex flex-col gap-2 items-end">
-          {conversation.ia_active ? (
-            <Button
-              onClick={handlePauseIA}
-              disabled={isUpdating || iaDisabled}
-              variant="outline"
-              size="sm"
-            >
-              <Pause className="h-4 w-4 mr-2" />
-              Pausar IA
-            </Button>
-          ) : (
-            <Button
-              onClick={handleResumeIA}
-              disabled={isUpdating || iaDisabled}
-              variant="default"
-              size="sm"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Retomar IA
-            </Button>
-          )}
+          <Button
+            onClick={handlePauseIAClick}
+            disabled={!conversation.ia_active || isUpdating || iaDisabled}
+            variant="outline"
+            size="sm"
+            title={
+              !conversation.ia_active
+                ? "IA pausada. Não pode ser retomada durante a conversa (perda de contexto)."
+                : iaDisabled
+                ? "Não é possível pausar IA em conversa encerrada"
+                : "Pausar IA - Atendimento passará para modo manual permanente"
+            }
+          >
+            <Pause className="h-4 w-4 mr-2" />
+            Pausar IA
+          </Button>
 
           <Button
             onClick={() => setIsSummaryOpen(true)}
@@ -163,8 +138,8 @@ export function ConversationHeader({
               IA Ativada
             </Badge>
           ) : (
-            <Badge variant="secondary">
-              IA Desativada
+            <Badge variant="secondary" className="bg-gray-500">
+              IA Pausada (Modo Manual)
             </Badge>
           )}
         </div>
@@ -174,6 +149,13 @@ export function ConversationHeader({
         contactId={conversation.contact_id}
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
+      />
+
+      <PauseIAConfirmDialog
+        open={showPauseIADialog}
+        onOpenChange={setShowPauseIADialog}
+        onConfirm={handlePauseIAConfirm}
+        trigger="manual"
       />
     </div>
   );

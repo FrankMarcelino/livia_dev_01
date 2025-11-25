@@ -7,6 +7,7 @@ import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { QuickRepliesPanel } from './quick-replies-panel';
 import type { Conversation } from '@/types/database';
+import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 
 interface MessageInputProps {
   conversation: Conversation;
@@ -25,9 +26,30 @@ export function MessageInput({
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showPauseIADialog, setShowPauseIADialog] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState('');
 
-  const handleSend = async () => {
+  const handleSendClick = () => {
     if (!content.trim() || isSending) return;
+
+    // Se IA está ativa, mostrar confirmação antes de enviar
+    if (conversation.ia_active) {
+      setPendingMessage(content.trim());
+      setShowPauseIADialog(true);
+      return;
+    }
+
+    // Se IA já está pausada, enviar direto
+    sendMessage(content.trim());
+  };
+
+  const handleConfirmSendAndPauseIA = () => {
+    sendMessage(pendingMessage);
+    setPendingMessage('');
+  };
+
+  const sendMessage = async (messageContent: string) => {
+    if (!messageContent || isSending) return;
 
     setIsSending(true);
     try {
@@ -58,7 +80,7 @@ export function MessageInput({
         body: JSON.stringify({
           conversationId: conversation.id,
           tenantId: tenantId,
-          content: content.trim(),
+          content: messageContent,
         }),
       });
 
@@ -81,7 +103,7 @@ export function MessageInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendClick();
     }
   };
 
@@ -107,13 +129,20 @@ export function MessageInput({
         className="min-h-[60px] max-h-[120px] resize-none"
       />
       <Button
-        onClick={handleSend}
+        onClick={handleSendClick}
         disabled={!content.trim() || disabled || isSending}
         size="icon"
         className="h-[60px] w-[60px]"
       >
         <Send className="h-5 w-5" />
       </Button>
+
+      <PauseIAConfirmDialog
+        open={showPauseIADialog}
+        onOpenChange={setShowPauseIADialog}
+        onConfirm={handleConfirmSendAndPauseIA}
+        trigger="message_send"
+      />
     </div>
   );
 }
