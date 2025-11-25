@@ -43,7 +43,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* :root {
+:root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -76,73 +76,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-} */
+} 
 
-:root {
-  --radius: 0.625rem;
 
-  /* Base */
-  --background: oklch(0.985 0.01 100);
-  --foreground: oklch(0.22 0.04 172);
-
-  /* Cards & Popover */
-  --card: oklch(0.98 0.01 100);
-  --card-foreground: oklch(0.22 0.04 172);
-
-  --popover: oklch(0.99 0.01 100);
-  --popover-foreground: oklch(0.22 0.04 172);
-
-  /* Primary – Verde Lívia */
-  --primary: oklch(0.73 0.20 148.8);
-  --primary-foreground: oklch(0.99 0 0);
-
-  /* Secondary – Azul Lívia */
-  --secondary: oklch(0.56 0.24 264.2);
-  --secondary-foreground: oklch(0.99 0 0);
-
-  /* Muted – Cinza premium */
-  --muted: oklch(0.92 0.01 150);
-  --muted-foreground: oklch(0.42 0.03 172);
-
-  /* Accent – Azul pastel */
-  --accent: oklch(0.90 0.06 260);
-  --accent-foreground: oklch(0.22 0.04 172);
-
-  /* Destructive – Vermelho */
-  --destructive: oklch(0.62 0.20 25);
-  --destructive-foreground: oklch(0.99 0 0);
-
-  /* Structure */
-  --border: oklch(0.85 0.01 150);
-  --input: oklch(0.88 0.01 150);
-  --ring: oklch(0.73 0.20 148.8);
-  /* Verde da marca */
-
-  /* Charts */
-  --chart-1: oklch(0.73 0.20 148.8);
-  /* Verde Lívia */
-  --chart-2: oklch(0.56 0.24 264.2);
-  /* Azul Lívia */
-  --chart-3: oklch(0.58 0.13 200);
-  /* Azul petróleo */
-  --chart-4: oklch(0.80 0.17 95);
-  /* Âmbar suave */
-  --chart-5: oklch(0.76 0.10 140);
-  /* Verde musgo */
-
-  /* Sidebar */
-  --sidebar: oklch(0.985 0.01 100);
-  --sidebar-foreground: oklch(0.22 0.04 172);
-
-  --sidebar-primary: oklch(0.73 0.20 148.8);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-
-  --sidebar-accent: oklch(0.90 0.06 260);
-  --sidebar-accent-foreground: oklch(0.22 0.04 172);
-
-  --sidebar-border: oklch(0.85 0.01 150);
-  --sidebar-ring: oklch(0.73 0.20 148.8);
-}
 
 
 
