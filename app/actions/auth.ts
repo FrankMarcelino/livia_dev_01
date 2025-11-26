@@ -49,9 +49,11 @@ export async function login(email: string, password: string) {
     return { error: 'Usuário não encontrado no sistema' };
   }
 
-  // Revalidar cache e redirecionar
+  // Revalidar cache
   revalidatePath('/', 'layout');
-  redirect('/livechat');
+
+  // Retornar sucesso - o componente cliente fará o redirecionamento
+  return { success: true };
 }
 
 /**

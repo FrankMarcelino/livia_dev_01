@@ -93,7 +93,7 @@ export function LoginForm() {
           </div>
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="mt-8">
           <Button
             type="submit"
             className="w-full"

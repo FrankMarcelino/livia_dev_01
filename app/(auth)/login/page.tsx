@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { LoginForm } from '@/components/auth/login-form';
 
@@ -15,10 +16,17 @@ export default async function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-black px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            LIVIA
-          </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/logo.png"
+              alt="LIVIA"
+              width={200}
+              height={53}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Plataforma de Atendimento com IA
           </p>
         </div>
