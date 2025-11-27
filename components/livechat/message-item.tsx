@@ -38,51 +38,74 @@ export function MessageItem({ message, conversationId, tenantId }: MessageItemPr
         isCustomer ? 'flex-row' : 'flex-row-reverse'
       )}
     >
-      <Avatar className="h-8 w-8">
+      {/* Avatar */}
+      <Avatar className="h-8 w-8 mt-1">
         <AvatarImage src={message.senderUser?.avatar_url || undefined} />
         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
       </Avatar>
 
+      {/* Balão da mensagem */}
       <div
         className={cn(
-          'flex flex-col gap-1 max-w-[70%]',
+          'flex flex-col max-w-[70%]',
           isCustomer ? 'items-start' : 'items-end'
         )}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{senderName}</span>
-          {isIA && <Badge variant="secondary">IA</Badge>}
-          {isAttendant && <Badge variant="outline">Atendente</Badge>}
-        </div>
-
         <div
           className={cn(
-            'rounded-lg px-4 py-2',
+            'rounded-lg px-3 py-2 shadow-sm relative',
             isCustomer
-              ? 'bg-muted text-foreground'
-              : 'bg-primary text-primary-foreground'
+              ? 'bg-white text-foreground border border-border'
+              : 'bg-muted text-foreground border border-border'
           )}
         >
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-
-          {/* Status de entrega (apenas para mensagens do atendente) */}
-          {isAttendant && <MessageStatusIcon status={message.status} />}
-
-          {isIA && conversationId && tenantId && (
-            <MessageFeedbackButtons
-              messageId={message.id}
-              conversationId={conversationId}
-              tenantId={tenantId}
+          {/* Header: Nome do remetente (não mostrar para IA) */}
+          {!isIA && (
+            <MessageHeader
+              senderName={senderName}
+              isIA={isIA}
+              isAttendant={isAttendant}
+              isCustomer={isCustomer}
             />
+          )}
+
+          {/* Conteúdo com horário inline (estilo WhatsApp) */}
+          <div className="flex items-end gap-2">
+            <p className="text-sm whitespace-pre-wrap flex-1 pr-1">
+              {message.content}
+            </p>
+
+            {/* Footer: Horário e status inline (não mostrar para IA) */}
+            {!isIA && (
+              <MessageFooter
+                timestamp={message.timestamp}
+                status={message.status}
+                isAttendant={isAttendant}
+              />
+            )}
+          </div>
+
+          {/* Feedback abaixo da mensagem (apenas para IA) */}
+          {isIA && conversationId && tenantId && (
+            <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between">
+              <MessageFeedbackButtons
+                messageId={message.id}
+                conversationId={conversationId}
+                tenantId={tenantId}
+              />
+
+              <div className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="h-3.5 text-[9px] px-1 py-0">
+                  IA
+                </Badge>
+                <span className="text-[10px] leading-none text-muted-foreground">
+                  {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -91,42 +114,98 @@ export function MessageItem({ message, conversationId, tenantId }: MessageItemPr
 }
 
 /**
+ * Componente auxiliar para exibir nome do remetente com badges
+ * SRP: Responsabilidade única de renderizar cabeçalho da mensagem
+ */
+interface MessageHeaderProps {
+  senderName: string;
+  isIA: boolean;
+  isAttendant: boolean;
+  isCustomer: boolean;
+}
+
+function MessageHeader({ senderName, isIA, isAttendant, isCustomer }: MessageHeaderProps) {
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 mb-0.5",
+      !isCustomer && "justify-end" // Alinha à direita para IA/Atendente
+    )}>
+      <span
+        className={cn(
+          'text-xs font-semibold',
+          isIA ? 'text-purple-600' : 'text-blue-600'
+        )}
+      >
+        {senderName}
+      </span>
+      {/* Badge apenas para Atendente (IA terá badge na linha do feedback) */}
+      {isAttendant && !isIA && (
+        <Badge variant="outline" className="h-3.5 text-[9px] px-1 py-0">
+          Atendente
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Componente auxiliar para exibir horário e status inline
+ * SRP: Responsabilidade única de renderizar rodapé da mensagem (estilo WhatsApp)
+ */
+interface MessageFooterProps {
+  timestamp: string;
+  status?: MessageStatus;
+  isAttendant: boolean;
+}
+
+function MessageFooter({ timestamp, status, isAttendant }: MessageFooterProps) {
+  return (
+    <div className="flex items-center gap-1.5 self-end flex-shrink-0 ml-2 pb-0.5">
+      <span className="text-[10px] leading-none text-muted-foreground">
+        {new Date(timestamp).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+      </span>
+      {isAttendant && <MessageStatusIcon status={status} isInverted={false} />}
+    </div>
+  );
+}
+
+/**
  * Componente auxiliar para exibir ícone de status da mensagem
  * SRP: Responsabilidade única de renderizar status visual
  */
-function MessageStatusIcon({ status }: { status?: MessageStatus }) {
+interface MessageStatusIconProps {
+  status?: MessageStatus;
+  isInverted?: boolean; // Para mensagens enviadas (fundo escuro)
+}
+
+function MessageStatusIcon({ status, isInverted }: MessageStatusIconProps) {
   // Default para 'sent' se status não existir (backward compatibility)
   const messageStatus = status || 'sent';
 
   const statusConfig = {
-    pending: {
-      icon: Clock,
-      color: 'text-muted-foreground',
-      tooltip: 'Enviando...',
-    },
-    sent: {
-      icon: Check,
-      color: 'text-muted-foreground',
-      tooltip: 'Enviada',
-    },
-    failed: {
-      icon: AlertCircle,
-      color: 'text-destructive',
-      tooltip: 'Falha no envio',
-    },
-    read: {
-      icon: CheckCheck,
-      color: 'text-blue-500',
-      tooltip: 'Lida',
-    },
+    pending: { icon: Clock, tooltip: 'Enviando...', color: 'muted' },
+    sent: { icon: Check, tooltip: 'Enviada', color: 'muted' },
+    failed: { icon: AlertCircle, tooltip: 'Falha no envio', color: 'destructive' },
+    read: { icon: CheckCheck, tooltip: 'Lida', color: 'blue' },
   };
 
   const config = statusConfig[messageStatus];
   const Icon = config.icon;
 
   return (
-    <span title={config.tooltip} aria-label={config.tooltip}>
-      <Icon className={cn('h-3 w-3', config.color)} />
+    <span title={config.tooltip} aria-label={config.tooltip} className="leading-none">
+      <Icon
+        className={cn(
+          'h-3 w-3',
+          config.color === 'blue' && 'text-blue-500',
+          config.color === 'destructive' && 'text-destructive',
+          config.color === 'muted' &&
+            (isInverted ? 'text-primary-foreground/70' : 'text-muted-foreground')
+        )}
+      />
     </span>
   );
 }
