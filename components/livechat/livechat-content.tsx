@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ContactList } from './contact-list';
 import { ConversationView } from './conversation-view';
@@ -38,8 +38,15 @@ export function LivechatContent({
     router.push(`/livechat?conversation=${conversationId}`);
   };
 
-  // Resetar loading quando conversa carrega
-  const isLoading = loadingConversationId && !conversation;
+  // Resetar loading quando a conversa correta for carregada
+  useEffect(() => {
+    if (loadingConversationId && conversation?.id === loadingConversationId) {
+      setLoadingConversationId(null);
+    }
+  }, [conversation?.id, loadingConversationId]);
+
+  // Detecta se está em transição de loading
+  const isLoading = loadingConversationId && conversation?.id !== loadingConversationId;
 
   return (
     <div className="flex h-full overflow-hidden">
