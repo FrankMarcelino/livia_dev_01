@@ -5,8 +5,7 @@ import {
   getConversation,
   getMessages,
 } from '@/lib/queries/livechat';
-import { ContactList, ConversationView } from '@/components/livechat';
-import { CustomerDataPanel } from '@/components/livechat/customer-data-panel';
+import { LivechatContent } from '@/components/livechat/livechat-content';
 
 interface LivechatPageProps {
   searchParams: Promise<{ conversation?: string }>;
@@ -64,51 +63,13 @@ export default async function LivechatPage({
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <aside className="w-96 border-r flex flex-col h-full">
-        <div className="p-4 border-b flex-shrink-0">
-          <h2 className="text-lg font-semibold">Conversas</h2>
-          <p className="text-sm text-muted-foreground">
-            Atendimentos ativos • WhatsApp
-          </p>
-        </div>
-        <div className="flex-1 overflow-hidden">
-          <ContactList
-            initialConversations={conversations}
-            selectedConversationId={selectedConversationId}
-            tenantId={tenantId}
-          />
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {conversation && messages && selectedConversation ? (
-          <ConversationView
-            initialConversation={conversation}
-            initialMessages={messages}
-            tenantId={tenantId}
-            contactName={selectedConversation.contact.name}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-semibold">Selecione uma conversa</h2>
-              <p className="text-muted-foreground">
-                Escolha uma conversa para visualizar as mensagens
-              </p>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {selectedConversation && (
-        <aside className="w-80 border-l flex flex-col h-full overflow-hidden">
-          <CustomerDataPanel
-            contactId={selectedConversation.contact.id}
-            tenantId={tenantId}
-          />
-        </aside>
-      )}
-    </div>
+    <LivechatContent
+      conversations={conversations}
+      selectedConversationId={selectedConversationId}
+      tenantId={tenantId}
+      selectedConversation={selectedConversation || null}
+      conversation={conversation}
+      messages={messages}
+    />
   );
 }

@@ -1,0 +1,101 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ContactList } from './contact-list';
+import { ConversationView } from './conversation-view';
+import { CustomerDataPanel } from './customer-data-panel';
+import { MessagesSkeleton } from './messages-skeleton';
+import type { ConversationWithContact, MessageWithSender } from '@/types/livechat';
+import type { Conversation } from '@/types/database';
+
+interface LivechatContentProps {
+  conversations: ConversationWithContact[];
+  selectedConversationId?: string;
+  tenantId: string;
+  selectedConversation: ConversationWithContact | null;
+  conversation: Conversation | null;
+  messages: MessageWithSender[] | null;
+}
+
+export function LivechatContent({
+  conversations,
+  selectedConversationId,
+  tenantId,
+  selectedConversation,
+  conversation,
+  messages,
+}: LivechatContentProps) {
+  const router = useRouter();
+  const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
+
+  // Handler que dispara ANTES da navegação
+  const handleConversationClick = (conversationId: string) => {
+    // Feedback instantâneo
+    setLoadingConversationId(conversationId);
+
+    // Navegação (que vai demorar 1-2s)
+    router.push(`/livechat?conversation=${conversationId}`);
+  };
+
+  // Resetar loading quando conversa carrega
+  const isLoading = loadingConversationId && !conversation;
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      <aside className="w-96 border-r flex flex-col h-full">
+        <div className="p-4 border-b flex-shrink-0">
+          <h2 className="text-lg font-semibold">Conversas</h2>
+          <p className="text-sm text-muted-foreground">
+            Atendimentos ativos • WhatsApp
+          </p>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ContactList
+            initialConversations={conversations}
+            selectedConversationId={selectedConversationId}
+            tenantId={tenantId}
+            onConversationClick={handleConversationClick}
+          />
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col h-full overflow-hidden">
+        {isLoading ? (
+          // Skeleton aparece INSTANTANEAMENTE
+          <div className="flex flex-col h-full">
+            <div className="p-4 border-b">
+              <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+            </div>
+            <MessagesSkeleton />
+          </div>
+        ) : conversation && messages && selectedConversation ? (
+          <ConversationView
+            initialConversation={conversation}
+            initialMessages={messages}
+            tenantId={tenantId}
+            contactName={selectedConversation.contact.name}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-semibold">Selecione uma conversa</h2>
+              <p className="text-muted-foreground">
+                Escolha uma conversa para visualizar as mensagens
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {selectedConversation && (
+        <aside className="w-80 border-l flex flex-col h-full overflow-hidden">
+          <CustomerDataPanel
+            contactId={selectedConversation.contact.id}
+            tenantId={tenantId}
+          />
+        </aside>
+      )}
+    </div>
+  );
+}

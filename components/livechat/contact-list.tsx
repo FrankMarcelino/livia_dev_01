@@ -14,12 +14,14 @@ interface ContactListProps {
   initialConversations: ConversationWithContact[];
   selectedConversationId?: string;
   tenantId: string;
+  onConversationClick?: (conversationId: string) => void;
 }
 
 export function ContactList({
   initialConversations,
   selectedConversationId,
   tenantId,
+  onConversationClick,
 }: ContactListProps) {
   // ✅ Hook simplificado - trabalha direto com conversas (sem transformações)
   const { conversations } = useRealtimeConversations(tenantId, initialConversations);
@@ -27,7 +29,7 @@ export function ContactList({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
-    useState<ConversationStatus | 'open'>('open');
+    useState<ConversationStatus | 'all'>('open');
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
@@ -106,7 +108,13 @@ export function ContactList({
               key={conversation.id}
               conversation={conversation}
               isSelected={selectedConversationId === conversation.id}
-              onClick={() => router.push(`/livechat?conversation=${conversation.id}`)}
+              onClick={() => {
+                if (onConversationClick) {
+                  onConversationClick(conversation.id);
+                } else {
+                  router.push(`/livechat?conversation=${conversation.id}`);
+                }
+              }}
             />
           ))
         )}

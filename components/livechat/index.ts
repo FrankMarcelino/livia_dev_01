@@ -6,3 +6,4 @@ export { ContactItem } from './contact-item';
 export { ContactList } from './contact-list';
 export { ConversationView } from './conversation-view';
 export { ScrollToBottomButton } from './scroll-to-bottom-button';
+export { LivechatContent } from './livechat-content';
