@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout';
-import { SidebarToggleHeader } from '@/components/layout/sidebar-toggle-header';
 import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-collapse-wrapper';
 
 /**
@@ -15,7 +14,7 @@ import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-col
  * Features:
  * - Autenticação obrigatória
  * - Sidebar com auto-collapse no livechat
- * - Toggle + Logo dinâmico (fora quando colapsado)
+ * - Toggle integrado no header do sidebar (sempre acessível)
  * - Footer do sidebar com perfil clicável
  * - SidebarInset para conteúdo principal
  */
@@ -51,7 +50,6 @@ export default async function DashboardLayout({
         avatarUrl={user?.avatar_url}
       />
       <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden">
-        <SidebarToggleHeader />
         <SidebarAutoCollapseWrapper>
           <div className="flex-1 overflow-hidden">
             {children}

@@ -13,6 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { navItems } from './nav-items';
 import { cn } from '@/lib/utils';
@@ -23,15 +24,17 @@ import { SidebarUserProfile } from './sidebar-user-profile';
  * Componente principal do Sidebar do LIVIA
  *
  * Princípios SOLID:
- * - Single Responsibility: Apenas renderiza o sidebar
+ * - Single Responsibility: Renderiza sidebar completo (toggle + navegação + perfil)
  * - Open/Closed: Extensível via navItems, fechado para modificação
  * - Dependency Inversion: Depende da abstração Sidebar (shadcn)
  *
  * Features:
+ * - Toggle integrado no header (sempre acessível, expandido ou colapsado)
  * - Auto-collapse no livechat (gerenciado pelo hook no layout)
  * - Modo icon quando collapsed
  * - Link ativo destacado
  * - Footer com perfil do usuário clicável
+ * - Layout responsivo (toggle + logo alinhados quando expandido, empilhados quando colapsado)
  * - Acessibilidade completa
  */
 
@@ -51,30 +54,41 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex h-14 items-center px-4">
+        {/* Layout quando EXPANDIDO: Toggle + Logo na mesma linha */}
+        <div className="flex h-14 items-center justify-between px-2 gap-2 group-data-[collapsible=icon]:hidden">
+          <SidebarTrigger />
+          <Link
+            href="/livechat"
+            className="flex-1 flex items-center justify-center font-bold text-sidebar-foreground"
+          >
+            <Image
+              src="/logo.png"
+              alt="LIVIA"
+              width={100}
+              height={28}
+              className="object-contain"
+              priority
+            />
+          </Link>
+          <div className="w-8" /> {/* Spacer para balancear visualmente */}
+        </div>
+
+        {/* Layout quando COLAPSADO: Logo no topo, Toggle embaixo */}
+        <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center py-3 gap-3">
           <Link
             href="/livechat"
             className="flex items-center font-bold text-sidebar-foreground"
           >
-            {/* Logo completa quando expandido */}
-            <Image 
-              src="/logo.png" 
-              alt="LIVIA" 
-              width={120} 
-              height={32}
-              className="object-contain group-data-[collapsible=icon]:hidden"
-              priority
-            />
-            {/* Apenas ícone quando colapsado */}
-            <Image 
-              src="/icon.png" 
-              alt="LIVIA" 
-              width={32} 
-              height={32}
-              className="object-contain hidden group-data-[collapsible=icon]:block"
+            <Image
+              src="/icon.png"
+              alt="LIVIA"
+              width={24}
+              height={24}
+              className="object-contain"
               priority
             />
           </Link>
+          <SidebarTrigger />
         </div>
       </SidebarHeader>
 
