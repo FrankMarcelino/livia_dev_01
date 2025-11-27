@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Zap, Search, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { QuickReplyDialog } from './quick-reply-dialog';
 import { replaceQuickReplyVariables } from '@/lib/utils/quick-replies';
+import { useQuickRepliesCache } from '@/hooks/use-quick-replies-cache';
 import { toast } from 'sonner';
 import type { QuickReply } from '@/types/livechat';
 
@@ -51,8 +52,6 @@ export function QuickRepliesPanel({
   disabled = false,
 }: QuickRepliesPanelProps) {
   const [open, setOpen] = useState(false);
-  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
 
   // Estados para dialogs
@@ -62,32 +61,28 @@ export function QuickRepliesPanel({
   const [deletingReply, setDeletingReply] = useState<QuickReply | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Função para carregar quick replies
-  const loadQuickReplies = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `/api/quick-replies?tenantId=${tenantId}`
-      );
-      if (!response.ok) throw new Error('Erro ao carregar quick replies');
-
-      const data = await response.json();
-      setQuickReplies(data.data || []);
-    } catch (error) {
+  // Hook otimizado com cache (reutiliza cache do QuickReplyCommand!)
+  const {
+    quickReplies: allQuickReplies,
+    isLoading,
+    refetch,
+  } = useQuickRepliesCache({
+    tenantId,
+    enabled: open, // Só carrega quando popover está aberto
+    onError: (error) => {
       console.error('Erro ao carregar quick replies:', error);
       toast.error('Erro ao carregar quick replies');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
-  // Carregar quick replies ao abrir o popover
-  useEffect(() => {
-    if (open) {
-      loadQuickReplies();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tenantId]);
+  // Filtra quick replies localmente (filtro client-side)
+  const quickReplies = search.trim()
+    ? allQuickReplies.filter(
+        (reply) =>
+          reply.title.toLowerCase().includes(search.toLowerCase()) ||
+          reply.content.toLowerCase().includes(search.toLowerCase())
+      )
+    : allQuickReplies;
 
   const handleSelect = (quickReply: QuickReply) => {
     // Substituir variáveis dinâmicas
@@ -136,7 +131,7 @@ export function QuickRepliesPanel({
 
   // Handler de sucesso (criar/editar)
   const handleSuccess = () => {
-    loadQuickReplies();
+    refetch(); // Invalida cache e recarrega
   };
 
   // Handler para abrir dialog de deletar
@@ -160,7 +155,7 @@ export function QuickRepliesPanel({
       }
 
       toast.success('Quick reply deletada com sucesso!');
-      loadQuickReplies();
+      refetch(); // Invalida cache e recarrega
       setDeleteDialogOpen(false);
       setDeletingReply(null);
     } catch (error) {
@@ -171,17 +166,8 @@ export function QuickRepliesPanel({
     }
   };
 
-  // Filtrar quick replies baseado na busca
-  const filteredReplies = quickReplies.filter((reply) => {
-    const searchLower = search.toLowerCase();
-    return (
-      reply.title.toLowerCase().includes(searchLower) ||
-      reply.content.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Top 3 mais usadas
-  const top3Ids = quickReplies
+  // Top 3 mais usadas (usa allQuickReplies pois já estão ordenados por usage_count)
+  const top3Ids = allQuickReplies
     .slice(0, 3)
     .map((reply) => reply.id);
 
@@ -237,7 +223,7 @@ export function QuickRepliesPanel({
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Carregando...
               </div>
-            ) : filteredReplies.length === 0 ? (
+            ) : quickReplies.length === 0 ? (
               <CommandEmpty>
                 {search
                   ? 'Nenhuma resposta rápida encontrada.'
@@ -245,7 +231,7 @@ export function QuickRepliesPanel({
               </CommandEmpty>
             ) : (
               <CommandGroup>
-                {filteredReplies.map((reply) => {
+                {quickReplies.map((reply) => {
                   const isPopular = top3Ids.includes(reply.id);
 
                   return (
