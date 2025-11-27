@@ -79,7 +79,16 @@ export function ConversationHeader({
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">{contactName}</h2>
 
-        <div className="flex flex-col gap-2 items-end">
+        <div className="flex  gap-2 items-end">
+        <Button
+            onClick={() => setIsSummaryOpen(true)}
+            variant="secondary"
+            size="sm"
+            className="text-xs h-7"
+          >
+            <FileText className="h-3 w-3 mr-2" />
+            Resumo da conversa
+          </Button>
           <Button
             onClick={handlePauseIAClick}
             disabled={!conversation.ia_active || isUpdating || iaDisabled}
@@ -95,17 +104,7 @@ export function ConversationHeader({
           >
             <Pause className="h-4 w-4 mr-2" />
             Pausar IA
-          </Button>
-
-          <Button
-            onClick={() => setIsSummaryOpen(true)}
-            variant="secondary"
-            size="sm"
-            className="text-xs h-7"
-          >
-            <FileText className="h-3 w-3 mr-2" />
-            Resumo da conversa
-          </Button>
+          </Button>     
         </div>
       </div>
 
