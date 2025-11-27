@@ -27,7 +27,7 @@ export function ContactList({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
-    useState<ConversationStatus | 'all'>('all');
+    useState<ConversationStatus | 'open'>('open');
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
