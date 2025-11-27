@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout';
-import { Header } from '@/components/auth/header';
+import { SidebarToggleHeader } from '@/components/layout/sidebar-toggle-header';
 import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-collapse-wrapper';
 
 /**
@@ -15,7 +15,8 @@ import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-col
  * Features:
  * - Autenticação obrigatória
  * - Sidebar com auto-collapse no livechat
- * - Header com informações do usuário
+ * - Toggle + Logo dinâmico (fora quando colapsado)
+ * - Footer do sidebar com perfil clicável
  * - SidebarInset para conteúdo principal
  */
 export default async function DashboardLayout({
@@ -31,25 +32,26 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Busca dados do usuário
+  // Busca dados do usuário e tenant
   const { data: userData } = await supabase
     .from('users')
-    .select('tenant_id, full_name, email, avatar_url')
+    .select('tenant_id, full_name, email, avatar_url, tenants(name)')
     .eq('id', authData.user.id)
     .single();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = userData as any;
+  const tenantName = user?.tenants?.name;
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <AppSidebar />
+      <AppSidebar
+        userName={user?.full_name || 'Usuário'}
+        tenantName={tenantName}
+        avatarUrl={user?.avatar_url}
+      />
       <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden">
-        <Header
-          userName={user?.full_name || 'Usuário'}
-          userEmail={user?.email}
-          avatarUrl={user?.avatar_url}
-        />
+        <SidebarToggleHeader />
         <SidebarAutoCollapseWrapper>
           <div className="flex-1 overflow-hidden">
             {children}

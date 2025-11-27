@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/sidebar';
 import { navItems } from './nav-items';
 import { cn } from '@/lib/utils';
+import { SidebarFooter } from '@/components/ui/sidebar';
+import { SidebarUserProfile } from './sidebar-user-profile';
 
 /**
  * Componente principal do Sidebar do LIVIA
@@ -29,9 +31,21 @@ import { cn } from '@/lib/utils';
  * - Auto-collapse no livechat (gerenciado pelo hook no layout)
  * - Modo icon quando collapsed
  * - Link ativo destacado
+ * - Footer com perfil do usuário clicável
  * - Acessibilidade completa
  */
-export function AppSidebar() {
+
+interface AppSidebarProps {
+  userName?: string;
+  tenantName?: string;
+  avatarUrl?: string;
+}
+
+export function AppSidebar({
+  userName = 'Usuário',
+  tenantName,
+  avatarUrl,
+}: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -105,6 +119,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarUserProfile
+          userName={userName}
+          tenantName={tenantName}
+          avatarUrl={avatarUrl}
+        />
+      </SidebarFooter>
     </Sidebar>
   );
 }
