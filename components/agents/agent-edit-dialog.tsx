@@ -28,7 +28,7 @@ export function AgentEditDialog({ agent, open, onOpenChange }: AgentEditDialogPr
             )}
           </DialogTitle>
           <DialogDescription>
-            {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'} • {agent.type === 'reactive' ? 'Reativo' : 'Proativo'}
+            {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'} • {agent.type === 'active' ? 'Proativo' : 'Reativo'}
             {agent.template_name && (
               <span className="ml-2">• Template: {agent.template_name}</span>
             )}

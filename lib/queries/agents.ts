@@ -89,17 +89,33 @@ export async function getAgentsByTenant(tenantId: string) {
   // Se não houver prompt do tenant, criar um vazio (será preenchido ao editar)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = agentsData.map((agent: any) => {
-    const prompt = promptsMap.get(agent.id) || {
+    const rawPrompt = promptsMap.get(agent.id);
+
+    // Parse de campos JSONB (podem vir como string ou já parseados)
+    const prompt = rawPrompt ? {
+      ...rawPrompt,
+      limitations: parseJSONBField(rawPrompt.limitations),
+      instructions: parseJSONBField(rawPrompt.instructions),
+      guide_line: parseJSONBField(rawPrompt.guide_line),
+      rules: parseJSONBField(rawPrompt.rules),
+    } : {
       id: '',
       id_agent: agent.id,
       id_tenant: tenantId,
-      limitations: null,
-      instructions: null,
-      guide_line: null,
-      rules: null,
+      limitations: [],
+      instructions: [],
+      guide_line: [],
+      rules: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
+    console.log('[getAgentsByTenant] Agent prompt for', agent.name, ':', {
+      limitations: prompt.limitations,
+      instructions: prompt.instructions,
+      guide_line: prompt.guide_line,
+      rules: prompt.rules,
+    });
 
     return {
       ...agent,
@@ -112,6 +128,21 @@ export async function getAgentsByTenant(tenantId: string) {
   console.log('[getAgentsByTenant] Returning', result.length, 'agents with prompts');
 
   return result;
+}
+
+/**
+ * Parse de campos JSONB que podem vir como string ou já parseados
+ */
+function parseJSONBField(field: unknown): unknown {
+  if (!field) return null;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return null;
+    }
+  }
+  return field;
 }
 
 /**
@@ -156,15 +187,21 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
     // Não lançar erro - usar prompt vazio
   }
 
-  // Se não houver prompt, criar um vazio
-  const prompt = promptData || {
+  // Se não houver prompt, criar um vazio, senão parse campos JSONB
+  const prompt = promptData ? {
+    ...promptData,
+    limitations: parseJSONBField(promptData.limitations),
+    instructions: parseJSONBField(promptData.instructions),
+    guide_line: parseJSONBField(promptData.guide_line),
+    rules: parseJSONBField(promptData.rules),
+  } : {
     id: '',
     id_agent: agentId,
     id_tenant: tenantId,
-    limitations: null,
-    instructions: null,
-    guide_line: null,
-    rules: null,
+    limitations: [],
+    instructions: [],
+    guide_line: [],
+    rules: [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

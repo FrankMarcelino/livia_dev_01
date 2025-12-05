@@ -51,7 +51,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           <div className="text-sm">
             <span className="text-muted-foreground">Modo:</span>{' '}
             <Badge variant="outline" className="ml-1">
-              {agent.type === 'reactive' ? 'Reativo' : 'Proativo'}
+              {agent.type === 'active' ? 'Proativo' : 'Reativo'}
             </Badge>
           </div>
           

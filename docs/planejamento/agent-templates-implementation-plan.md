@@ -1,23 +1,24 @@
 # Plano de Implementação: Agent Templates UI (Meus Agentes IA)
 
-**Feature:** Plataforma Tenant - Interface para visualizar e editar configurações de Agents baseados em Templates  
-**Contexto:** [fluxo-edicao-prompts-tenant.md](file:///home/frank/projeto/docs/contexto/fluxo-edicao-prompts-tenant.md)  
-**Data:** 2025-12-04  
-**Estimativa:** 12-16 horas
+**Feature:** Plataforma Tenant - Interface para visualizar e editar configurações de Agents baseados em Templates
+**Contexto:** [fluxo-edicao-prompts-tenant.md](file:///home/frank/projeto/docs/contexto/fluxo-edicao-prompts-tenant.md)
+**Data:** 2025-12-04 (Implementado: 2025-12-05)
+**Status:** ✅ Implementado e Funcionando
 
 ---
 
 ## 📋 Índice
 
 1. [Contexto e Objetivo](#contexto-e-objetivo)
-2. [Análise da Arquitetura Atual](#análise-da-arquitetura-atual)
-3. [Componentes e Estrutura](#componentes-e-estrutura)
-4. [Regras de Negócio](#regras-de-negócio)
-5. [Fluxo de Dados](#fluxo-de-dados)
-6. [Implementação Detalhada](#implementação-detalhada)
-7. [RLS e Segurança](#rls-e-segurança)
-8. [Testes](#testes)
-9. [Gaps e Riscos](#gaps-e-riscos)
+2. [⚠️ Correções Implementadas](#correções-implementadas)
+3. [Análise da Arquitetura Atual](#análise-da-arquitetura-atual)
+4. [Componentes e Estrutura](#componentes-e-estrutura)
+5. [Regras de Negócio](#regras-de-negócio)
+6. [Fluxo de Dados](#fluxo-de-dados)
+7. [Implementação Detalhada](#implementação-detalhada)
+8. [RLS e Segurança](#rls-e-segurança)
+9. [Testes](#testes)
+10. [Gaps e Riscos](#gaps-e-riscos)
 
 ---
 
@@ -41,6 +42,226 @@ Implementar a tela **"Meus Agentes IA"** na Plataforma Tenant, permitindo:
 - Autonomia sem depender do Super Admin
 - Manutenção da rastreabilidade (template de origem)
 - Isolamento multi-tenant garantido por RLS
+
+---
+
+## ⚠️ Correções Implementadas
+
+Durante a implementação, foram identificadas várias divergências entre o plano inicial e a estrutura real do banco de dados. Esta seção documenta todos os problemas encontrados e as soluções aplicadas.
+
+### 1. Schema do Banco de Dados
+
+#### 1.1. Tabela `agents` - Colunas Não Existentes
+
+**Problema:** O plano inicial assumia a existência de várias colunas que não existem na tabela `agents`:
+
+- ❌ `function` - Não existe (é palavra reservada SQL)
+- ❌ `reactive` - Não existe
+- ❌ `persona` - Não existe
+- ❌ `objective` - Não existe
+- ❌ `personality_tone` - Não existe
+
+**Solução:** As queries foram simplificadas para buscar apenas as colunas existentes:
+
+```typescript
+// ✅ Query Correta
+const { data: agentsData } = await supabase
+  .from('agents')
+  .select(`
+    id,
+    name,
+    type,
+    template_id,
+    created_at,
+    updated_at
+  `)
+  .eq('id_neurocore', neurocoreId);
+```
+
+#### 1.2. Tabela `tenants` - Nome da Coluna
+
+**Problema:** Inconsistência no nome da coluna de referência ao neurocore:
+- ❌ `tenants.id_neurocore` (não existe)
+- ✅ `tenants.neurocore_id` (nome correto)
+
+**Solução:** Todas as queries foram atualizadas para usar `neurocore_id`:
+
+```typescript
+const { data: tenantData } = await supabase
+  .from('tenants')
+  .select('neurocore_id')  // ✅ Nome correto
+  .eq('id', tenantId)
+  .single();
+```
+
+#### 1.3. Campo `type` - Modo do Agent
+
+**Problema:** O campo `type` é um enum `agent_type_enum` com valores:
+- `active` = Proativo
+- `reactive` = Reativo
+
+**Não existe** um campo booleano `reactive` separado.
+
+**Solução:** Badge de modo atualizado para ler o campo `type`:
+
+```typescript
+// ✅ Lógica Correta
+<Badge variant="outline">
+  {agent.type === 'active' ? 'Proativo' : 'Reativo'}
+</Badge>
+```
+
+**Arquivos corrigidos:**
+- `components/agents/agent-card.tsx:54`
+- `components/agents/agent-edit-dialog.tsx:31`
+- `components/agents/form-sections/basic-info-section.tsx:41`
+
+### 2. RLS Policies
+
+#### 2.1. Policy de Acesso aos Agents
+
+**Problema:** As RLS policies iniciais estavam bloqueando o acesso aos agents do tenant.
+
+**Solução:** Policy correta implementada em `/FIX-agents-rls-FINAL-WORKING.sql`:
+
+```sql
+CREATE POLICY "Tenants can view agents from their neurocore"
+  ON agents
+  FOR SELECT
+  USING (
+    id_neurocore = (
+      SELECT neurocore_id
+      FROM tenants
+      WHERE id = (
+        SELECT tenant_id
+        FROM users
+        WHERE id = auth.uid()
+      )
+    )
+  );
+```
+
+**Pontos importantes:**
+- `agents.id_neurocore` (não `associated_neurocores`)
+- `tenants.neurocore_id` (não `id_neurocore`)
+- Filtro correto: agents do mesmo neurocore do tenant
+
+### 3. Campos JSONB
+
+#### 3.1. Parsing de Campos JSONB
+
+**Problema:** Campos JSONB (`limitations`, `instructions`, `guide_line`, `rules`) podem vir do Supabase como:
+- Strings JSON: `"[\"item1\",\"item2\"]"`
+- Objetos já parseados: `["item1", "item2"]`
+
+Isso causava erro `[Object]` no formulário de edição.
+
+**Solução:** Função `parseJSONBField()` implementada em `lib/queries/agents.ts:136-146`:
+
+```typescript
+function parseJSONBField(field: unknown): unknown {
+  if (!field) return null;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return null;
+    }
+  }
+  return field;
+}
+```
+
+**Aplicada em:** `getAgentsByTenant()` e `getAgentWithPrompt()` para todos os campos JSONB:
+- `limitations`
+- `instructions`
+- `guide_line`
+- `rules`
+
+#### 3.2. Campo `rules`
+
+**Problema:** O campo `rules` não estava sendo buscado nas queries iniciais.
+
+**Solução:** Adicionado parsing do campo `rules` em todas as funções que retornam prompts:
+
+```typescript
+const prompt = rawPrompt ? {
+  ...rawPrompt,
+  limitations: parseJSONBField(rawPrompt.limitations),
+  instructions: parseJSONBField(rawPrompt.instructions),
+  guide_line: parseJSONBField(rawPrompt.guide_line),
+  rules: parseJSONBField(rawPrompt.rules),  // ✅ Adicionado
+} : {
+  // ... empty prompt com rules: []
+};
+```
+
+### 4. Fluxo de Dados Implementado
+
+#### 4.1. Busca de Agents por Tenant
+
+**Fluxo correto implementado:**
+
+1. Buscar `neurocore_id` do tenant
+2. Buscar agents com `id_neurocore = neurocore_id`
+3. Buscar prompts com `id_agent IN (agentIds) AND id_tenant = tenantId`
+4. Fazer join manual dos dados (não via SQL join)
+5. Aplicar `parseJSONBField()` em todos os campos JSONB
+
+**Por que join manual?**
+- Supabase RLS aplica filtros antes do JOIN
+- JOIN SQL causava resultados vazios
+- Separar queries garante que RLS funciona corretamente
+
+### 5. Type Definitions
+
+**Estrutura final correta em `types/agents.ts`:**
+
+```typescript
+export type Agent = {
+  id: string;
+  template_id: string | null;
+  name: string;
+  type: Database['public']['Enums']['agent_type_enum']; // 'active' | 'reactive'
+  created_at: string;
+  updated_at: string;
+};
+
+// Campo 'function' foi removido (não existe no banco)
+// Campos 'persona', 'objective' foram removidos (não existem no banco)
+```
+
+### 6. Resumo das Correções
+
+| Problema | Causa | Solução | Arquivo |
+|----------|-------|---------|---------|
+| Coluna `function` não existe | Palavra reservada SQL | Removido das queries | `lib/queries/agents.ts` |
+| Coluna `reactive` não existe | Campo é `type` enum | Usar `type === 'active'` | Todos os componentes |
+| Coluna `tenants.id_neurocore` | Nome incorreto | Usar `neurocore_id` | `lib/queries/agents.ts:20` |
+| RLS bloqueando acesso | Policy incorreta | Criar policy correta | `FIX-agents-rls-FINAL-WORKING.sql` |
+| JSONB mostrando `[Object]` | Sem parsing | Criar `parseJSONBField()` | `lib/queries/agents.ts:136` |
+| Campo `rules` não aparece | Não estava na query | Adicionar parsing de rules | `lib/queries/agents.ts:100` |
+
+### 7. Arquivos com Correções
+
+**Backend:**
+- ✅ `lib/queries/agents.ts` - Queries simplificadas + parsing JSONB
+- ✅ `types/agents.ts` - Types atualizados para schema real
+- ✅ `FIX-agents-rls-FINAL-WORKING.sql` - RLS policy correta
+
+**Frontend:**
+- ✅ `components/agents/agent-card.tsx` - Badge de modo corrigido
+- ✅ `components/agents/agent-edit-dialog.tsx` - Badge de modo corrigido
+- ✅ `components/agents/form-sections/basic-info-section.tsx` - Badge de modo corrigido
+
+### 8. Status Atual
+
+✅ **6 agents** sendo exibidos corretamente para o tenant
+✅ **Badges de modo** atualizando dinamicamente (Proativo/Reativo)
+✅ **Campos JSONB** expandindo e mostrando conteúdo
+✅ **Campo rules** sendo buscado e parseado
+✅ **RLS policies** isolando dados por tenant/neurocore
+✅ **Build** passando sem erros
 
 ---
 
@@ -73,8 +294,9 @@ erDiagram
         uuid id_neurocore FK
         uuid template_id FK
         text name
-        agent_function type
-        boolean reactive
+        agent_type_enum type "active ou reactive"
+        timestamp created_at
+        timestamp updated_at
     }
 
     agent_prompts {
@@ -85,11 +307,13 @@ erDiagram
         jsonb instructions
         jsonb guide_line
         jsonb rules
+        timestamp created_at
+        timestamp updated_at
     }
 
     tenants {
         uuid id PK
-        uuid id_neurocore FK
+        uuid neurocore_id FK
         text name
     }
 ```
@@ -156,11 +380,9 @@ lib/validations/agentPromptValidation.ts # Schemas Zod
 
 export type Agent = {
   id: string;
-  id_neurocore: string;
   template_id: string | null;
   name: string;
-  type: 'attendant' | 'intention' | 'in_guard_rails' | 'observer';
-  reactive: boolean;
+  type: Database['public']['Enums']['agent_type_enum']; // 'active' | 'reactive'
   created_at: string;
   updated_at: string;
 };
@@ -168,27 +390,14 @@ export type Agent = {
 export type AgentPrompt = {
   id: string;
   id_agent: string;
-  id_tenant: string | null; // NULL = configuração base
-  
+  id_tenant: string; // NULL no banco = configuração base
+
   // Configurações JSONB
   limitations: string[] | null;
   instructions: string[] | null;
   guide_line: GuidelineStep[] | null;
   rules: string[] | null;
-  others_instructions: string[] | null;
-  
-  // Escape/Fallback
-  escape: unknown | null;
-  fallback: unknown | null;
-  
-  // Personalidade (se aplicável)
-  persona_name?: string | null;
-  age?: string | null;
-  gender?: string | null;
-  objective?: string | null;
-  communication?: string | null;
-  personality?: string | null;
-  
+
   created_at: string;
   updated_at: string;
 };
@@ -206,11 +415,21 @@ export type GuidelineSubInstruction = {
 };
 
 export type AgentWithPrompt = Agent & {
-  template_name: string | null; // Nome do template de origem
+  template_name: string | null; // Nome do template de origem (TODO: implementar lookup)
   prompt: AgentPrompt;
   is_customized: boolean; // Se foi personalizado pelo tenant
 };
+
+// Labels para exibição
+export const AGENT_FUNCTION_LABELS: Record<string, string> = {
+  attendant: 'Atendente',
+  intention: 'Intenção',
+  in_guard_rails: 'Guardrails',
+  observer: 'Observador',
+};
 ```
+
+**⚠️ Nota:** Campos de personalidade (`persona`, `objective`, etc.) **não existem** na estrutura atual do banco de dados. Foram removidos da implementação.
 
 ---
 
@@ -249,26 +468,106 @@ export type AgentWithPrompt = Agent & {
 
 ### 1. Listagem de Agents
 
+**⚠️ Implementação Real:** A query usa **joins manuais** (queries separadas) devido às limitações do RLS do Supabase com JOINs SQL.
+
 ```typescript
-// Query
-async function getAgentsByTenant(tenantId: string): Promise<AgentWithPrompt[]> {
-  const { data, error } = await supabase
+// lib/queries/agents.ts
+export async function getAgentsByTenant(tenantId: string) {
+  const supabase = await createClient();
+
+  // 1. Buscar o neurocore_id do tenant
+  const { data: tenantData, error: tenantError } = await supabase
+    .from('tenants')
+    .select('neurocore_id')
+    .eq('id', tenantId)
+    .single();
+
+  if (tenantError || !tenantData) {
+    throw new Error('Tenant not found');
+  }
+
+  const neurocoreId = tenantData.neurocore_id;
+
+  // 2. Buscar agents do neurocore do tenant
+  const { data: agentsData, error: agentsError } = await supabase
     .from('agents')
     .select(`
-      *,
-      agent_templates (name),
-      agent_prompts!inner (*)
+      id,
+      name,
+      type,
+      template_id,
+      created_at,
+      updated_at
     `)
-    .eq('agent_prompts.id_tenant', tenantId)
-    .eq('id_neurocore', '(SELECT id_neurocore FROM tenants WHERE id = tenantId)')
+    .eq('id_neurocore', neurocoreId)
     .order('name');
-  
-  return data.map(agent => ({
-    ...agent,
-    template_name: agent.agent_templates?.name || null,
-    prompt: agent.agent_prompts[0],
-    is_customized: hasCustomizations(agent.agent_prompts[0])
-  }));
+
+  if (agentsError || !agentsData || agentsData.length === 0) {
+    return [];
+  }
+
+  // 3. Buscar os prompts do tenant para esses agents
+  const agentIds = agentsData.map(a => a.id);
+
+  const { data: promptsData, error: promptsError } = await supabase
+    .from('agent_prompts')
+    .select('*')
+    .in('id_agent', agentIds)
+    .eq('id_tenant', tenantId);
+
+  // 4. Mapear prompts por agent_id
+  const promptsMap = new Map();
+  if (promptsData) {
+    promptsData.forEach(prompt => {
+      promptsMap.set(prompt.id_agent, prompt);
+    });
+  }
+
+  // 5. Combinar agents com seus prompts (com parsing JSONB)
+  const result = agentsData.map((agent: any) => {
+    const rawPrompt = promptsMap.get(agent.id);
+
+    const prompt = rawPrompt ? {
+      ...rawPrompt,
+      limitations: parseJSONBField(rawPrompt.limitations),
+      instructions: parseJSONBField(rawPrompt.instructions),
+      guide_line: parseJSONBField(rawPrompt.guide_line),
+      rules: parseJSONBField(rawPrompt.rules),
+    } : {
+      // Prompt vazio se não existir
+      id: '',
+      id_agent: agent.id,
+      id_tenant: tenantId,
+      limitations: [],
+      instructions: [],
+      guide_line: [],
+      rules: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    return {
+      ...agent,
+      template_name: null, // TODO: Implementar lookup do template
+      prompt,
+      is_customized: checkIfCustomized(prompt),
+    };
+  }) as AgentWithPrompt[];
+
+  return result;
+}
+
+// Helper para parsing de campos JSONB
+function parseJSONBField(field: unknown): unknown {
+  if (!field) return null;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return null;
+    }
+  }
+  return field;
 }
 ```
 
@@ -700,21 +999,34 @@ O **Guideline Section** é o componente mais complexo, permitindo editar estrutu
 
 ## 🔐 RLS e Segurança
 
-### RLS Policies Necessárias
+### RLS Policies Implementadas
 
 **1. Agents - Tenant pode ver apenas agents do seu neurocore**
+
+⚠️ **Policy Correta Implementada** (arquivo: `FIX-agents-rls-FINAL-WORKING.sql`):
+
 ```sql
-CREATE POLICY "Tenants can view their own agents"
+CREATE POLICY "Tenants can view agents from their neurocore"
   ON agents
   FOR SELECT
   USING (
     id_neurocore = (
-      SELECT id_neurocore FROM tenants
-      JOIN users ON users.tenant_id = tenants.id
-      WHERE users.id = auth.uid()
+      SELECT neurocore_id
+      FROM tenants
+      WHERE id = (
+        SELECT tenant_id
+        FROM users
+        WHERE id = auth.uid()
+      )
     )
   );
 ```
+
+**Pontos importantes desta policy:**
+- ✅ Usa `agents.id_neurocore` (coluna correta)
+- ✅ Usa `tenants.neurocore_id` (não `id_neurocore`)
+- ✅ Subquery aninhada para buscar tenant_id do usuário primeiro
+- ✅ Filtra agents do mesmo neurocore do tenant
 
 **2. Agent Prompts - Tenant pode ver/editar apenas seus prompts**
 ```sql
@@ -823,6 +1135,108 @@ test('Tenant A não pode editar prompts do Tenant B', async () => {
 | Validação Zod muito restritiva | Médio | Média | Permitir campos opcionais, validar apenas não-vazios |
 | Guideline section complexa demais | Médio | Alta | Implementar incrementalmente, testar UX |
 | Performance em lista grande | Baixo | Baixa | Implementar paginação se necessário |
+
+---
+
+## 📝 Lições Aprendidas
+
+### 1. Sempre Verificar o Schema Real
+
+**Lição:** Documentos e arquivos `database.ts` podem ficar desatualizados.
+
+**Solução:** Antes de implementar, sempre executar queries SQL para verificar:
+```sql
+-- Verificar colunas de uma tabela
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'agents'
+ORDER BY ordinal_position;
+
+-- Verificar enums
+SELECT e.enumlabel
+FROM pg_enum e
+JOIN pg_type t ON e.enumtypid = t.oid
+WHERE t.typname = 'agent_type_enum';
+```
+
+### 2. RLS Policies com Subqueries Aninhadas
+
+**Lição:** Supabase RLS requer cuidado com nomes de colunas e ordem de joins.
+
+**Descoberta:** Policies com subqueries aninhadas funcionam melhor que JOINs:
+```sql
+-- ✅ Funciona
+id_neurocore = (SELECT neurocore_id FROM tenants WHERE id = (...))
+
+-- ❌ Pode falhar
+id_neurocore IN (SELECT neurocore_id FROM tenants JOIN users...)
+```
+
+### 3. Joins Manuais vs SQL Joins com RLS
+
+**Lição:** RLS do Supabase pode bloquear resultados em queries com JOINs SQL.
+
+**Solução:** Fazer joins manuais (queries separadas) garante que RLS funciona corretamente:
+1. Query 1: Buscar tenant → neurocore_id
+2. Query 2: Buscar agents com id_neurocore
+3. Query 3: Buscar prompts com id_tenant
+4. Join em TypeScript com Map/forEach
+
+### 4. Parsing de Campos JSONB
+
+**Lição:** Supabase pode retornar JSONB como strings ou objetos dependendo do contexto.
+
+**Solução:** Sempre aplicar função de parsing defensiva:
+```typescript
+function parseJSONBField(field: unknown): unknown {
+  if (!field) return null;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return null;
+    }
+  }
+  return field;
+}
+```
+
+### 5. Evitar Palavras Reservadas SQL
+
+**Lição:** Palavras como `function`, `order`, `select` podem causar problemas mesmo com quotes.
+
+**Descoberta:** No nosso caso, a coluna `function` simplesmente não existia, mas a lição se aplica.
+
+### 6. Enums em TypeScript
+
+**Lição:** Usar enums do `Database` type garante type-safety:
+```typescript
+type: Database['public']['Enums']['agent_type_enum']
+```
+
+Melhor que hardcoded:
+```typescript
+type: 'active' | 'reactive' // ❌ Pode ficar desatualizado
+```
+
+### 7. Logging é Essencial
+
+**Lição:** Console.log detalhado ajuda a debugar problemas de RLS e parsing.
+
+**Implementado em `lib/queries/agents.ts`:**
+```typescript
+console.log('[getAgentsByTenant] Fetching agents for tenant:', tenantId);
+console.log('[getAgentsByTenant] Neurocore ID:', neurocoreId);
+console.log('[getAgentsByTenant] Agents fetched:', agentsData?.length || 0);
+console.log('[getAgentsByTenant] Found', promptsData?.length || 0, 'prompts for tenant');
+```
+
+### 8. Validação Incremental
+
+**Lição:** Não assumir que campos existem - validar com optional chaining:
+```typescript
+agent.prompt?.limitations?.length > 0
+```
 
 ---
 

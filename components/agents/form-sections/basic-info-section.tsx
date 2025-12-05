@@ -38,7 +38,7 @@ export function BasicInfoSection({ agent }: BasicInfoSectionProps) {
           <label className="text-xs font-medium text-muted-foreground">Modo</label>
           <div className="mt-1">
             <Badge variant="outline">
-              {agent.type === 'reactive' ? 'Reativo' : 'Proativo'}
+              {agent.type === 'active' ? 'Proativo' : 'Reativo'}
             </Badge>
           </div>
         </div>
