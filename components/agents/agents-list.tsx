@@ -1,9 +1,12 @@
-// Componente: Lista de Agents
+// Componente: Lista de Agents (Master-Detail)
 // Feature: Meus Agentes IA
 
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AgentCard } from './agent-card';
+import { AgentEditPanel } from './agent-edit-panel';
 import type { AgentWithPrompt } from '@/types/agents';
 
 interface AgentsListProps {
@@ -11,6 +14,13 @@ interface AgentsListProps {
 }
 
 export function AgentsList({ agents }: AgentsListProps) {
+  const router = useRouter();
+  const [selectedAgent, setSelectedAgent] = useState<AgentWithPrompt | null>(null);
+
+  const handleSuccess = () => {
+    router.refresh(); // Refresh server data
+  };
+
   if (agents.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -37,12 +47,39 @@ export function AgentsList({ agents }: AgentsListProps) {
       </div>
     );
   }
-  
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {agents.map((agent) => (
-        <AgentCard key={agent.id} agent={agent} />
-      ))}
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden">
+      {/* Scroll Horizontal de Cards */}
+      <div
+        className="flex gap-4 overflow-x-auto pb-4 w-full"
+        style={{
+          scrollbarWidth: 'thin',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {agents.map((agent) => (
+          <AgentCard
+            key={agent.id}
+            agent={agent}
+            isSelected={selectedAgent?.id === agent.id}
+            onSelect={setSelectedAgent}
+          />
+        ))}
+      </div>
+
+      {/* Painel de Edição (Master-Detail) */}
+      {selectedAgent && (
+        <>
+          <div className="border-t my-6" />
+
+          <AgentEditPanel
+            agent={selectedAgent}
+            onClose={() => setSelectedAgent(null)}
+            onSuccess={handleSuccess}
+          />
+        </>
+      )}
     </div>
   );
 }

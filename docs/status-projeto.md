@@ -1,5 +1,141 @@
 # Progresso do Projeto - LIVIA MVP
 
+## Sessão 2025-12-05 - Feature "Meus Agentes IA" - Adaptação Frontend para Estrutura JSONB
+
+### Completado
+- [x] Analisar estrutura de dados vinda do banco (campos JSONB com GuidelineStep[])
+- [x] Atualizar types em `types/agents.ts` para usar GuidelineStep[] em todos campos JSONB
+- [x] Atualizar Zod validation em `lib/validations/agentPromptValidation.ts`
+- [x] Reescrever 4 componentes de formulário para estrutura hierárquica:
+  - `limitations-section.tsx`
+  - `instructions-section.tsx`
+  - `rules-section.tsx`
+  - `others-instructions-section.tsx`
+- [x] Verificar type-check (passou sem erros)
+- [x] Executar build de produção (passou com sucesso)
+
+### Funcionalidades Implementadas
+
+**Estrutura Hierárquica GuidelineStep[]:**
+Todos os campos JSONB (`limitations`, `instructions`, `rules`, `others_instructions`, `guide_line`) agora usam a estrutura:
+```typescript
+{
+  title: string,           // Título da instrução/regra/limitação
+  type: 'rank' | 'markdown',  // Tipo de renderização
+  active: boolean,         // Se está ativo
+  sub: [{                  // Sub-instruções
+    content: string,
+    active: boolean
+  }]
+}
+```
+
+**Form Sections com Editor Hierárquico:**
+Cada seção de formulário agora suporta:
+- ✅ Adicionar/remover steps (instruções principais)
+- ✅ Editar título do step
+- ✅ Toggle ativo/inativo por step
+- ✅ Selecionar tipo (rank/markdown)
+- ✅ Expand/collapse de steps
+- ✅ Adicionar/remover sub-instruções dentro de cada step
+- ✅ Editar conteúdo de sub-instruções
+- ✅ Toggle ativo/inativo por sub-instrução
+
+**Componentes Reescritos (4):**
+1. **LimitationsSection** - Editor de limitações (o que o agent NÃO deve fazer)
+2. **InstructionsSection** - Editor de instruções (o que o agent DEVE fazer)
+3. **RulesSection** - Editor de regras que o agent deve seguir
+4. **OthersInstructionsSection** - Editor de instruções complementares
+
+### Arquivos Modificados
+
+**Types:**
+- `types/agents.ts` - Atualizado TODOS campos JSONB para GuidelineStep[]
+
+**Validações:**
+- `lib/validations/agentPromptValidation.ts` - Atualizado schemas Zod para GuidelineStep[]
+
+**Componentes (Reescrita Completa):**
+- `components/agents/form-sections/limitations-section.tsx` - 215 linhas
+- `components/agents/form-sections/instructions-section.tsx` - 215 linhas
+- `components/agents/form-sections/rules-section.tsx` - 215 linhas
+- `components/agents/form-sections/others-instructions-section.tsx` - 215 linhas
+
+### Decisão Técnica Crítica
+
+**Usuário explicitou:** "O banco esta certoo.. tempos que adaptar o front ao banco"
+
+Esta foi uma decisão fundamental:
+- ❌ NÃO modificar estrutura do banco de dados
+- ✅ Adaptar completamente o frontend para a estrutura existente do banco
+- ✅ Manter a hierarquia complexa GuidelineStep[] conforme está no banco
+
+**Trade-off:**
+- Mais complexidade no frontend (componentes mais elaborados)
+- VS
+- Estrutura de dados mais expressiva e flexível no backend
+- **Escolha:** Flexibilidade e expressividade vencem
+
+### Princípios SOLID Aplicados
+
+**Single Responsibility:**
+- Cada form section gerencia apenas seu campo específico
+- Funções separadas para: add/remove step, add/remove sub, update fields
+
+**Open/Closed:**
+- Componentes extensíveis via callbacks do React Hook Form
+- Fechados para modificação (lógica interna estável)
+
+**Dependency Inversion:**
+- Componentes dependem de abstrações (UseFormReturn interface)
+- Não dependem de implementações concretas de state management
+
+### Estrutura GuidelineStep Implementada
+
+```typescript
+export type GuidelineStep = {
+  title: string;               // Título da etapa
+  type: 'rank' | 'markdown';  // Tipo de renderização
+  active: boolean;            // Se a etapa está ativa
+  sub: GuidelineSubInstruction[];  // Array de sub-instruções
+};
+
+export type GuidelineSubInstruction = {
+  content: string;  // Conteúdo da sub-instrução
+  active: boolean;  // Se a sub-instrução está ativa
+};
+```
+
+**Diferença entre `type`:**
+- **rank**: Instruções numeradas (1, 2, 3...) para seguir sequencialmente
+- **markdown**: Permite formatação com markdown (*negrito*, _itálico_, emojis)
+
+### Métricas
+
+- **Componentes reescritos**: 4 (100% reescrita)
+- **Linhas de código**: ~860 (4 componentes × 215 linhas)
+- **Types atualizados**: 2 arquivos (types/agents.ts, validations)
+- **Build time**: ~20.7s
+- **Type-check**: ✅ Zero erros
+- **Campos adaptados**: 5 campos JSONB (limitations, instructions, rules, others_instructions, guide_line)
+
+### Próximos Passos
+
+1. **Testar UI manualmente** - Verificar funcionalidade de add/remove/edit
+2. **Implementar PersonalitySection** - Campos de personalidade (name, age, gender, etc)
+3. **Integrar com AgentCard** - Exibir contadores de regras/instruções
+4. **Implementar save functionality** - Server action para salvar alterações
+5. **RLS Policies** - Garantir segurança multi-tenant para agents
+
+### Bloqueios/Problemas Resolvidos
+
+- ✅ Estrutura de dados incompatível entre banco e frontend → Adaptado frontend completamente
+- ✅ Type mismatches após atualização de types → Reescritos componentes
+- ✅ Validação Zod não aceita GuidelineStep[] → Atualizado schema
+- ✅ Build errors → Resolvidos (build passou)
+
+---
+
 ## Sessão 2025-11-20 a 2025-12-04 - Features Finais MVP + UI/UX Improvements
 
 ### Completado

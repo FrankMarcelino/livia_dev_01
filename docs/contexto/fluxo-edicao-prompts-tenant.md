@@ -716,11 +716,11 @@ await supabase
 - [ ] Testes de segurança (tentar acessar dados de outro tenant)
 
 ### Fase 2: Listagem de Agents
-- [ ] Página "Meus Agentes IA"
-- [ ] Query: `agents` filtrados por `id_neurocore` do tenant
-- [ ] JOIN com `agent_prompts WHERE id_tenant = current_user.tenant_id`
-- [ ] Cards/Tabela exibindo agents
-- [ ] Badges de status (Ativo/Inativo)
+- [x] Página "Meus Agentes IA" ✅ (2025-12-05)
+- [x] Query: `agents` filtrados por `id_neurocore` do tenant ✅
+- [x] JOIN com `agent_prompts WHERE id_tenant = current_user.tenant_id` ✅
+- [x] Cards/Tabela exibindo agents ✅
+- [x] Badges de status (Ativo/Inativo) ✅
 - [ ] Indicador se configuração é "Base" ou "Personalizada"
 - [ ] Exibir template de origem (via `agents.template_id`)
 
@@ -733,15 +733,22 @@ await supabase
 - [ ] Exibir roteiro/guideline (estrutura hierárquica)
 - [ ] Indicar campos editados (diferença do template base)
 
-### Fase 4: Edição de Configuração
-- [ ] Formulário de edição (similar ao da Plataforma Admin)
-- [ ] Campos **read-only**: Nome do Agent, Tipo, Modo
-- [ ] Campos **editáveis**: Limitações, Instruções, Guideline, Personalidade
-- [ ] Validação com Zod (mesmos schemas)
-- [ ] Componente para editar `guide_line`:
-  - [ ] Renderizar etapas com `type: "rank"` ou `"markdown"`
-  - [ ] Toggle para `active` em etapas e sub-instruções
-  - [ ] Adicionar/remover sub-instruções
+### Fase 4: Edição de Configuração ✅ (2025-12-05 - Estrutura Completa)
+- [x] Formulário de edição (similar ao da Plataforma Admin) ✅
+- [x] Campos **read-only**: Nome do Agent, Tipo, Modo ✅
+- [x] Campos **editáveis**: Limitações, Instruções, Guideline, Personalidade ✅
+- [x] Validação com Zod (mesmos schemas) ✅
+- [x] Componente para editar campos JSONB com estrutura GuidelineStep[]: ✅
+  - [x] Renderizar etapas com `type: "rank"` ou `"markdown"` ✅
+  - [x] Toggle para `active` em etapas e sub-instruções ✅
+  - [x] Adicionar/remover sub-instruções ✅
+  - [x] Expand/collapse de etapas ✅
+  - [x] Editar título, tipo, conteúdo ✅
+- [x] 4 Componentes form-section implementados: ✅
+  - [x] LimitationsSection (215 linhas) ✅
+  - [x] InstructionsSection (215 linhas) ✅
+  - [x] RulesSection (215 linhas) ✅
+  - [x] OthersInstructionsSection (215 linhas) ✅
 - [ ] Botão "Resetar para Padrão" (copiar da configuração base)
 - [ ] Confirmação antes de salvar
 

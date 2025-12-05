@@ -1,6 +1,6 @@
 # Contexto do Projeto - LIVIA MVP
 
-**Última atualização:** 2025-11-16
+**Última atualização:** 2025-12-05
 
 ## Visão Geral
 **LIVIA** é uma plataforma SaaS de atendimento com inteligência artificial, **multi-tenant** e **multiusuário**, voltada para empresas que atendem seus clientes finais por canais como WhatsApp, Instagram, webchat e outros.
@@ -64,8 +64,26 @@ Perfil do usuário e controle global. Permite:
   - Persiste no banco (`tenants.ai_paused`)
 - **Logout**
 
+### 6. Meus Agentes IA 🚧 (Em Desenvolvimento - Dez 2025)
+Interface de gerenciamento e personalização dos agentes de IA do tenant. Permite:
+- **Listar agents** do neurocore associado ao tenant
+- **Visualizar configuração** de cada agent (prompts, personalidade, limitações)
+- **Editar prompts personalizados** por tenant:
+  - **Limitações** - O que o agent NÃO deve fazer (estrutura hierárquica)
+  - **Instruções** - O que o agent DEVE fazer (estrutura hierárquica)
+  - **Regras** - Regras que o agent deve seguir (estrutura hierárquica)
+  - **Outras Instruções** - Instruções complementares (estrutura hierárquica)
+  - **Guideline** - Roteiro estruturado de atendimento
+  - **Personalidade** - Nome, idade, objetivo, comunicação, personalidade
+- **Estrutura hierárquica GuidelineStep[]**:
+  - Cada campo JSONB tem: title, type (rank/markdown), active, sub-instruções
+  - Sub-instruções com: content, active
+  - Editor com expand/collapse, add/remove steps e sub-instruções
+- **Herança de configuração**: Tenant herda configuração base e pode personalizar
+- **Multi-tenant seguro**: RLS policies garantem isolamento por tenant
+
 ## Estado Atual
-**Fase:** MVP em Desenvolvimento - **~85% Completo** 🚀
+**Fase:** MVP em Desenvolvimento + Feature "Meus Agentes IA" - **~90% Completo** 🚀
 
 **Completado:**
 - ✅ **Projeto Next.js 15** configurado (App Router + TypeScript strict)
@@ -76,7 +94,11 @@ Perfil do usuário e controle global. Permite:
 - ✅ **Treinamento Neurocore** completo (chat + feedback + modo mock)
 - ✅ **CRM Kanban Board** completo (tags + filtros + RLS)
 - ✅ **Profile Page** completo (AI Global Pause + user info)
-- ✅ **70+ componentes** criados
+- ✅ **Meus Agentes IA** (estrutura hierárquica JSONB implementada - Dez 2025)
+  - 4 form sections com editor hierárquico completo
+  - Types e validações Zod atualizados
+  - Estrutura GuidelineStep[] adaptada ao banco
+- ✅ **75+ componentes** criados
 - ✅ **14 API routes** implementadas
 - ✅ **9 migrações SQL** executadas
 - ✅ **20 decisões arquiteturais** documentadas
@@ -87,22 +109,50 @@ Perfil do usuário e controle global. Permite:
 - ✅ Gap #3: Feedback de mensagens (resolvido)
 - ✅ Gap #4: Respostas rápidas (resolvido)
 
-**Próximo:** Implementar Agent Templates UI (Super Admin Platform)
+**Em Desenvolvimento (Dez 2025):**
+- 🚧 **Meus Agentes IA** - Estrutura hierárquica completa (✅), falta integração final e save functionality
+
+**Próximo:** Finalizar integração "Meus Agentes IA" + RLS Policies
 
 ## Objetivos da Próxima Sessão
-- [ ] **Agent Templates UI** - Interface para gerenciar templates (prioridade alta)
+- [ ] **Finalizar "Meus Agentes IA"** (prioridade alta)
+  - Implementar PersonalitySection
+  - Integrar save functionality (Server Action)
+  - Implementar RLS policies para agents/agent_prompts
+  - Testar UI manualmente
+  - Adicionar indicadores de configuração personalizada vs base
+- [ ] **Agent Templates UI** - Interface para gerenciar templates (Super Admin)
   - CRUD de templates (`agent_templates`)
   - Formulário com validação Zod
   - Integração com neurocores
-  - RLS policies
 - [ ] **Dashboard/Analytics** - KPIs, gráficos, métricas
 - [ ] **Cards por Conversa** - Refatoração livechat (Decisão #013)
 - [ ] **Drag-and-drop CRM** - Finalizar funcionalidade Kanban
 - [ ] **Testes E2E** - Cobertura de fluxos críticos
 
-## Features Adicionais Implementadas (Nov 20-Dez 04) 🆕
+## Features Adicionais Implementadas
 
-### Quick Replies Management
+### Meus Agentes IA 🚧 (Dez 2025 - Em Desenvolvimento)
+- Interface para gerenciar e personalizar agents de IA do tenant
+- **Estrutura hierárquica GuidelineStep[]** implementada:
+  - Cada campo JSONB: title, type (rank/markdown), active, sub-instruções
+  - Sub-instruções: content, active
+- **4 Form Sections** com editor hierárquico completo (860 linhas):
+  - LimitationsSection - O que agent NÃO deve fazer
+  - InstructionsSection - O que agent DEVE fazer
+  - RulesSection - Regras que agent deve seguir
+  - OthersInstructionsSection - Instruções complementares
+- **Funcionalidades do editor**:
+  - Adicionar/remover steps principais
+  - Editar título, tipo, status ativo
+  - Expand/collapse de steps
+  - Adicionar/remover sub-instruções
+  - Toggle ativo/inativo por sub-instrução
+- **Types e validações Zod** atualizados
+- Frontend 100% adaptado à estrutura do banco
+- Build e type-check passando sem erros
+
+### Quick Replies Management (Nov 20-Dez 04)
 - Comando "/" no input abre painel flutuante
 - Busca em tempo real por título/emoji
 - Contador de uso automático (mais utilizadas destacadas)

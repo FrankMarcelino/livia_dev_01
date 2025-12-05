@@ -3,25 +3,27 @@
 
 'use client';
 
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Settings2 } from 'lucide-react';
-import { AgentEditDialog } from './agent-edit-dialog';
+import { cn } from '@/lib/utils';
 import type { AgentWithPrompt } from '@/types/agents';
 import { AGENT_FUNCTION_LABELS } from '@/types/agents';
 
 interface AgentCardProps {
   agent: AgentWithPrompt;
+  isSelected?: boolean;
+  onSelect: (agent: AgentWithPrompt) => void;
 }
 
-export function AgentCard({ agent }: AgentCardProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  
+export function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
   return (
-    <>
-      <Card className="hover:shadow-md transition-shadow">
+    <Card 
+      className={cn(
+        "min-w-[320px] max-w-[320px] flex-shrink-0 hover:shadow-lg transition-all cursor-pointer",
+        isSelected && "ring-2 ring-primary shadow-lg"
+      )}
+      onClick={() => onSelect(agent)}
+    >
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -111,24 +113,6 @@ export function AgentCard({ agent }: AgentCardProps) {
             </div>
           )}
         </CardContent>
-        
-        <CardFooter>
-          <Button 
-            className="w-full" 
-            onClick={() => setIsEditOpen(true)}
-            variant="outline"
-          >
-            <Settings2 className="w-4 h-4 mr-2" />
-            Editar Configuração
-          </Button>
-        </CardFooter>
       </Card>
-      
-      <AgentEditDialog 
-        agent={agent}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-      />
-    </>
   );
 }
