@@ -1,4 +1,4 @@
-// Seção: Limitações
+// Seção: Regras
 // Feature: Meus Agentes IA
 
 'use client';
@@ -16,12 +16,12 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { AgentPromptFormData } from '@/lib/validations/agentPromptValidation';
 import type { GuidelineStep } from '@/types/agents';
 
-interface LimitationsSectionProps {
+interface RulesSectionProps {
   form: UseFormReturn<AgentPromptFormData>;
 }
 
-export function LimitationsSection({ form }: LimitationsSectionProps) {
-  const limitations = form.watch('limitations') || [];
+export function RulesSection({ form }: RulesSectionProps) {
+  const rules = form.watch('rules') || [];
   const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
 
   function toggleStep(index: number) {
@@ -39,68 +39,67 @@ export function LimitationsSection({ form }: LimitationsSectionProps) {
       active: true,
       sub: [],
     };
-    form.setValue('limitations', [...limitations, newStep]);
-    setExpandedSteps(prev => [...prev, limitations.length]);
+    form.setValue('rules', [...rules, newStep]);
+    setExpandedSteps(prev => [...prev, rules.length]);
   }
 
   function removeStep(index: number) {
-    const updated = limitations.filter((_, i) => i !== index);
-    form.setValue('limitations', updated);
+    const updated = rules.filter((_, i) => i !== index);
+    form.setValue('rules', updated);
     setExpandedSteps(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
   }
 
   function updateStep(index: number, field: keyof GuidelineStep, value: unknown) {
-    const updated = [...limitations];
+    const updated = [...rules];
     (updated[index] as Record<string, unknown>)[field] = value;
-    form.setValue('limitations', updated);
+    form.setValue('rules', updated);
   }
 
   function addSubInstruction(stepIndex: number) {
-    const updated = [...limitations];
+    const updated = [...rules];
     if (!updated[stepIndex]) return;
     updated[stepIndex].sub.push({
       content: '',
       active: true,
     });
-    form.setValue('limitations', updated);
+    form.setValue('rules', updated);
   }
 
   function removeSubInstruction(stepIndex: number, subIndex: number) {
-    const updated = [...limitations];
+    const updated = [...rules];
     if (!updated[stepIndex]) return;
     updated[stepIndex].sub = updated[stepIndex].sub.filter((_, i) => i !== subIndex);
-    form.setValue('limitations', updated);
+    form.setValue('rules', updated);
   }
 
   function updateSubInstruction(stepIndex: number, subIndex: number, field: 'content' | 'active', value: string | boolean) {
-    const updated = [...limitations];
+    const updated = [...rules];
     if (!updated[stepIndex] || !updated[stepIndex].sub[subIndex]) return;
     updated[stepIndex].sub[subIndex][field] = value as never;
-    form.setValue('limitations', updated);
+    form.setValue('rules', updated);
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold">Limitações</h3>
+        <h3 className="text-lg font-semibold">Regras</h3>
         <p className="text-sm text-muted-foreground">
-          Defina o que o agent NÃO deve fazer (estrutura hierárquica)
+          Defina as regras que o agent deve seguir (estrutura hierárquica)
         </p>
       </div>
 
       <div className="space-y-4">
-        {limitations.length === 0 && (
+        {rules.length === 0 && (
           <p className="text-sm text-muted-foreground italic">
-            Nenhuma limitação configurada
+            Nenhuma regra configurada
           </p>
         )}
 
-        {limitations.map((step, stepIndex) => {
+        {rules.map((step, stepIndex) => {
           const isExpanded = expandedSteps.includes(stepIndex);
 
           return (
             <Card key={stepIndex} className="p-4">
-              {/* Header da Etapa */}
               <div className="flex items-start gap-2 mb-3">
                 <Button
                   type="button"
@@ -114,7 +113,7 @@ export function LimitationsSection({ form }: LimitationsSectionProps) {
 
                 <div className="flex-1 space-y-2">
                   <Input
-                    placeholder="Título da limitação"
+                    placeholder="Título da regra"
                     value={step.title}
                     onChange={(e) => updateStep(stepIndex, 'title', e.target.value)}
                   />
@@ -130,10 +129,8 @@ export function LimitationsSection({ form }: LimitationsSectionProps) {
                 </Button>
               </div>
 
-              {/* Conteúdo Expandido */}
               {isExpanded && (
                 <div className="ml-8 space-y-3">
-                  {/* Configurações */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -160,7 +157,6 @@ export function LimitationsSection({ form }: LimitationsSectionProps) {
                     </div>
                   </div>
 
-                  {/* Sub-instruções */}
                   <div className="space-y-2">
                     <Label className="text-xs">Detalhes</Label>
 
@@ -210,7 +206,7 @@ export function LimitationsSection({ form }: LimitationsSectionProps) {
           onClick={addStep}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Adicionar Limitação
+          Adicionar Regra
         </Button>
       </div>
     </div>

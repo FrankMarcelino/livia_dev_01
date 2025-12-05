@@ -91,30 +91,58 @@ export async function getAgentsByTenant(tenantId: string) {
   const result = agentsData.map((agent: any) => {
     const rawPrompt = promptsMap.get(agent.id);
 
-    // Parse de campos JSONB (podem vir como string ou já parseados)
+    // Parse de TODOS os campos JSONB (podem vir como string ou já parseados)
     const prompt = rawPrompt ? {
       ...rawPrompt,
+      // Campos JSONB - fazer parse
       limitations: parseJSONBField(rawPrompt.limitations),
       instructions: parseJSONBField(rawPrompt.instructions),
       guide_line: parseJSONBField(rawPrompt.guide_line),
       rules: parseJSONBField(rawPrompt.rules),
+      others_instructions: parseJSONBField(rawPrompt.others_instructions),
+      // Campos de personalidade já vêm como string/null - não precisam parse
+      name: rawPrompt.name || null,
+      age: rawPrompt.age || null,
+      gender: rawPrompt.gender || null,
+      objective: rawPrompt.objective || null,
+      comunication: rawPrompt.comunication || null, // NOTA: typo no banco
+      personality: rawPrompt.personality || null,
     } : {
+      // Prompt vazio quando não existe
       id: '',
       id_agent: agent.id,
       id_tenant: tenantId,
-      limitations: [],
-      instructions: [],
-      guide_line: [],
-      rules: [],
+      // JSONB vazios
+      limitations: null,
+      instructions: null,
+      guide_line: null,
+      rules: null,
+      others_instructions: null,
+      // Personalidade vazia
+      name: null,
+      age: null,
+      gender: null,
+      objective: null,
+      comunication: null,
+      personality: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     console.log('[getAgentsByTenant] Agent prompt for', agent.name, ':', {
+      // JSONB fields
       limitations: prompt.limitations,
       instructions: prompt.instructions,
       guide_line: prompt.guide_line,
       rules: prompt.rules,
+      others_instructions: prompt.others_instructions,
+      // Personality fields
+      name: prompt.name,
+      age: prompt.age,
+      gender: prompt.gender,
+      objective: prompt.objective,
+      comunication: prompt.comunication,
+      personality: prompt.personality,
     });
 
     return {
@@ -187,21 +215,40 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
     // Não lançar erro - usar prompt vazio
   }
 
-  // Se não houver prompt, criar um vazio, senão parse campos JSONB
+  // Se não houver prompt, criar um vazio, senão parse TODOS os campos JSONB
   const prompt = promptData ? {
     ...promptData,
+    // Parse campos JSONB
     limitations: parseJSONBField(promptData.limitations),
     instructions: parseJSONBField(promptData.instructions),
     guide_line: parseJSONBField(promptData.guide_line),
     rules: parseJSONBField(promptData.rules),
+    others_instructions: parseJSONBField(promptData.others_instructions),
+    // Campos de personalidade já vêm corretos
+    name: promptData.name || null,
+    age: promptData.age || null,
+    gender: promptData.gender || null,
+    objective: promptData.objective || null,
+    comunication: promptData.comunication || null,
+    personality: promptData.personality || null,
   } : {
+    // Prompt vazio
     id: '',
     id_agent: agentId,
     id_tenant: tenantId,
-    limitations: [],
-    instructions: [],
-    guide_line: [],
-    rules: [],
+    // JSONB vazios
+    limitations: null,
+    instructions: null,
+    guide_line: null,
+    rules: null,
+    others_instructions: null,
+    // Personalidade vazia
+    name: null,
+    age: null,
+    gender: null,
+    objective: null,
+    comunication: null,
+    personality: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -266,17 +313,25 @@ export async function getBaseAgentPrompt(agentId: string) {
 function checkIfCustomized(prompt: unknown): boolean {
   // Se não tiver prompt, não é customizado
   if (!prompt) return false;
-  
+
   // TODO: Implementar lógica de comparação com prompt base
   // Por enquanto, assume que se tem dados, foi customizado
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const p = prompt as any;
-  
+
   return !!(
+    // JSONB fields
     (p.limitations && p.limitations.length > 0) ||
     (p.instructions && p.instructions.length > 0) ||
     (p.guide_line && p.guide_line.length > 0) ||
-    p.persona_name ||
-    p.objective
+    (p.rules && p.rules.length > 0) ||
+    (p.others_instructions && p.others_instructions.length > 0) ||
+    // Personality fields
+    p.name ||
+    p.age ||
+    p.gender ||
+    p.objective ||
+    p.comunication ||
+    p.personality
   );
 }

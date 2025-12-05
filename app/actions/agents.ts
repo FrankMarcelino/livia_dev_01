@@ -65,10 +65,19 @@ export async function updateAgentPromptAction(
       .maybeSingle();
 
     const promptData = {
+      // JSONB fields
       limitations: validated.limitations || null,
       instructions: validated.instructions || null,
       guide_line: validated.guide_line || null,
       rules: validated.rules || null,
+      others_instructions: validated.others_instructions || null,
+      // Personality fields
+      name: validated.name || null,
+      age: validated.age || null,
+      gender: validated.gender || null,
+      objective: validated.objective || null,
+      comunication: validated.comunication || null,
+      personality: validated.personality || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -178,18 +187,20 @@ export async function resetAgentPromptToDefaultAction(agentId: string) {
     const { data, error } = await (supabase as any)
       .from('agent_prompts')
       .update({
+        // JSONB fields
         limitations: baseAny.limitations,
         instructions: baseAny.instructions,
         guide_line: baseAny.guide_line,
         rules: baseAny.rules,
+        others_instructions: baseAny.others_instructions,
+        // Personality fields
+        name: baseAny.name,
+        age: baseAny.age,
+        gender: baseAny.gender,
+        objective: baseAny.objective,
+        comunication: baseAny.comunication,
+        personality: baseAny.personality,
         updated_at: new Date().toISOString(),
-        // Campos de personalidade removidos temporariamente
-        // persona_name: baseAny.persona_name,
-        // age: baseAny.age,
-        // gender: baseAny.gender,
-        // objective: baseAny.objective,
-        // communication: baseAny.communication,
-        // personality: baseAny.personality,
       })
       .eq('id_agent', agentId)
       .eq('id_tenant', userData.tenant_id)

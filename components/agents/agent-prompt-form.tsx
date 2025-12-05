@@ -15,9 +15,12 @@ import type { AgentWithPrompt } from '@/types/agents';
 import { agentPromptSchema, type AgentPromptFormData } from '@/lib/validations/agentPromptValidation';
 import { updateAgentPromptAction, resetAgentPromptToDefaultAction } from '@/app/actions/agents';
 import { BasicInfoSection } from './form-sections/basic-info-section';
+import { PersonalitySection } from './form-sections/personality-section';
 import { LimitationsSection } from './form-sections/limitations-section';
 import { InstructionsSection } from './form-sections/instructions-section';
 import { GuidelineSection } from './form-sections/guideline-section';
+import { RulesSection } from './form-sections/rules-section';
+import { OthersInstructionsSection } from './form-sections/others-instructions-section';
 
 interface AgentPromptFormProps {
   agent: AgentWithPrompt;
@@ -31,17 +34,19 @@ export function AgentPromptForm({ agent, onSuccess }: AgentPromptFormProps) {
   const form = useForm<AgentPromptFormData>({
     resolver: zodResolver(agentPromptSchema),
     defaultValues: {
-      limitations: agent.prompt.limitations || [],
-      instructions: agent.prompt.instructions || [],
-      guide_line: agent.prompt.guide_line || [],
-      rules: agent.prompt.rules || [],
-      // Campos de personalidade comentados até existirem no banco
-      // persona_name: agent.prompt.persona_name || '',
-      // age: agent.prompt.age || '',
-      // gender: agent.prompt.gender || '',
-      // objective: agent.prompt.objective || '',
-      // communication: agent.prompt.communication || '',
-      // personality: agent.prompt.personality || '',
+      // Campos JSONB
+      limitations: agent.prompt.limitations || null,
+      instructions: agent.prompt.instructions || null,
+      guide_line: agent.prompt.guide_line || null,
+      rules: agent.prompt.rules || null,
+      others_instructions: agent.prompt.others_instructions || null,
+      // Campos de personalidade
+      name: agent.prompt.name || null,
+      age: agent.prompt.age || null,
+      gender: agent.prompt.gender || null,
+      objective: agent.prompt.objective || null,
+      comunication: agent.prompt.comunication || null,
+      personality: agent.prompt.personality || null,
     },
   });
   
@@ -81,17 +86,19 @@ export function AgentPromptForm({ agent, onSuccess }: AgentPromptFormProps) {
         // Atualizar form com valores padrão
         if (result.data) {
           form.reset({
-            limitations: result.data.limitations || [],
-            instructions: result.data.instructions || [],
-            guide_line: result.data.guide_line || [],
-            rules: result.data.rules || [],
-            // Campos de personalidade comentados
-            // persona_name: result.data.persona_name || '',
-            // age: result.data.age || '',
-            // gender: result.data.gender || '',
-            // objective: result.data.objective || '',
-            // communication: result.data.communication || '',
-            // personality: result.data.personality || '',
+            // JSONB fields
+            limitations: result.data.limitations || null,
+            instructions: result.data.instructions || null,
+            guide_line: result.data.guide_line || null,
+            rules: result.data.rules || null,
+            others_instructions: result.data.others_instructions || null,
+            // Personality fields
+            name: result.data.name || null,
+            age: result.data.age || null,
+            gender: result.data.gender || null,
+            objective: result.data.objective || null,
+            comunication: result.data.comunication || null,
+            personality: result.data.personality || null,
           });
         }
         
@@ -115,23 +122,34 @@ export function AgentPromptForm({ agent, onSuccess }: AgentPromptFormProps) {
 
         <Separator />
 
-        {/* Personalidade - Desabilitado temporariamente (campos não existem no banco ainda) */}
-        {/* <PersonalitySection form={form} /> */}
-        {/* <Separator /> */}
-        
+        {/* Personalidade */}
+        <PersonalitySection form={form} />
+
+        <Separator />
+
         {/* Limitações */}
         <LimitationsSection form={form} />
-        
+
         <Separator />
-        
+
         {/* Instruções */}
         <InstructionsSection form={form} />
-        
+
         <Separator />
-        
+
         {/* Guideline/Roteiro */}
         <GuidelineSection form={form} />
-        
+
+        <Separator />
+
+        {/* Regras */}
+        <RulesSection form={form} />
+
+        <Separator />
+
+        {/* Outras Instruções */}
+        <OthersInstructionsSection form={form} />
+
         {/* Ações */}
         <div className="flex items-center justify-between pt-4">
           <Button

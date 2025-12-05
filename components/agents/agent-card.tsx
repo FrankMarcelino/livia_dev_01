@@ -55,7 +55,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             </Badge>
           </div>
           
-          {/* Indicadores de Configuração */}
+          {/* Indicadores de Configuração JSONB */}
           <div className="flex flex-wrap gap-2 pt-2">
             {agent.prompt.limitations && agent.prompt.limitations.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -72,7 +72,44 @@ export function AgentCard({ agent }: AgentCardProps) {
                 {agent.prompt.guide_line.length} Etapas
               </Badge>
             )}
+            {agent.prompt.rules && agent.prompt.rules.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {agent.prompt.rules.length} Regras
+              </Badge>
+            )}
+            {agent.prompt.others_instructions && agent.prompt.others_instructions.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {agent.prompt.others_instructions.length} Outras Instruções
+              </Badge>
+            )}
           </div>
+
+          {/* Indicadores de Personalidade */}
+          {(agent.prompt.name || agent.prompt.age || agent.prompt.gender ||
+            agent.prompt.objective || agent.prompt.comunication || agent.prompt.personality) && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {agent.prompt.name && (
+                <Badge variant="outline" className="text-xs">
+                  Nome: {agent.prompt.name}
+                </Badge>
+              )}
+              {agent.prompt.age && (
+                <Badge variant="outline" className="text-xs">
+                  Idade: {agent.prompt.age}
+                </Badge>
+              )}
+              {agent.prompt.gender && (
+                <Badge variant="outline" className="text-xs">
+                  Gênero: {agent.prompt.gender}
+                </Badge>
+              )}
+              {agent.prompt.objective && (
+                <Badge variant="outline" className="text-xs">
+                  Com Objetivo
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
         
         <CardFooter>

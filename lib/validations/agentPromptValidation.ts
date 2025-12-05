@@ -20,27 +20,41 @@ export const guidelineStepSchema = z.object({
 });
 
 // Schema completo do formulário de agent prompts
-// Apenas campos que EXISTEM na tabela agent_prompts
+// TODOS os campos que EXISTEM na tabela agent_prompts
 export const agentPromptSchema = z.object({
-  // Arrays de configuração JSONB
+  // Campos de Personalidade (TEXT/ENUM) - todos opcionais
+  name: z.string().max(200, 'Máximo 200 caracteres').optional().nullable(),
+  age: z.string().max(50, 'Máximo 50 caracteres').optional().nullable(),
+  gender: z.enum(['male', 'female', 'other', 'neutral']).optional().nullable(),
+  objective: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),
+  comunication: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),
+  personality: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),
+
+  // Campos JSONB - TODOS usam a estrutura GuidelineStep[]
   limitations: z
-    .array(z.string().min(1, 'Limitação não pode estar vazia'))
-    .max(50, 'Máximo 50 limitações')
-    .optional(),
+    .array(guidelineStepSchema)
+    .optional()
+    .nullable(),
 
   instructions: z
-    .array(z.string().min(1, 'Instrução não pode estar vazia'))
-    .max(50, 'Máximo 50 instruções')
-    .optional(),
+    .array(guidelineStepSchema)
+    .optional()
+    .nullable(),
 
   guide_line: z
     .array(guidelineStepSchema)
-    .optional(),
+    .optional()
+    .nullable(),
 
   rules: z
-    .array(z.string().min(1, 'Regra não pode estar vazia'))
-    .max(50, 'Máximo 50 regras')
-    .optional(),
+    .array(guidelineStepSchema)
+    .optional()
+    .nullable(),
+
+  others_instructions: z
+    .array(guidelineStepSchema)
+    .optional()
+    .nullable(),
 });
 
 // Type inference

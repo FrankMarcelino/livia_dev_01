@@ -19,10 +19,19 @@ export type Database = {
           id: string
           id_agent: string
           id_tenant: string | null
+          // Campos de personalidade (TEXT/ENUM)
+          name: string | null
+          age: string | null
+          gender: Database["public"]["Enums"]["agent_gender_enum"] | null
+          objective: string | null
+          comunication: string | null
+          personality: string | null
+          // Campos JSONB
           limitations: Json | null
           instructions: Json | null
           guide_line: Json | null
           rules: Json | null
+          others_instructions: Json | null
           created_at: string
           updated_at: string
         }
@@ -30,10 +39,17 @@ export type Database = {
           id?: string
           id_agent: string
           id_tenant?: string | null
+          name?: string | null
+          age?: string | null
+          gender?: Database["public"]["Enums"]["agent_gender_enum"] | null
+          objective?: string | null
+          comunication?: string | null
+          personality?: string | null
           limitations?: Json | null
           instructions?: Json | null
           guide_line?: Json | null
           rules?: Json | null
+          others_instructions?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -41,10 +57,17 @@ export type Database = {
           id?: string
           id_agent?: string
           id_tenant?: string | null
+          name?: string | null
+          age?: string | null
+          gender?: Database["public"]["Enums"]["agent_gender_enum"] | null
+          objective?: string | null
+          comunication?: string | null
+          personality?: string | null
           limitations?: Json | null
           instructions?: Json | null
           guide_line?: Json | null
           rules?: Json | null
+          others_instructions?: Json | null
           created_at?: string
           updated_at?: string
         }

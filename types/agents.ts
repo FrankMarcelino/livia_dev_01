@@ -15,16 +15,28 @@ export type Agent = {
   updated_at: string;
 };
 
-// AgentPrompt - apenas campos JSONB que EXISTEM na tabela agent_prompts
+// AgentPrompt - TODOS os campos que EXISTEM na tabela agent_prompts
 export type AgentPrompt = {
   id: string;
   id_agent: string;
   id_tenant: string | null; // NULL = configuração base do template
-  // Campos JSONB que existem na tabela
-  limitations: string[] | null;
-  instructions: string[] | null;
+
+  // Campos de Personalidade (TEXT/ENUM) - todos opcionais
+  name: string | null;
+  age: string | null;
+  gender: Database['public']['Enums']['agent_gender_enum'] | null;
+  objective: string | null;
+  comunication: string | null; // NOTA: typo no banco - "comunication" ao invés de "communication"
+  personality: string | null;
+
+  // Campos JSONB - todos opcionais
+  // TODOS os campos JSONB usam a estrutura GuidelineStep[]
+  limitations: GuidelineStep[] | null;
+  instructions: GuidelineStep[] | null;
   guide_line: GuidelineStep[] | null;
-  rules: string[] | null;
+  rules: GuidelineStep[] | null;
+  others_instructions: GuidelineStep[] | null;
+
   created_at: string;
   updated_at: string;
 };
@@ -75,12 +87,22 @@ export type AgentWithTemplate = Agent & {
   } | null;
 };
 
-// Form data types - apenas campos que existem em agent_prompts
+// Form data types - TODOS os campos editáveis de agent_prompts
 export type AgentPromptFormData = {
-  limitations?: string[];
-  instructions?: string[];
-  guide_line?: GuidelineStep[];
-  rules?: string[];
+  // Personalidade
+  name?: string | null;
+  age?: string | null;
+  gender?: Database['public']['Enums']['agent_gender_enum'] | null;
+  objective?: string | null;
+  comunication?: string | null;
+  personality?: string | null;
+
+  // JSONB - TODOS usam GuidelineStep[]
+  limitations?: GuidelineStep[] | null;
+  instructions?: GuidelineStep[] | null;
+  guide_line?: GuidelineStep[] | null;
+  rules?: GuidelineStep[] | null;
+  others_instructions?: GuidelineStep[] | null;
 };
 
 // Agent type labels for UI (baseado em agent_type_enum)
