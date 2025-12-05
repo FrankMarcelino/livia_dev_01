@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import type { QuickReply } from '@/types/livechat';
+import { useApiCall } from '@/lib/hooks';
 
 interface QuickReplyDialogProps {
   open: boolean;
@@ -34,9 +35,33 @@ export function QuickReplyDialog({
   const [emoji, setEmoji] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = !!quickReply;
+
+  // API calls hooks
+  const createQuickReply = useApiCall('/api/quick-replies', 'POST', {
+    successMessage: 'Quick reply criada com sucesso!',
+    errorMessage: 'Erro ao criar quick reply',
+    onSuccess: () => {
+      onSuccess();
+      onOpenChange(false);
+    },
+  });
+
+  const updateQuickReply = useApiCall(
+    `/api/quick-replies/${quickReply?.id}`,
+    'PATCH',
+    {
+      successMessage: 'Quick reply atualizada com sucesso!',
+      errorMessage: 'Erro ao atualizar quick reply',
+      onSuccess: () => {
+        onSuccess();
+        onOpenChange(false);
+      },
+    }
+  );
+
+  const isSubmitting = createQuickReply.isLoading || updateQuickReply.isLoading;
 
   // Preencher formulário ao editar
   useEffect(() => {
@@ -60,57 +85,17 @@ export function QuickReplyDialog({
       return;
     }
 
-    setIsSubmitting(true);
+    const payload = {
+      emoji: emoji.trim() || null,
+      title: title.trim(),
+      content: content.trim(),
+      ...(isEditing ? {} : { tenantId }),
+    };
 
-    try {
-      if (isEditing) {
-        // Atualizar quick reply existente
-        const response = await fetch(`/api/quick-replies/${quickReply.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            emoji: emoji.trim() || null,
-            title: title.trim(),
-            content: content.trim(),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao atualizar quick reply');
-        }
-
-        toast.success('Quick reply atualizada com sucesso!');
-      } else {
-        // Criar nova quick reply
-        const response = await fetch('/api/quick-replies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            emoji: emoji.trim() || null,
-            title: title.trim(),
-            content: content.trim(),
-            tenantId,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao criar quick reply');
-        }
-
-        toast.success('Quick reply criada com sucesso!');
-      }
-
-      onSuccess();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error submitting quick reply:', error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Erro ao salvar quick reply'
-      );
-    } finally {
-      setIsSubmitting(false);
+    if (isEditing) {
+      await updateQuickReply.execute(payload);
+    } else {
+      await createQuickReply.execute(payload);
     }
   };
 

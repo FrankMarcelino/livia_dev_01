@@ -13,6 +13,14 @@
 10. [Refatoração Master-Detail com N8N Webhooks](#decisão-010-refatoração-master-detail-com-n8n-webhooks)
 11. [Livechat: Salvar no Banco Primeiro](#decisão-011-livechat-salvar-no-banco-primeiro)
 12. [Sistema de 4 Filtros no Livechat](#decisão-012-sistema-de-4-filtros-no-livechat)
+13. [Cards por Conversa, não por Contato](#decisão-013-cards-por-conversa-não-por-contato)
+14. [Quick Replies com Comando "/" e Sistema de Gerenciamento](#decisão-014-quick-replies-com-comando--e-sistema-de-gerenciamento)
+15. [Message Feedback System no Livechat](#decisão-015-message-feedback-system-no-livechat)
+16. [CRM Kanban Board com Tags](#decisão-016-crm-kanban-board-com-tags)
+17. [Conversation Summary Modal](#decisão-017-conversation-summary-modal)
+18. [Profile Page com AI Global Pause Control](#decisão-018-profile-page-com-ai-global-pause-control)
+19. [Auto-Pause IA When Attendant Sends Message](#decisão-019-auto-pause-ia-when-attendant-sends-message)
+20. [Conversation Tags Management System](#decisão-020-conversation-tags-management-system)
 
 ---
 
@@ -1310,6 +1318,633 @@ Contém:
 
 ---
 
+## Decisão #014: Quick Replies com Comando "/" e Sistema de Gerenciamento
+
+**Data:** 2025-11-26
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Durante o desenvolvimento do Livechat, identificou-se a necessidade de respostas rápidas para agilizar o atendimento. Surgiu a questão: como permitir que usuários acessem e usem templates de forma rápida durante conversas ativas?
+
+### Opções Consideradas
+
+1. **Menu dropdown no input**
+   - Prós: Simples, não requer aprendizado
+   - Contras: Clique extra, mais lento, ocupa espaço na UI
+
+2. **Comando "/" no input (escolhida)**
+   - Prós: Atalho rápido, padrão conhecido (Slack, Discord), não intrusivo
+   - Contras: Requer aprendizado inicial
+
+3. **Painel lateral sempre visível**
+   - Prós: Visibilidade máxima
+   - Contras: Ocupa espaço permanentemente, poluição visual
+
+### Decisão
+
+**Implementar comando "/" no input** com painel de quick replies e sistema completo de gerenciamento.
+
+**Arquitetura:**
+- Comando "/" no input abre painel flutuante
+- Painel com busca e lista de quick replies
+- Counter de uso (mais utilizadas destacadas)
+- CRUD completo em interface dedicada
+- 3 API routes para operações
+
+### Implementação
+
+**Features:**
+- ✅ Comando "/" abre painel de quick replies
+- ✅ Busca em tempo real por título/emoji
+- ✅ Click para inserir no input
+- ✅ Incremento automático de `usage_count`
+- ✅ Badge "Mais Usada" para top replies
+- ✅ Gerenciador completo (criar, editar, deletar)
+- ✅ Emoji picker integrado
+
+**Componentes criados:**
+- `QuickReplyCommand` - Detecta "/" e abre painel
+- `QuickRepliesPanel` - Painel flutuante com busca
+- `QuickReplyItem` - Card individual de quick reply
+- `QuickReplyDialog` - Form de criar/editar
+- `QuickRepliesManager` - Interface de gerenciamento
+
+**API Routes:**
+- `GET/POST /api/quick-replies` - Listar/criar
+- `GET/PUT/DELETE /api/quick-replies/[id]` - CRUD individual
+- `POST /api/quick-replies/usage` - Incrementar contador
+
+### Consequências
+
+**Positivas:**
+✅ UX superior: atalho rápido (2-3 teclas vs 5+ cliques)
+✅ Padrão conhecido: usuários já familiarizados (Slack, Discord)
+✅ Não intrusivo: painel aparece apenas quando necessário
+✅ Counter automático: identifica replies mais úteis
+✅ Busca rápida: encontra reply em <1 segundo
+
+**Negativas:**
+⚠️ Requer aprendizado inicial do comando "/"
+⚠️ Não descobrível (precisa documentar ou tooltip)
+
+**Trade-offs aceitos:**
+- Curva de aprendizado vs Velocidade → Velocidade vence
+- Visibilidade vs Espaço UI → Espaço vence
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Build production (sucesso)
+✅ Comando "/" abre painel corretamente
+✅ Busca funciona em tempo real
+✅ Counter incrementa ao usar reply
+
+### Referências
+- [Slack Shortcuts](https://slack.com/help/articles/201374536-Slash-commands-in-Slack)
+- [Discord Commands](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Slash-Commands)
+
+---
+
+## Decisão #015: Message Feedback System no Livechat
+
+**Data:** 2025-11-23
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Para melhorar a qualidade das respostas da IA e identificar problemas, era necessário coletar feedback dos usuários sobre cada mensagem. Surgiu a questão: onde e como exibir controles de feedback sem poluir a UI?
+
+### Opções Consideradas
+
+1. **Feedback apenas no header da conversa**
+   - Prós: Simples, não polui mensagens
+   - Contras: Feedback genérico, não específico por mensagem
+
+2. **Botões like/dislike em hover (escolhida)**
+   - Prós: Não polui UI, feedback específico por mensagem, padrão conhecido (ChatGPT)
+   - Contras: Menos descobrível (requer hover)
+
+3. **Botões sempre visíveis**
+   - Prós: Alta descobribilidade
+   - Contras: Poluição visual, distração
+
+### Decisão
+
+**Implementar botões like/dislike que aparecem em hover** sobre cada mensagem da IA.
+
+**Arquitetura:**
+- Botões aparecem apenas em mensagens da IA (não do usuário/atendente)
+- Hover sobre mensagem exibe thumb-up e thumb-down
+- Feedback negativo abre modal para comentário opcional
+- Storage em `message_feedbacks` com context JSON
+
+### Implementação
+
+**Features:**
+- ✅ Botões aparecem apenas em hover
+- ✅ Feedback positivo: 1 clique (thumb-up)
+- ✅ Feedback negativo: abre modal para comentário
+- ✅ Estado visual (botão fica destacado após feedback)
+- ✅ Context JSON armazena tenant_id, conversation_id, etc.
+
+**Componente criado:**
+- `MessageFeedbackButtons` - Botões like/dislike
+- API route `/api/feedback/message` - Salvar feedback
+
+**Tabela:**
+```sql
+message_feedbacks (
+  id UUID PRIMARY KEY,
+  message_id UUID REFERENCES messages(id),
+  user_id UUID REFERENCES users(id),
+  rating TEXT CHECK (positive, negative),
+  comment TEXT,
+  context JSONB,
+  created_at TIMESTAMP
+)
+```
+
+### Consequências
+
+**Positivas:**
+✅ Feedback específico por mensagem
+✅ UI clean (não polui visualmente)
+✅ Padrão conhecido (ChatGPT, Claude)
+✅ Comentário opcional para feedback negativo
+✅ Rastreabilidade completa (context JSON)
+
+**Negativas:**
+⚠️ Menos descobrível (requer hover)
+⚠️ Mobile pode ter dificuldade com hover
+
+**Trade-offs aceitos:**
+- Descobribilidade vs UI limpa → UI limpa vence
+- Hover vs Sempre visível → Hover vence (desktop-first MVP)
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Hover exibe botões corretamente
+✅ Feedback salva no banco
+✅ Context JSON completo
+
+### Referências
+- [ChatGPT Feedback Pattern](https://openai.com/blog/chatgpt)
+- Gap #3 identificado em MVP_CONTRAST_ANALYSIS.md
+
+---
+
+## Decisão #016: CRM Kanban Board com Tags
+
+**Data:** 2025-11-24
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Necessidade de organizar conversas além de status (open/paused/closed). Usuários precisam categorizar por tipo de problema, prioridade, ou outro critério customizável. Surgiu a questão: usar tags ou criar novos status?
+
+### Opções Consideradas
+
+1. **Novos status customizáveis**
+   - Prós: Simples, um campo só
+   - Contras: Limitado a 1 categoria por conversa, não escalável
+
+2. **Tags many-to-many (escolhida)**
+   - Prós: Múltiplas tags por conversa, flexível, escalável
+   - Contras: Mais complexo (tabela associativa)
+
+3. **Labels fixos predefinidos**
+   - Prós: Simplicidade
+   - Contras: Não customizável, não atende necessidades variadas
+
+### Decisão
+
+**Implementar sistema de tags many-to-many** com board Kanban onde cada tag é uma coluna.
+
+**Arquitetura:**
+- Tabela `conversation_tags` (id, name, color, order, tenant_id)
+- Tabela `conversation_tag_associations` (conversation_id, tag_id)
+- Board Kanban com coluna por tag
+- Conversas podem ter múltiplas tags
+- Cada coluna mostra conversas com aquela tag
+
+### Implementação
+
+**Features:**
+- ✅ CRUD de tags (nome, cor, ordem)
+- ✅ Associação many-to-many (conversa ↔ tags)
+- ✅ Board Kanban com colunas dinâmicas
+- ✅ Card de conversa mostra tags associadas
+- ✅ Filtros por status e busca
+- ✅ Drag-and-drop preparatório
+- ✅ RLS policies completas
+
+**Componentes criados:**
+- `CRMKanbanBoard` - Board principal
+- `CRMKanbanColumn` - Coluna por tag
+- `CRMConversationCard` - Card de conversa
+- `CRMFilters` - Filtros de status/busca
+
+**Migrações:**
+- `006_create_conversation_tags.sql` - Tabelas
+- `007_alter_tags_add_order_color.sql` - Ordem e cor
+- `008_add_tags_rls.sql` - Políticas RLS
+
+### Consequências
+
+**Positivas:**
+✅ Flexibilidade: múltiplas tags por conversa
+✅ Escalável: adicionar tags sem limite
+✅ Customizável: cada tenant define suas tags
+✅ Visual: cores personalizadas por tag
+✅ Organização: colunas ordenáveis
+
+**Negativas:**
+⚠️ Complexidade: 2 tabelas + joins
+⚠️ Performance: queries com múltiplos joins
+⚠️ Drag-and-drop: preparado mas não finalizado
+
+**Trade-offs aceitos:**
+- Simplicidade vs Flexibilidade → Flexibilidade vence
+- Performance vs Features → Features (otimizar depois)
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Build production (sucesso)
+✅ RLS policies isolam tenants
+✅ Tags aparecem corretamente no board
+
+### Referências
+- [Trello Board Pattern](https://trello.com)
+- [Linear Issue Tags](https://linear.app)
+
+---
+
+## Decisão #017: Conversation Summary Modal
+
+**Data:** 2025-11-24
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Durante atendimento, atendentes precisam visualizar rapidamente dados extraídos da conversa (nome, telefone, email, etc.) sem reler todas as mensagens. Surgiu a questão: onde exibir esses dados?
+
+### Opções Consideradas
+
+1. **Painel lateral sempre visível**
+   - Prós: Visibilidade máxima
+   - Contras: Ocupa espaço permanentemente, UI poluída
+
+2. **Modal sob demanda (escolhida)**
+   - Prós: Acesso rápido (botão no header), não polui UI
+   - Contras: Requer clique extra
+
+3. **Tooltip em hover**
+   - Prós: Sem clique
+   - Contras: Difícil exibir muitos dados, não copiável
+
+### Decisão
+
+**Implementar modal acionado por botão no header** da conversa.
+
+**Arquitetura:**
+- Botão "Resumo" no header da conversa
+- Modal exibe dados extraídos do contact
+- Campos: nome, telefone, email, metadata JSON
+- Botão copiar para clipboard
+- Seções: Dados do Cliente, Memória, Pendências
+
+### Implementação
+
+**Features:**
+- ✅ Botão no header abre modal
+- ✅ Display de campos estruturados
+- ✅ Metadata JSON formatado
+- ✅ Funcionalidade copiar
+- ✅ Seções organizadas
+- ✅ Empty states quando sem dados
+
+**Componentes criados:**
+- `ConversationSummaryModal` - Modal principal
+- `CustomerDataPanel` - Painel de dados
+
+**Dados exibidos:**
+```typescript
+{
+  name: string,
+  phone: string,
+  email: string,
+  extracted_data: {
+    cpf?: string,
+    address?: string,
+    preferences?: object,
+    // ... customizável por tenant
+  }
+}
+```
+
+### Consequências
+
+**Positivas:**
+✅ Acesso rápido: 1 clique no header
+✅ UI limpa: não ocupa espaço permanente
+✅ Copiável: fácil transferir dados
+✅ Extensível: metadata JSON aceita qualquer estrutura
+
+**Negativas:**
+⚠️ Requer clique (não visível automaticamente)
+⚠️ Pode ficar desatualizado (não realtime)
+
+**Trade-offs aceitos:**
+- Visibilidade vs UI limpa → UI limpa vence
+- Realtime vs Simplicidade → Simplicidade (MVP)
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Modal abre corretamente
+✅ Dados exibem formatados
+✅ Copiar funciona
+
+### Referências
+- Gap identificado durante debug de conversas
+
+---
+
+## Decisão #018: Profile Page com AI Global Pause Control
+
+**Data:** 2025-11-27
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Necessidade de página de perfil para exibir dados do usuário e tenant. Surgiu também a necessidade crítica de **pausar TODA a IA do tenant** (não apenas conversas individuais) para manutenções ou emergências.
+
+### Opções Consideradas
+
+1. **Pause apenas no nível conversa**
+   - Prós: Já implementado
+   - Contras: Não permite pause global (precisa pausar 1 por 1)
+
+2. **Pause global com confirmação simples**
+   - Prós: Rápido
+   - Contras: Perigoso (pode ser acionado por engano)
+
+3. **Pause global com confirmação de segurança (escolhida)**
+   - Prós: Seguro, evita acidentes
+   - Contras: Mais cliques (mas justificado)
+
+### Decisão
+
+**Implementar página /perfil com controle global de IA** que requer confirmação de segurança (digitar "PAUSAR").
+
+**Arquitetura:**
+- Switch para pausar/retomar IA global
+- Confirmação modal: usuário deve digitar "PAUSAR"
+- Persiste em campo `ai_paused` no tenant
+- n8n verifica esse campo antes de processar mensagens
+- Afeta TODAS as conversas do tenant
+
+### Implementação
+
+**Features:**
+- ✅ Página `/perfil` com dados do usuário
+- ✅ Avatar, nome, email, tenant
+- ✅ Switch "Pausar IA Globalmente"
+- ✅ Modal de confirmação (digitar "PAUSAR")
+- ✅ Persiste no banco (`tenants.ai_paused`)
+- ✅ Botão logout
+
+**Componentes criados:**
+- `AIControl` - Switch + confirmação
+- `/perfil/page.tsx` - Página de perfil
+
+**Fluxo:**
+```
+1. Admin clica switch "Pausar IA"
+2. Modal abre: "Digite PAUSAR para confirmar"
+3. Admin digita "PAUSAR"
+4. UPDATE tenants SET ai_paused = true
+5. n8n ignora todas mensagens desse tenant
+6. Conversas continuam abertas, mas IA não responde
+```
+
+### Consequências
+
+**Positivas:**
+✅ Controle granular: pause global vs pause por conversa
+✅ Segurança: confirmação evita acidentes
+✅ Emergências: pode pausar tudo em <10 segundos
+✅ Manutenções: facilita updates sem fechar conversas
+
+**Negativas:**
+⚠️ Confirmação adiciona fricção (mas necessário)
+⚠️ Pode confundir clientes (IA para de responder subitamente)
+
+**Trade-offs aceitos:**
+- Velocidade vs Segurança → Segurança vence
+- Simplicidade vs Controle → Controle vence
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ Modal de confirmação funciona
+✅ Persistência no banco confirmada
+✅ Campo valida "PAUSAR" exatamente
+
+### Referências
+- Commit: `749e943 - Implemented pause IA`
+- Necessidade identificada durante debug de produção
+
+---
+
+## Decisão #019: Auto-Pause IA When Attendant Sends Message
+
+**Data:** 2025-11-23
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Quando atendente humano assume conversa e envia mensagem, a IA não deve responder imediatamente depois. Surgiu a questão: pausar IA automaticamente ou exigir pause manual?
+
+### Opções Consideradas
+
+1. **Pause manual (antes)**
+   - Prós: Controle explícito
+   - Contras: Atendente esquece, IA e humano respondem juntos (confusão)
+
+2. **Auto-pause ao enviar mensagem (escolhida)**
+   - Prós: Evita conflito automático, UX fluida
+   - Contras: Pode pausar quando não desejado (raro)
+
+3. **Pergunta de confirmação**
+   - Prós: Controle explícito
+   - Contras: Fricção, delay no envio
+
+### Decisão
+
+**Implementar auto-pause da IA** quando atendente envia mensagem.
+
+**Arquitetura:**
+- Ao enviar mensagem via input do livechat
+- Sistema atualiza `ia_active = false` na conversa
+- n8n para de processar mensagens dessa conversa
+- Badge visual muda para "IA Pausada"
+- Atendente pode retomar IA manualmente depois
+
+### Implementação
+
+**Fluxo:**
+```
+1. Atendente digita mensagem no input
+2. Clica "Enviar"
+3. Sistema salva mensagem no banco
+4. Sistema atualiza: UPDATE conversations SET ia_active = false
+5. Sistema chama webhook n8n para enviar ao WhatsApp
+6. Badge muda para "IA Pausada" (amarelo)
+7. IA para de responder
+8. Atendente continua conversando
+9. Quando terminar, clica "Retomar IA"
+```
+
+**Arquivos modificados:**
+- `components/livechat/message-input.tsx` - Lógica de auto-pause
+- `app/api/n8n/send-message/route.ts` - UPDATE ia_active
+
+### Consequências
+
+**Positivas:**
+✅ Evita conflito automático (IA + humano respondendo junto)
+✅ UX fluida (sem confirmação adicional)
+✅ Previne confusão do cliente
+✅ Lógica simples e previsível
+
+**Negativas:**
+⚠️ Pode pausar quando atendente só quer enviar nota interna (raro)
+⚠️ Requer retomar IA manualmente depois
+
+**Trade-offs aceitos:**
+- Controle explícito vs Automação → Automação vence
+- Confirmação vs Velocidade → Velocidade vence
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ IA pausa ao enviar mensagem
+✅ Badge atualiza automaticamente
+✅ Retomar funciona corretamente
+
+### Referências
+- Commit: `1a4e25d - Auto-pause IA when attendant sends message`
+- Necessidade identificada em testes de UX
+
+---
+
+## Decisão #020: Conversation Tags Management System
+
+**Data:** 2025-11-24
+
+**Status:** ✅ Implementado
+
+### Contexto
+
+Sistema de tags foi criado para CRM Kanban Board (Decisão #016). Durante implementação, surgiu necessidade de gerenciar tags de forma robusta: ordenação, cores, CRUD completo, e RLS para multi-tenant.
+
+### Opções Consideradas
+
+1. **Tags hardcoded no código**
+   - Prós: Simples, sem CRUD
+   - Contras: Não customizável, precisa deploy para mudar
+
+2. **Tags configuráveis por tenant (escolhida)**
+   - Prós: Flexível, cada tenant define suas tags
+   - Contras: Requer CRUD, tabelas, RLS
+
+3. **Tags globais compartilhadas**
+   - Prós: Simples, menos dados
+   - Contras: Não atende multi-tenant, sem isolamento
+
+### Decisão
+
+**Implementar sistema completo de tags** com CRUD, ordenação, cores, e RLS multi-tenant.
+
+**Arquitetura:**
+- Tabela `conversation_tags` com campos: name, color, order, is_active, tenant_id
+- Tabela `conversation_tag_associations` (many-to-many)
+- RLS policies isolam tags por tenant
+- Order permite reordenar colunas no Kanban
+- Color permite personalização visual
+
+### Implementação
+
+**Features:**
+- ✅ CRUD completo de tags
+- ✅ Campo `order` (INT) para ordenação customizada
+- ✅ Campo `color` (TEXT) para hex colors (#FF5733)
+- ✅ Campo `is_active` para soft delete
+- ✅ RLS policies completas
+- ✅ Queries otimizadas com JOINs
+
+**Migrações:**
+```sql
+-- 006: Criar tabelas
+CREATE TABLE conversation_tags (
+  id UUID PRIMARY KEY,
+  tenant_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 007: Adicionar order e color
+ALTER TABLE conversation_tags
+  ADD COLUMN order INT DEFAULT 0,
+  ADD COLUMN color TEXT DEFAULT '#6B7280';
+
+-- 008: RLS policies
+CREATE POLICY "Tenants can view their tags"
+  ON conversation_tags FOR SELECT
+  USING (tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid()));
+```
+
+### Consequências
+
+**Positivas:**
+✅ Customizável: cada tenant cria suas tags
+✅ Ordenável: drag-and-drop de colunas (preparado)
+✅ Visual: cores personalizadas
+✅ Seguro: RLS isola tenants
+✅ Escalável: sem limite de tags
+
+**Negativas:**
+⚠️ Complexidade: 2 tabelas + RLS + queries complexas
+⚠️ Performance: JOINs podem ser lentos (otimizar depois)
+
+**Trade-offs aceitos:**
+- Simplicidade vs Flexibilidade → Flexibilidade vence
+- Performance vs Features → Features (MVP)
+
+### Testes Realizados
+
+✅ TypeScript type-check (zero erros)
+✅ RLS policies isolam tenants corretamente
+✅ Tags aparecem no CRM board
+✅ Order funciona (reordenação visual)
+
+### Referências
+- Decisão #016: CRM Kanban Board com Tags
+- Migrations: 006, 007, 008
+
+---
+
 ## Decisões Rápidas
 
 **Data** | **Decisão** | **Justificativa**
@@ -1327,3 +1962,9 @@ Contém:
 2025-11-20 | Salvar no banco primeiro (Livechat) | Reduz delay de 500-1000ms para 100-200ms, UX superior
 2025-11-22 | 4 filtros no Livechat | Visualizar conversas em qualquer estado, "Todas" inclui closed
 2025-11-22 | Cards por Conversa (Refatoração Futura) | Card = conversa (não contato). Múltiplas conversas = múltiplos cards. Ver LIVECHAT_CONVERSATION_CARDS_REFACTOR.md
+2025-11-23 | Auto-pause IA ao enviar mensagem | Evita conflito IA+humano respondendo junto, UX fluida
+2025-11-23 | Message feedback em hover | UI limpa, padrão ChatGPT, feedback específico por mensagem
+2025-11-24 | Tags many-to-many para CRM | Múltiplas tags por conversa, flexível, customizável por tenant
+2025-11-24 | Conversation Summary modal | Acesso rápido a dados do cliente sem poluir UI
+2025-11-26 | Comando "/" para quick replies | Atalho rápido (Slack/Discord pattern), não intrusivo
+2025-11-27 | Profile page com AI pause global | Controle system-wide, confirmação de segurança ("PAUSAR")

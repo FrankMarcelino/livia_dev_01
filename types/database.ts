@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_prompts: {
+        Row: {
+          id: string
+          id_agent: string
+          id_tenant: string | null
+          limitations: Json | null
+          instructions: Json | null
+          guide_line: Json | null
+          rules: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          id_agent: string
+          id_tenant?: string | null
+          limitations?: Json | null
+          instructions?: Json | null
+          guide_line?: Json | null
+          rules?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          id_agent?: string
+          id_tenant?: string | null
+          limitations?: Json | null
+          instructions?: Json | null
+          guide_line?: Json | null
+          rules?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompts_id_agent_fkey"
+            columns: ["id_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_templates: {
+        Row: {
+          id: string
+          name: string
+          type: string
+          reactive: boolean
+          limitations: Json | null
+          instructions: Json | null
+          guide_line: Json | null
+          persona_name: string | null
+          age: string | null
+          gender: string | null
+          objective: string | null
+          communication: string | null
+          personality: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          type: string
+          reactive?: boolean
+          limitations?: Json | null
+          instructions?: Json | null
+          guide_line?: Json | null
+          persona_name?: string | null
+          age?: string | null
+          gender?: string | null
+          objective?: string | null
+          communication?: string | null
+          personality?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          type?: string
+          reactive?: boolean
+          limitations?: Json | null
+          instructions?: Json | null
+          guide_line?: Json | null
+          persona_name?: string | null
+          age?: string | null
+          gender?: string | null
+          objective?: string | null
+          communication?: string | null
+          personality?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           associated_neurocores: string[]
@@ -31,6 +132,7 @@ export type Database = {
           other_instructions: Json
           persona: string | null
           personality_tone: string | null
+          template_id: string | null
           type: Database["public"]["Enums"]["agent_type_enum"]
           updated_at: string
         }
@@ -50,6 +152,7 @@ export type Database = {
           other_instructions?: Json
           persona?: string | null
           personality_tone?: string | null
+          template_id?: string | null
           type: Database["public"]["Enums"]["agent_type_enum"]
           updated_at?: string
         }
@@ -69,10 +172,19 @@ export type Database = {
           other_instructions?: Json
           persona?: string | null
           personality_tone?: string | null
+          template_id?: string | null
           type?: Database["public"]["Enums"]["agent_type_enum"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "agent_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       base_conhecimentos: {
         Row: {

@@ -24,6 +24,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useApiCall } from '@/lib/hooks';
 
 interface MessageFeedbackButtonsProps {
   messageId: string;
@@ -37,7 +38,6 @@ export function MessageFeedbackButtons({
   tenantId,
 }: MessageFeedbackButtonsProps) {
   const [rating, setRating] = useState<'positive' | 'negative' | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingRating, setPendingRating] = useState<'positive' | 'negative' | null>(null);
   const [comment, setComment] = useState('');
@@ -45,6 +45,25 @@ export function MessageFeedbackButtons({
   // Estados para o dialog de confirmação de remoção
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [removingType, setRemovingType] = useState<'positive' | 'negative' | null>(null);
+
+  // API calls hooks
+  const submitFeedback = useApiCall('/api/feedback/message', 'POST', {
+    successMessage: '',  // Will be set dynamically
+    errorMessage: 'Erro ao enviar feedback. Tente novamente.',
+    onSuccess: () => {
+      if (pendingRating) {
+        setRating(pendingRating);
+        toast.success(
+          pendingRating === 'positive'
+            ? 'Obrigado pelo feedback positivo!'
+            : 'Obrigado pelo feedback! Vamos melhorar.'
+        );
+      }
+      setDialogOpen(false);
+      setPendingRating(null);
+      setComment('');
+    },
+  });
 
   const handleButtonClick = (newRating: 'positive' | 'negative') => {
     // Se clicar no mesmo botão, pede confirmação para remover
@@ -74,39 +93,13 @@ export function MessageFeedbackButtons({
   const handleSubmitFeedback = async () => {
     if (!pendingRating) return;
 
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/feedback/message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageId,
-          conversationId,
-          rating: pendingRating,
-          comment: comment.trim() || undefined,
-          tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao enviar feedback');
-      }
-
-      setRating(pendingRating);
-      setDialogOpen(false);
-      toast.success(
-        pendingRating === 'positive'
-          ? 'Obrigado pelo feedback positivo!'
-          : 'Obrigado pelo feedback! Vamos melhorar.'
-      );
-    } catch (error) {
-      console.error('Erro ao enviar feedback:', error);
-      toast.error('Erro ao enviar feedback. Tente novamente.');
-    } finally {
-      setIsSubmitting(false);
-      setPendingRating(null);
-      setComment('');
-    }
+    await submitFeedback.execute({
+      messageId,
+      conversationId,
+      rating: pendingRating,
+      comment: comment.trim() || undefined,
+      tenantId,
+    });
   };
 
   return (
@@ -116,7 +109,7 @@ export function MessageFeedbackButtons({
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick('positive')}
-          disabled={isSubmitting}
+          disabled={submitFeedback.isLoading}
           className={cn(
             'h-7 w-7 p-0',
             rating === 'positive' && 'bg-green-500/20 text-green-600 hover:bg-green-500/30'
@@ -130,7 +123,7 @@ export function MessageFeedbackButtons({
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick('negative')}
-          disabled={isSubmitting}
+          disabled={submitFeedback.isLoading}
           className={cn(
             'h-7 w-7 p-0',
             rating === 'negative' && 'bg-red-500/20 text-red-600 hover:bg-red-500/30'
@@ -170,12 +163,12 @@ export function MessageFeedbackButtons({
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              disabled={isSubmitting}
+              disabled={submitFeedback.isLoading}
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmitFeedback} disabled={isSubmitting}>
-              {isSubmitting ? 'Enviando...' : 'Enviar Feedback'}
+            <Button onClick={handleSubmitFeedback} disabled={submitFeedback.isLoading}>
+              {submitFeedback.isLoading ? 'Enviando...' : 'Enviar Feedback'}
             </Button>
           </DialogFooter>
         </DialogContent>

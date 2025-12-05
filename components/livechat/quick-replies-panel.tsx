@@ -35,6 +35,7 @@ import { replaceQuickReplyVariables } from '@/lib/utils/quick-replies';
 import { useQuickRepliesCache } from '@/hooks/use-quick-replies-cache';
 import { toast } from 'sonner';
 import type { QuickReply } from '@/types/livechat';
+import { useApiCall } from '@/lib/hooks';
 
 interface QuickRepliesPanelProps {
   conversationId: string;
@@ -59,7 +60,22 @@ export function QuickRepliesPanel({
   const [editingReply, setEditingReply] = useState<QuickReply | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingReply, setDeletingReply] = useState<QuickReply | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // API calls hooks
+  const trackUsage = useApiCall('/api/quick-replies/usage', 'POST', {
+    suppressSuccessToast: true,
+    suppressErrorToast: true, // Fire-and-forget, não mostrar erro ao usuário
+  });
+
+  const deleteQuickReply = useApiCall(`/api/quick-replies/${deletingReply?.id}`, 'DELETE', {
+    successMessage: 'Quick reply deletada com sucesso!',
+    errorMessage: 'Erro ao deletar quick reply',
+    onSuccess: () => {
+      refetch(); // Invalida cache e recarrega
+      setDeleteDialogOpen(false);
+      setDeletingReply(null);
+    },
+  });
 
   // Hook otimizado com cache (reutiliza cache do QuickReplyCommand!)
   const {
@@ -95,15 +111,9 @@ export function QuickRepliesPanel({
     onSelect(processedMessage);
 
     // Incrementar contador de uso (fire-and-forget)
-    fetch('/api/quick-replies/usage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quickReplyId: quickReply.id,
-        tenantId,
-      }),
-    }).catch((error) => {
-      console.error('Erro ao registrar uso:', error);
+    trackUsage.execute({
+      quickReplyId: quickReply.id,
+      tenantId,
     });
 
     // Fechar popover
@@ -143,27 +153,7 @@ export function QuickRepliesPanel({
   // Handler para deletar
   const handleDelete = async () => {
     if (!deletingReply) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`/api/quick-replies/${deletingReply.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao deletar quick reply');
-      }
-
-      toast.success('Quick reply deletada com sucesso!');
-      refetch(); // Invalida cache e recarrega
-      setDeleteDialogOpen(false);
-      setDeletingReply(null);
-    } catch (error) {
-      console.error('Error deleting quick reply:', error);
-      toast.error('Erro ao deletar quick reply');
-    } finally {
-      setIsDeleting(false);
-    }
+    await deleteQuickReply.execute();
   };
 
   // Top 3 mais usadas (usa allQuickReplies pois já estão ordenados por usage_count)
@@ -325,15 +315,15 @@ export function QuickRepliesPanel({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>
+          <AlertDialogCancel disabled={deleteQuickReply.isLoading}>
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={deleteQuickReply.isLoading}
             className="bg-destructive hover:bg-destructive/90"
           >
-            {isDeleting ? 'Excluindo...' : 'Excluir'}
+            {deleteQuickReply.isLoading ? 'Excluindo...' : 'Excluir'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

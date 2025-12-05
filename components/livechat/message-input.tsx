@@ -11,6 +11,8 @@ import { useQuickReplyCommand } from '@/hooks/use-quick-reply-command';
 import { usePrefetchQuickReplies } from '@/hooks/use-quick-replies-cache';
 import type { Conversation } from '@/types/database';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
+import { useApiCall } from '@/lib/hooks';
+import { SEARCH_DEBOUNCE_DELAY } from '@/config/constants';
 
 interface MessageInputProps {
   conversation: Conversation;
@@ -28,13 +30,29 @@ export function MessageInput({
   disabled = false,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const [showPauseIADialog, setShowPauseIADialog] = useState(false);
   const [pendingMessage, setPendingMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Prefetch: carrega respostas rápidas em background para abertura instantânea
   usePrefetchQuickReplies({ tenantId });
+
+  // API calls hooks
+  const resumeConversation = useApiCall('/api/conversations/resume', 'POST', {
+    suppressSuccessToast: true,
+    suppressErrorToast: true, // Handled manually below
+  });
+
+  const sendMessageApi = useApiCall('/api/n8n/send-message', 'POST', {
+    suppressSuccessToast: true,
+    suppressErrorToast: true, // Handled manually below
+    onSuccess: () => {
+      setContent('');
+      onSend?.();
+    },
+  });
+
+  const isSending = resumeConversation.isLoading || sendMessageApi.isLoading;
 
   // Hook para gerenciar command palette de respostas rápidas
   const quickReplyCommand = useQuickReplyCommand({
@@ -76,52 +94,38 @@ export function MessageInput({
   const sendMessage = async (messageContent: string) => {
     if (!messageContent || isSending) return;
 
-    setIsSending(true);
     try {
       // 1. Se conversa está pausada, retomar automaticamente
       if (conversation.status === 'paused') {
-        const resumeResponse = await fetch('/api/conversations/resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: conversation.id,
-            tenantId: tenantId,
-          }),
+        const resumeResult = await resumeConversation.execute({
+          conversationId: conversation.id,
+          tenantId: tenantId,
         });
 
-        if (!resumeResponse.ok) {
-          const errorData = await resumeResponse.json();
-          throw new Error(errorData.error || 'Erro ao retomar conversa');
+        if (!resumeResult) {
+          toast.error('Erro ao retomar conversa');
+          return;
         }
 
         // Aguarda um momento para garantir que o realtime atualizou
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, SEARCH_DEBOUNCE_DELAY));
       }
 
       // 2. Enviar mensagem normalmente
-      const response = await fetch('/api/n8n/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-          content: messageContent,
-        }),
+      const result = await sendMessageApi.execute({
+        conversationId: conversation.id,
+        tenantId: tenantId,
+        content: messageContent,
       });
 
-      if (!response.ok) {
-        throw new Error('Erro ao enviar mensagem');
+      if (!result) {
+        toast.error('Erro ao enviar mensagem');
       }
-
-      setContent('');
-      onSend?.();
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       toast.error(
         error instanceof Error ? error.message : 'Erro ao enviar mensagem'
       );
-    } finally {
-      setIsSending(false);
     }
   };
 

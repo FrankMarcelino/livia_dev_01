@@ -14,6 +14,7 @@ import {
   formatPhone,
 } from '@/lib/utils/validators';
 import type { Contact } from '@/types/database';
+import { useApiCall } from '@/lib/hooks';
 
 interface CustomerDataPanelProps {
   contactId: string;
@@ -25,8 +26,6 @@ export function CustomerDataPanel({
   tenantId,
 }: CustomerDataPanelProps) {
   const [contact, setContact] = useState<Contact | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -46,44 +45,51 @@ export function CustomerDataPanel({
   const [cpfError, setCpfError] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
+  // API calls hooks
+  const loadContactApi = useApiCall<{ data: Contact }>(
+    `/api/contacts/${contactId}?tenantId=${tenantId}`,
+    'GET',
+    {
+      errorMessage: 'Erro ao carregar dados do contato',
+      suppressSuccessToast: true,
+      onSuccess: (response) => {
+        const contactData = response.data;
+        setContact(contactData);
+        setName(contactData.name || '');
+        setEmail(contactData.email || '');
+        setCpf(contactData.cpf || '');
+        setPhoneSecondary(contactData.phone_secondary || '');
+        setAddressStreet(contactData.address_street || '');
+        setAddressNumber(contactData.address_number || '');
+        setAddressComplement(contactData.address_complement || '');
+        setCity(contactData.city || '');
+        setZipCode(contactData.zip_code || '');
+      },
+    }
+  );
+
+  const saveContactApi = useApiCall<{ data: Contact }>(
+    `/api/contacts/${contactId}`,
+    'PATCH',
+    {
+      successMessage: 'Alterações salvas com sucesso',
+      errorMessage: 'Erro ao salvar dados',
+      onSuccess: (response) => {
+        setContact(response.data);
+        setHasUnsavedChanges(false);
+      },
+    }
+  );
+
   // Carregar dados do contato
   useEffect(() => {
-    loadContact();
+    loadContactApi.execute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contactId]);
 
-  const loadContact = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `/api/contacts/${contactId}?tenantId=${tenantId}`
-      );
-      if (!response.ok) throw new Error('Erro ao carregar contato');
-
-      const data = await response.json();
-      const contactData = data.data as Contact;
-
-      setContact(contactData);
-      setName(contactData.name || '');
-      setEmail(contactData.email || '');
-      setCpf(contactData.cpf || '');
-      setPhoneSecondary(contactData.phone_secondary || '');
-      setAddressStreet(contactData.address_street || '');
-      setAddressNumber(contactData.address_number || '');
-      setAddressComplement(contactData.address_complement || '');
-      setCity(contactData.city || '');
-      setZipCode(contactData.zip_code || '');
-    } catch (error) {
-      console.error('Erro ao carregar contato:', error);
-      toast.error('Erro ao carregar dados do contato');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Detectar alterações não salvas e validar em tempo real
   useEffect(() => {
-    if (!contact || isLoading) return;
+    if (!contact || loadContactApi.isLoading) return;
 
     // Validar campos em tempo real
     if (email && !validateEmail(email)) {
@@ -119,7 +125,7 @@ export function CustomerDataPanel({
     setHasUnsavedChanges(hasChanges);
   }, [
     contact,
-    isLoading,
+    loadContactApi.isLoading,
     name,
     email,
     cpf,
@@ -138,40 +144,18 @@ export function CustomerDataPanel({
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/contacts/${contactId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name,
-          email: email || null,
-          cpf: cpf || null,
-          phone_secondary: phoneSecondary || null,
-          address_street: addressStreet || null,
-          address_number: addressNumber || null,
-          address_complement: addressComplement || null,
-          city: city || null,
-          zip_code: zipCode || null,
-          tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao salvar');
-      }
-
-      const data = await response.json();
-      setContact(data.data);
-      setHasUnsavedChanges(false);
-      toast.success('Alterações salvas com sucesso');
-    } catch (error) {
-      console.error('Erro ao salvar contato:', error);
-      toast.error('Erro ao salvar dados');
-    } finally {
-      setIsSaving(false);
-    }
+    await saveContactApi.execute({
+      name: name,
+      email: email || null,
+      cpf: cpf || null,
+      phone_secondary: phoneSecondary || null,
+      address_street: addressStreet || null,
+      address_number: addressNumber || null,
+      address_complement: addressComplement || null,
+      city: city || null,
+      zip_code: zipCode || null,
+      tenantId,
+    });
   };
 
   const handleCopyData = () => {
@@ -203,7 +187,7 @@ export function CustomerDataPanel({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (isLoading) {
+  if (loadContactApi.isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -230,10 +214,10 @@ export function CustomerDataPanel({
             variant="default"
             size="sm"
             onClick={saveContact}
-            disabled={!hasUnsavedChanges || isSaving || !!emailError || !!cpfError || !!phoneError}
+            disabled={!hasUnsavedChanges || saveContactApi.isLoading || !!emailError || !!cpfError || !!phoneError}
             className="flex-1"
           >
-            {isSaving ? (
+            {saveContactApi.isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Salvando...

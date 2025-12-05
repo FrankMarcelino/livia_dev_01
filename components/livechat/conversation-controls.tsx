@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Pause, Lock, Unlock } from 'lucide-react';
 import type { Conversation } from '@/types/database';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
+import { useApiCall } from '@/lib/hooks';
 
 interface ConversationControlsProps {
   conversation: Conversation;
@@ -18,130 +19,76 @@ export function ConversationControls({
   tenantId,
   onUpdate,
 }: ConversationControlsProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
   const [showPauseIADialog, setShowPauseIADialog] = useState(false);
+
+  // API calls hooks
+  const pauseIA = useApiCall('/api/conversations/pause-ia', 'POST', {
+    successMessage: 'IA pausada com sucesso',
+    errorMessage: 'Erro ao pausar IA. Tente novamente.',
+    onSuccess: () => onUpdate?.(),
+  });
+
+  const pauseConversation = useApiCall('/api/conversations/pause', 'POST', {
+    successMessage: 'Conversa pausada',
+    errorMessage: 'Erro ao pausar conversa',
+    onSuccess: () => onUpdate?.(),
+  });
+
+  const resumeConversation = useApiCall('/api/conversations/resume', 'POST', {
+    successMessage: 'Conversa retomada',
+    errorMessage: 'Erro ao retomar conversa',
+    onSuccess: () => onUpdate?.(),
+  });
+
+  const reopenConversation = useApiCall('/api/conversations/reopen', 'POST', {
+    successMessage: 'Conversa reaberta com sucesso',
+    errorMessage: 'Erro ao reabrir conversa',
+    onSuccess: () => onUpdate?.(),
+  });
+
+  const isUpdating =
+    pauseIA.isLoading ||
+    pauseConversation.isLoading ||
+    resumeConversation.isLoading ||
+    reopenConversation.isLoading;
 
   const handlePauseIAClick = () => {
     setShowPauseIADialog(true);
   };
 
   const handlePauseIAConfirm = async () => {
-    if (isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/pause-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-          reason: 'Pausado pelo atendente via Livechat - Modo manual permanente',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao pausar IA');
-      }
-
-      onUpdate?.();
-    } catch (error) {
-      console.error('Erro ao pausar IA:', error);
-      alert('Erro ao pausar IA. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
+    await pauseIA.execute({
+      conversationId: conversation.id,
+      tenantId,
+      reason: 'Pausado pelo atendente via Livechat - Modo manual permanente',
+    });
   };
 
-
   const handlePauseConversation = async () => {
-    if (isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/pause', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-          reason: 'Pausado pelo atendente via Livechat',
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao pausar conversa');
-      }
-
-      onUpdate?.();
-    } catch (error) {
-      console.error('Erro ao pausar conversa:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao pausar conversa. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
+    await pauseConversation.execute({
+      conversationId: conversation.id,
+      tenantId,
+      reason: 'Pausado pelo atendente via Livechat',
+    });
   };
 
   const handleResumeConversation = async () => {
-    if (isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao retomar conversa');
-      }
-
-      onUpdate?.();
-    } catch (error) {
-      console.error('Erro ao retomar conversa:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao retomar conversa. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
+    await resumeConversation.execute({
+      conversationId: conversation.id,
+      tenantId,
+    });
   };
 
   const handleReopenConversation = async () => {
-    if (isUpdating) return;
-
     const confirmed = confirm(
       'Deseja realmente reabrir esta conversa encerrada? A IA será reativada automaticamente.'
     );
     if (!confirmed) return;
 
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/conversations/reopen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao reabrir conversa');
-      }
-
-      onUpdate?.();
-    } catch (error) {
-      console.error('Erro ao reabrir conversa:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao reabrir conversa. Tente novamente.');
-    } finally {
-      setIsUpdating(false);
-    }
+    await reopenConversation.execute({
+      conversationId: conversation.id,
+      tenantId,
+    });
   };
 
   const getStatusBadge = () => {

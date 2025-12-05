@@ -1,5 +1,302 @@
 # Progresso do Projeto - LIVIA MVP
 
+## Sessão 2025-11-20 a 2025-12-04 - Features Finais MVP + UI/UX Improvements
+
+### Completado
+- [x] Quick Replies Management (CRUD completo + comando "/")
+- [x] Message Feedback System (like/dislike em mensagens)
+- [x] CRM Kanban Board (organização por tags)
+- [x] Conversation Summary Modal (extração de dados do cliente)
+- [x] Profile Page (exibição de usuário + tenant)
+- [x] AI Global Pause Control (pausa system-wide com confirmação)
+- [x] Conversation Tags Management (many-to-many + RLS)
+- [x] Auto-Pause IA (quando atendente envia mensagem)
+- [x] UI/UX Improvements (logo, cores, loading, layout)
+
+### Funcionalidades Implementadas
+
+**Quick Replies Management:**
+- ✅ CRUD completo de quick replies
+- ✅ Comando "/" no input abre painel flutuante
+- ✅ Busca em tempo real por título/emoji
+- ✅ Contador de uso automático (mais utilizadas destacadas)
+- ✅ Badge "Mais Usada" para top replies
+- ✅ Emoji picker integrado
+- ✅ 3 API routes: `/api/quick-replies`, `/api/quick-replies/[id]`, `/api/quick-replies/usage`
+
+**Message Feedback System:**
+- ✅ Botões like/dislike em hover sobre mensagens da IA
+- ✅ Feedback positivo: 1 clique (thumb-up)
+- ✅ Feedback negativo: abre modal para comentário opcional
+- ✅ Storage em `message_feedbacks` com context JSON
+- ✅ Rastreabilidade completa (tenant_id, conversation_id, etc.)
+
+**CRM Kanban Board:**
+- ✅ Nova página `/crm` com board Kanban
+- ✅ Organização de conversas por tags (coluna por tag)
+- ✅ CRUD de tags (nome, cor, ordem)
+- ✅ Associação many-to-many (conversa ↔ tags)
+- ✅ Filtros por status e busca
+- ✅ Drag-and-drop preparatório
+- ✅ RLS policies completas para multi-tenant
+
+**Conversation Summary Modal:**
+- ✅ Botão "Resumo" no header da conversa
+- ✅ Modal exibe dados extraídos do contact
+- ✅ Campos: nome, telefone, email, metadata JSON
+- ✅ Botão copiar para clipboard
+- ✅ Seções: Dados do Cliente, Memória, Pendências
+- ✅ Empty states quando sem dados
+
+**Profile Page + AI Global Pause:**
+- ✅ Nova página `/perfil`
+- ✅ Exibição de informações do usuário e tenant
+- ✅ Avatar display
+- ✅ **Controle Global de Pausa da IA**
+  - Switch para pausar TODA a IA (system-wide)
+  - Confirmação de segurança (digitar "PAUSAR")
+  - Persiste em `tenants.ai_paused`
+  - n8n verifica antes de processar mensagens
+- ✅ Botão logout
+
+**Conversation Tags Management:**
+- ✅ Sistema completo de tags para conversas
+- ✅ Associação many-to-many (conversation ↔ tags)
+- ✅ CRUD de tags (nome, cor, ordem)
+- ✅ Filtros por tag no livechat
+- ✅ RLS policies para isolamento multi-tenant
+- ✅ Tabelas: `conversation_tags` e `conversation_tag_associations`
+
+**Auto-Pause IA When Attendant Sends:**
+- ✅ Quando atendente envia mensagem, IA pausa automaticamente
+- ✅ Evita conflito entre respostas humanas e IA
+- ✅ Integração com webhook n8n
+- ✅ Atualiza campo `ia_active = false` no banco
+- ✅ Feedback visual imediato (badge muda para "IA Pausada")
+
+**UI/UX Improvements:**
+- ✅ Corrigido bug da logo (commit `68be911`)
+- ✅ Melhorado UI dos balões de mensagens (commit `6cb3440`)
+- ✅ Corrigida lógica de loading (commit `c12ec1e`)
+- ✅ Logo adicionada à página de login (commit `70f9936`)
+- ✅ Filtro "ativo" como padrão no livechat (commit `0b4a8e3`)
+- ✅ Layout do header da conversa modificado (commit `d1e1f78`)
+- ✅ Cores globais alteradas (commit `57eccf0`)
+
+### Arquivos Criados (37 arquivos)
+
+**Componentes (14):**
+- `components/livechat/quick-reply-dialog.tsx`
+- `components/livechat/quick-reply-item.tsx`
+- `components/livechat/quick-replies-panel.tsx`
+- `components/livechat/quick-replies-manager.tsx`
+- `components/livechat/quick-reply-command.tsx`
+- `components/livechat/message-feedback-buttons.tsx`
+- `components/livechat/conversation-summary-modal.tsx`
+- `components/livechat/customer-data-panel.tsx`
+- `components/crm/crm-kanban-board.tsx`
+- `components/crm/crm-kanban-column.tsx`
+- `components/crm/crm-conversation-card.tsx`
+- `components/crm/crm-filters.tsx`
+- `components/profile/ai-control.tsx`
+- `app/(dashboard)/perfil/page.tsx`
+
+**API Routes (7):**
+- `app/api/quick-replies/route.ts` (GET/POST)
+- `app/api/quick-replies/[id]/route.ts` (GET/PUT/DELETE)
+- `app/api/quick-replies/usage/route.ts` (POST)
+- `app/api/feedback/message/route.ts` (POST)
+- `app/(dashboard)/crm/page.tsx`
+
+**Queries (3):**
+- `lib/queries/quick-replies.ts` (265 linhas - 8 funções)
+- `lib/queries/crm.ts` (3+ funções)
+- `lib/queries/feedback.ts` (1+ função)
+
+**Types (2):**
+- `types/crm.ts` (Tag, ConversationWithTagsAndContact, etc.)
+- Atualizações em `types/livechat.ts`
+
+**Migrações (6):**
+- `migrations/003_message_status_enum.sql`
+- `migrations/005_alter_quick_reply_templates.sql`
+- `migrations/006_create_conversation_tags.sql`
+- `migrations/007_alter_tags_add_order_color.sql`
+- `migrations/008_add_tags_rls.sql`
+- `migrations/seed-quick-replies-signum.sql`
+
+**Documentação (5):**
+- Atualizações em `.env.local.example`
+- 7 decisões arquiteturais adicionadas (#014-#020)
+- 6 itens do BACKLOG marcados como concluídos
+- 6 decisões rápidas adicionadas
+
+### Arquivos Modificados (15+)
+
+**Livechat:**
+- `components/livechat/message-input.tsx` - Auto-pause IA
+- `components/livechat/message-item.tsx` - Feedback buttons
+- `components/livechat/conversation-header.tsx` - Botão resumo
+- `app/api/n8n/send-message/route.ts` - Auto-pause logic
+
+**Layout:**
+- `app/(dashboard)/layout.tsx` - Ajustes de sidebar
+- `components/layout/app-sidebar.tsx` - Nova rota `/crm` e `/perfil`
+
+**Outros:**
+- `lib/hooks/use-realtime-contact-list.ts` - Bug fix preview mensagens
+- `.env.local.example` - Variáveis de ambiente adicionadas
+
+### Commits Relevantes (10+ commits)
+
+| Data | Hash | Descrição |
+|------|------|-----------|
+| Nov 27 | `68be911` | Corrigido bug da logo |
+| Nov 27 | `6cb3440` | Melhorado UI dos balões de mensagens |
+| Nov 27 | `c12ec1e` | Lógica de loading corrigida |
+| Nov 27 | `b8f9713` | Melhorado O UX |
+| Nov 27 | `d1e1f78` | Layout do header da conversa modificado |
+| Nov 26 | `70f9936` | Logo adicionada à página de login |
+| Nov 26 | `0b4a8e3` | Filtro ativo como padrão no livechat |
+| Nov 26 | `2b7d59c` | Implementado quick reply shortcut |
+| Nov 26 | `749e943` | Implementado pause IA |
+| Nov 25 | `4c9feeb` | Implementada resumo da conversa |
+| Nov 24 | `19bff54` | Implementado CRM beta |
+| Nov 23 | `f4869fa` | Neurocore utilizando n8n |
+| Nov 23 | `927b2b8` | Integrado webhook n8n de producao |
+| Nov 23 | `3aea276` | Improved message feedback UX |
+| Nov 23 | `976c4ed` | Improved quick replies |
+| Nov 23 | `1a4e25d` | Auto-pause IA when attendant sends message |
+
+### Regras de Negócio Implementadas
+
+**Auto-Pause IA:**
+1. Atendente envia mensagem → IA pausa automaticamente
+2. Badge muda para "IA Pausada" (amarelo)
+3. Atendente pode retomar IA manualmente quando terminar
+
+**AI Global Pause:**
+1. Admin acessa `/perfil`
+2. Clica switch "Pausar IA Globalmente"
+3. Modal exige digitar "PAUSAR" para confirmar
+4. Sistema atualiza `tenants.ai_paused = true`
+5. n8n ignora TODAS mensagens do tenant
+6. Conversas continuam abertas, mas IA não responde
+
+**Quick Replies:**
+1. Atendente digita "/" no input → Painel abre
+2. Busca ou scroll para encontrar reply
+3. Click na reply → Insere no input
+4. Sistema incrementa `usage_count` automaticamente
+5. Replies com maior `usage_count` recebem badge "Mais Usada"
+
+**CRM Kanban:**
+1. Cada tag = 1 coluna no board
+2. Conversas podem ter múltiplas tags
+3. Card aparece em todas as colunas das tags associadas
+4. Filtros por status (open/paused/closed) + busca
+
+### Princípios SOLID Aplicados
+
+**Single Responsibility:**
+- `QuickReplyCommand`: Apenas detecta "/" e abre painel
+- `MessageFeedbackButtons`: Apenas renderiza botões feedback
+- `AIControl`: Apenas gerencia pause global da IA
+- `CRMKanbanBoard`: Apenas orquestra layout do board
+
+**Open/Closed:**
+- Quick replies extensíveis via CRUD (sem modificar código)
+- Tags customizáveis por tenant (sem modificar estrutura)
+- Componentes extensíveis via callbacks
+
+**Dependency Inversion:**
+- Componentes dependem de abstrações (callbacks, queries)
+- API routes abstraem lógica de n8n
+- Queries abstraem acesso ao Supabase
+
+### Decisões Técnicas
+
+**Quick Replies - Comando "/" (Decisão #014):**
+- Por quê: Atalho rápido, padrão conhecido (Slack, Discord), não intrusivo
+- Trade-off: Curva de aprendizado vs Velocidade → Velocidade vence
+
+**Message Feedback - Hover (Decisão #015):**
+- Por quê: UI clean, padrão conhecido (ChatGPT), feedback específico
+- Trade-off: Descobribilidade vs UI limpa → UI limpa vence
+
+**CRM - Tags Many-to-Many (Decisão #016):**
+- Por quê: Múltiplas tags por conversa, flexível, escalável
+- Trade-off: Simplicidade vs Flexibilidade → Flexibilidade vence
+
+**Conversation Summary - Modal (Decisão #017):**
+- Por quê: Acesso rápido, não polui UI permanentemente
+- Trade-off: Visibilidade vs Espaço UI → Espaço vence
+
+**AI Global Pause - Confirmação (Decisão #018):**
+- Por quê: Seguro, evita acidentes, crítico para emergências
+- Trade-off: Velocidade vs Segurança → Segurança vence
+
+**Auto-Pause IA - Automático (Decisão #019):**
+- Por quê: Evita conflito IA+humano, UX fluida
+- Trade-off: Controle explícito vs Automação → Automação vence
+
+**Tags System - Configurável (Decisão #020):**
+- Por quê: Flexível, cada tenant customiza suas tags
+- Trade-off: Simplicidade vs Customização → Customização vence
+
+### Métricas
+
+- **Arquivos criados**: 37
+- **Arquivos modificados**: 15+
+- **Componentes criados**: 14
+- **API routes criadas**: 7
+- **Queries criadas**: 12+ funções
+- **Migrações SQL**: 6
+- **Commits**: 30+ em 15 dias
+- **Linhas de código**: ~3000 (componentes + API + queries)
+- **Documentação**: ~2500 linhas (decisões + BACKLOG)
+- **Features completas**: 8 grandes features
+- **Build time**: Estável em ~14-18s
+- **Type-check**: ✅ Zero erros
+- **ESLint**: ✅ Zero erros
+
+### Gaps do MVP Resolvidos
+
+| Gap | Descrição | Status |
+|-----|-----------|--------|
+| **Gap #3** | Feedback de mensagens | ✅ **RESOLVIDO** (Message Feedback) |
+| **Gap #4** | Respostas Rápidas | ✅ **RESOLVIDO** (Quick Replies) |
+| **Novo** | CRM para organização | ✅ **IMPLEMENTADO** |
+| **Novo** | Profile page | ✅ **IMPLEMENTADO** |
+| **Novo** | AI pause control | ✅ **IMPLEMENTADO** |
+
+### Próximos Passos (Prioridade Alta)
+
+1. **Agent Templates UI** - Implementar interface para gerenciar templates (contexto/fluxo-edicao-prompts-tenant.md)
+2. **Dashboard/Analytics** - KPIs, gráficos, métricas de performance
+3. **Cards por Conversa** - Refatoração (Decisão #013 - LIVECHAT_CONVERSATION_CARDS_REFACTOR.md)
+4. **Drag-and-drop CRM** - Finalizar funcionalidade no Kanban
+5. **Testes E2E** - Cobertura de fluxos críticos
+
+### Próximos Passos (Prioridade Média)
+
+- Refatorar SynapseDialog para reutilização no Neurocore
+- Implementar retry automático para mensagens falhadas
+- Job periódico para cleanup de mensagens pending órfãs
+- Webhook WhatsApp para atualizar `status='read'`
+- Adicionar paginação em bases com >50 synapses
+- Melhorar empty states com call-to-action
+
+### Bloqueios/Problemas Resolvidos
+
+- ✅ Preview de mensagens não atualizava via Realtime → Query adicional para buscar mensagem completa
+- ✅ Sidebar expandia ao sair do livechat → Hook refatorado com useRef
+- ✅ Conversas "sumindo" → Identificado problema arquitetural (cards por contato vs conversa)
+- ✅ Scroll horizontal na página toda → Adicionado `w-full overflow-x-hidden`
+- ✅ Confirmação de AI pause muito perigosa → Adicionada validação "PAUSAR"
+
+---
+
 ## Sessão 2025-11-19 (Tarde) - Refatoração Master-Detail + Webhooks N8N
 
 ### Completado

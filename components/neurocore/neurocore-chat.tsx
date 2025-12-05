@@ -7,6 +7,8 @@ import { TrainingQueryInput } from './training-query-input';
 import { TrainingResponseCard } from './training-response-card';
 import { ResponseFeedbackDialog } from './response-feedback-dialog';
 import { submitFeedbackAction } from '@/app/actions/neurocore';
+import { useApiCall } from '@/lib/hooks';
+import { MAX_NEUROCORE_QUERIES } from '@/config/constants';
 import type {
   TrainingQuery,
   NeurocoreQueryResponse,
@@ -34,8 +36,8 @@ interface NeurocoreChatProps {
  */
 export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   const [queries, setQueries] = useState<TrainingQuery[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [currentQueryId, setCurrentQueryId] = useState<string | null>(null);
   const [feedbackDialog, setFeedbackDialog] = useState<{
     open: boolean;
     queryId: string | null;
@@ -47,6 +49,35 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // API call hooks
+  const submitQuery = useApiCall<NeurocoreQueryResponse>('/api/neurocore/query', 'POST', {
+    suppressSuccessToast: true,
+    suppressErrorToast: true, // Handled manually below
+    onSuccess: (data) => {
+      if (currentQueryId && data.success) {
+        // Atualiza query com resposta
+        setQueries((prev) =>
+          prev.map((q) =>
+            q.id === currentQueryId
+              ? {
+                  ...q,
+                  response: data.data,
+                }
+              : q
+          )
+        );
+      }
+      setCurrentQueryId(null);
+    },
+    onError: () => {
+      // Remove query que falhou
+      if (currentQueryId) {
+        setQueries((prev) => prev.filter((q) => q.id !== currentQueryId));
+        setCurrentQueryId(null);
+      }
+    },
+  });
 
   // Marcar como montado (client-side)
   useEffect(() => {
@@ -71,56 +102,24 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
       createdAt: new Date(), // Agora é seguro pois só executa após click do usuário
     };
 
+    setCurrentQueryId(newQuery.id);
+
     // Adiciona query ao estado (sem resposta ainda)
     setQueries((prev) => {
-      // Limita a 20 queries (performance)
+      // Limita a MAX_NEUROCORE_QUERIES queries (performance)
       const updated = [...prev, newQuery];
-      return updated.slice(-20);
+      return updated.slice(-MAX_NEUROCORE_QUERIES);
     });
 
-    setIsLoading(true);
+    const result = await submitQuery.execute({
+      question,
+      tenantId,
+    });
 
-    try {
-      const response = await fetch('/api/neurocore/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          tenantId,
-        }),
-      });
-
-      const data = (await response.json()) as NeurocoreQueryResponse;
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Erro ao processar pergunta');
-      }
-
-      // Atualiza query com resposta
-      setQueries((prev) =>
-        prev.map((q) =>
-          q.id === newQuery.id
-            ? {
-                ...q,
-                response: data.data,
-              }
-            : q
-        )
-      );
-    } catch (error) {
-      console.error('Erro ao processar query:', error);
-
+    if (!result || !result.success) {
       toast.error('Erro ao processar pergunta', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Tente novamente em alguns instantes',
+        description: result?.error || 'Tente novamente em alguns instantes',
       });
-
-      // Remove query que falhou
-      setQueries((prev) => prev.filter((q) => q.id !== newQuery.id));
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -214,7 +213,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
       {/* Área de histórico (scrollable) */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Empty State */}
-        {queries.length === 0 && !isLoading && (
+        {queries.length === 0 && !submitQuery.isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4 p-8">
             <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center">
               <span className="text-3xl">🧠</span>
@@ -246,7 +245,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
         ))}
 
         {/* Loading state - PENSANDO */}
-        {isLoading && (
+        {submitQuery.isLoading && (
           <div className="flex items-center justify-center p-8">
             <div className="space-y-4 text-center max-w-md">
               {/* Brain icon with pulse animation */}
@@ -298,7 +297,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
 
       {/* Input de pergunta (fixo no bottom) */}
       <div className="border-t bg-background p-6">
-        <TrainingQueryInput onSubmit={handleSubmitQuery} isLoading={isLoading} />
+        <TrainingQueryInput onSubmit={handleSubmitQuery} isLoading={submitQuery.isLoading} />
       </div>
 
       {/* Dialog de feedback */}

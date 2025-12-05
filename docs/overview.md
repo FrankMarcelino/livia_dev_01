@@ -19,6 +19,11 @@ Centro operacional de atendimento. Permite:
 - **Pausar/retomar** conversa (nível conversa) e IA (nível específico)
 - **Enviar mensagens manuais** (via n8n para canal)
 - **Retomar conversas encerradas** pela IA
+- **Quick Replies** - Comando "/" para respostas rápidas
+- **Message Feedback** - Like/dislike em mensagens da IA
+- **Conversation Summary** - Modal com dados extraídos do cliente
+- **4 Filtros** - Ativas, Aguardando, Encerradas, Todas
+- **Auto-Pause IA** - IA pausa ao atendente enviar mensagem
 
 ### 2. Base de Conhecimento
 Modelagem do conhecimento usado pela IA. Permite:
@@ -27,39 +32,126 @@ Modelagem do conhecimento usado pela IA. Permite:
   - Título, content, descrição, image_url
   - Estados: draft, indexing, publishing, error
   - Flag is_enabled (ativar/desativar)
+- **Layout Master-Detail** - Scroll horizontal de cards + tabela de synapses
 - **Fluxo de publicação**: draft → publish → n8n processa → embeddings criados e armazenados externamente
+- **Webhooks N8N** - Integração para sync/delete/toggle embeddings
 
 ### 3. Treinamento Neurocore
 Interface de teste e validação do comportamento da IA. Permite:
 - **Simular perguntas** para a IA
-- **Visualizar resposta** gerada
-- **Ver synapses usadas** na resposta
-- **Editar synapses** diretamente da tela (se identificar problemas)
-- **Despublicar/desabilitar/remover** synapses problemáticas
+- **Visualizar resposta** gerada (renderização markdown)
+- **Ver synapses usadas** na resposta com score de similaridade
+- **Feedback de respostas** - Like/dislike com comentário opcional
+- **Modo mock** configurável (desenvolvimento sem n8n)
+- **Auto-scroll** para última resposta
+- **Limite de 20 queries** no histórico (performance)
+
+### 4. CRM Kanban Board 🆕
+Organização visual de conversas. Permite:
+- **Board Kanban** com colunas por tags
+- **CRUD de tags** (nome, cor, ordem)
+- **Associação many-to-many** (conversa ↔ tags)
+- **Filtros** por status e busca
+- **Drag-and-drop** preparatório
+- **RLS policies** para multi-tenant
+
+### 5. Profile Page 🆕
+Perfil do usuário e controle global. Permite:
+- **Exibir** informações do usuário e tenant
+- **Avatar** display
+- **AI Global Pause Control** - Pausar TODA a IA do tenant
+  - Confirmação de segurança (digitar "PAUSAR")
+  - Persiste no banco (`tenants.ai_paused`)
+- **Logout**
 
 ## Estado Atual
-**Fase:** Setup e Planejamento ✅ COMPLETO
+**Fase:** MVP em Desenvolvimento - **~85% Completo** 🚀
 
 **Completado:**
-- ✅ Estrutura de documentação criada (CONTEXT, PROGRESS, DECISIONS)
-- ✅ Skill customizada do Claude Code criada (estrutura híbrida)
-- ✅ Decisões arquiteturais documentadas (MCP, Skills)
-- ✅ Referências técnicas detalhadas (n8n, Supabase, Frontend, States, Webhooks)
-- ✅ Schema do banco documentado e migração criada
-- ✅ Estados e fluxos mapeados
-- ✅ Webhooks n8n especificados
-- ✅ Tipos TypeScript exemplo gerados
+- ✅ **Projeto Next.js 15** configurado (App Router + TypeScript strict)
+- ✅ **Supabase** integrado (Auth + Database + Realtime)
+- ✅ **shadcn/ui** configurado (25+ componentes)
+- ✅ **Livechat** completo (19 componentes + Realtime + Quick Replies + Feedback)
+- ✅ **Base de Conhecimento** completa (hierarquia + master-detail + webhooks n8n)
+- ✅ **Treinamento Neurocore** completo (chat + feedback + modo mock)
+- ✅ **CRM Kanban Board** completo (tags + filtros + RLS)
+- ✅ **Profile Page** completo (AI Global Pause + user info)
+- ✅ **70+ componentes** criados
+- ✅ **14 API routes** implementadas
+- ✅ **9 migrações SQL** executadas
+- ✅ **20 decisões arquiteturais** documentadas
+- ✅ **15 itens do BACKLOG** concluídos
 
-**Próximo:** Iniciar desenvolvimento do projeto Next.js
+**Gaps Resolvidos:**
+- ✅ Gap #1: Hierarquia Base de Conhecimento (resolvido)
+- ✅ Gap #3: Feedback de mensagens (resolvido)
+- ✅ Gap #4: Respostas rápidas (resolvido)
+
+**Próximo:** Implementar Agent Templates UI (Super Admin Platform)
 
 ## Objetivos da Próxima Sessão
-- [ ] Criar projeto Next.js 15 com App Router
-- [ ] Configurar Supabase (client/server)
-- [ ] Rodar migração 001_schema_improvements.sql no Supabase
-- [ ] Configurar shadcn/ui
-- [ ] Criar estrutura de pastas do projeto
-- [ ] Gerar tipos TypeScript do Supabase (`npx supabase gen types`)
-- [ ] Configurar variáveis de ambiente (.env.local)
+- [ ] **Agent Templates UI** - Interface para gerenciar templates (prioridade alta)
+  - CRUD de templates (`agent_templates`)
+  - Formulário com validação Zod
+  - Integração com neurocores
+  - RLS policies
+- [ ] **Dashboard/Analytics** - KPIs, gráficos, métricas
+- [ ] **Cards por Conversa** - Refatoração livechat (Decisão #013)
+- [ ] **Drag-and-drop CRM** - Finalizar funcionalidade Kanban
+- [ ] **Testes E2E** - Cobertura de fluxos críticos
+
+## Features Adicionais Implementadas (Nov 20-Dez 04) 🆕
+
+### Quick Replies Management
+- Comando "/" no input abre painel flutuante
+- Busca em tempo real por título/emoji
+- Contador de uso automático (mais utilizadas destacadas)
+- CRUD completo de templates
+- 3 API routes + 5 componentes
+
+### Message Feedback System
+- Botões like/dislike em hover sobre mensagens da IA
+- Comentário opcional para feedback negativo
+- Storage em `message_feedbacks` com context JSON
+- Rastreabilidade completa
+
+### CRM Kanban Board
+- Board Kanban com colunas por tags
+- CRUD de tags (nome, cor, ordem)
+- Associação many-to-many (conversa ↔ tags)
+- Filtros por status e busca
+- RLS policies completas
+
+### Conversation Summary Modal
+- Botão "Resumo" no header da conversa
+- Exibe dados extraídos do contact
+- Campos: nome, telefone, email, metadata JSON
+- Funcionalidade copiar para clipboard
+
+### Profile Page + AI Global Pause
+- Página `/perfil` com dados do usuário e tenant
+- Switch para pausar TODA a IA do tenant
+- Confirmação de segurança (digitar "PAUSAR")
+- Persiste em `tenants.ai_paused`
+
+### Auto-Pause IA
+- IA pausa automaticamente quando atendente envia mensagem
+- Evita conflito entre respostas humanas e IA
+- Integração com webhook n8n
+- Badge visual muda automaticamente
+
+### Conversation Tags Management
+- Sistema completo de tags para conversas
+- Associação many-to-many (conversa ↔ tags)
+- RLS policies para isolamento multi-tenant
+- 3 migrações SQL
+
+### UI/UX Improvements
+- Logo adicionada à página de login
+- Melhorado UI dos balões de mensagens
+- Corrigida lógica de loading
+- Cores globais alteradas
+- Layout do header da conversa modificado
 
 ## Tecnologias Utilizadas
 - **Next.js 15** - Framework React com App Router

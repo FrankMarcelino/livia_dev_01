@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Brain, Kanban } from 'lucide-react';
+import { MessageSquare, BookOpen, Brain, Kanban, Bot } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -41,5 +41,10 @@ export const navItems: NavItem[] = [
     title: 'Treinamento Neurocore',
     url: '/neurocore',
     icon: Brain,
+  },
+  {
+    title: 'Meus Agentes IA',
+    url: '/meus-agentes',
+    icon: Bot,
   },
 ];
