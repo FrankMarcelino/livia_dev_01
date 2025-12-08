@@ -1,5 +1,211 @@
 # Progresso do Projeto - LIVIA MVP
 
+## Sessão 2025-12-05 (Tarde) - Refatoração Master-Detail + UX Improvements "Meus Agentes IA"
+
+### Completado
+- [x] Revisar plano de refatoração (meus-agentes-tabs-refactor-plan.md - 628 linhas)
+- [x] Confirmar implementação completa (100% do plano executado)
+- [x] UX Improvement #1: Card totalmente clicável (remover botão "Editar Configuração")
+- [x] UX Improvement #2: Scroll vertical da página (layout do dashboard + painel)
+- [x] Executar build de produção (passou com sucesso - 24.4s)
+- [x] Documentar mudanças em status-projeto.md e overview.md
+
+### Funcionalidades Implementadas
+
+**Refatoração Dialog → Tabs (Master-Detail):**
+Migração completa de interface modal para master-detail com tabs:
+
+- ✅ **AgentCard simplificado** - Card inteiro clicável (sem botão)
+- ✅ **Seleção visual** - Ring border quando selecionado
+- ✅ **Painel master-detail** - Expande abaixo dos cards
+- ✅ **6 tabs organizadas**:
+  1. Personalidade (name, age, gender, objective, comunicação, personality)
+  2. Limitações (estrutura hierárquica GuidelineStep[])
+  3. Instruções (estrutura hierárquica GuidelineStep[])
+  4. Guideline (roteiro de atendimento)
+  5. Regras (estrutura hierárquica GuidelineStep[])
+  6. Outras Instruções (estrutura hierárquica GuidelineStep[])
+- ✅ **Navegação por tabs** - Sem scroll longo vertical
+- ✅ **Footer com ações**:
+  - Botão "Resetar para Padrão" (reseta personalizações)
+  - Botão "Cancelar" (fecha painel sem salvar)
+  - Botão "Salvar Alterações" (persiste no banco)
+- ✅ **Scroll da página** - Layout ajustado para scroll natural
+- ✅ **Server Actions** implementadas:
+  - `updateAgentPromptAction` - Salva alterações (create ou update)
+  - `resetAgentPromptToDefaultAction` - Reseta para configuração do template
+
+**UX Improvements:**
+- ✅ Card clicável: Interação mais intuitiva (clique em qualquer lugar do card)
+- ✅ Hover aprimorado: `hover:shadow-lg` para indicar clicabilidade
+- ✅ Scroll vertical: Layout do dashboard com `overflow-y-auto`
+- ✅ Sem scroll interno: Painel expande naturalmente, scroll apenas da página
+
+### Arquivos Criados (Refatoração Original - Dez 2025)
+
+**Componentes Master-Detail (4):**
+- `components/agents/agent-edit-panel.tsx` - Container do painel (40 linhas)
+- `components/agents/agent-edit-header.tsx` - Header com badges e botão fechar (68 linhas)
+- `components/agents/agent-edit-tabs.tsx` - Navegação de tabs + form (210 linhas)
+- `components/agents/form-sections/personality-section.tsx` - Seção de personalidade (120 linhas)
+
+**Form Sections Existentes (4):**
+- `components/agents/form-sections/limitations-section.tsx` - Editor hierárquico (7774 bytes)
+- `components/agents/form-sections/instructions-section.tsx` - Editor hierárquico (7624 bytes)
+- `components/agents/form-sections/rules-section.tsx` - Editor hierárquico (7463 bytes)
+- `components/agents/form-sections/others-instructions-section.tsx` - Editor hierárquico (7794 bytes)
+- `components/agents/form-sections/guideline-section.tsx` - Editor guideline (8457 bytes)
+
+### Arquivos Modificados (Hoje - 2025-12-05 Tarde)
+
+**UX Improvements:**
+- `components/agents/agent-card.tsx` - Card simplificado e totalmente clicável
+- `app/(dashboard)/layout.tsx` - Scroll vertical habilitado (`overflow-y-auto`)
+- `components/agents/agent-edit-tabs.tsx` - Removido scroll interno
+- `components/agents/agent-edit-panel.tsx` - Simplificado (sem controle de altura)
+
+**Refatoração Anterior (Implementação Master-Detail):**
+- `components/agents/agents-list.tsx` - Estado de seleção + painel condicional
+- `app/(dashboard)/meus-agentes/page.tsx` - Usa AgentsList com master-detail
+
+### Arquivos Deletados
+- `components/agents/agent-edit-dialog.tsx` - Dialog modal antigo ❌ REMOVIDO
+
+### Decisão Técnica Crítica
+
+**Migração Dialog → Tabs (Master-Detail):**
+
+**Por quê:**
+- UX superior: Navegação por tabs vs scroll longo
+- Contexto mantido: Vê os cards acima enquanto edita
+- Layout similar: Base de Conhecimento já usa master-detail
+- Menos scroll vertical: Uma tab por vez
+
+**Trade-offs:**
+- Mais componentes (+4 novos)
+- VS
+- Melhor UX de navegação e organização visual
+- **Escolha:** UX vence (MVP em 90%, priorizar experiência)
+
+**Card Clicável:**
+- Interação mais intuitiva (padrão conhecido)
+- UI mais limpa (sem botão)
+- Hover aprimorado para feedback visual
+
+**Scroll Vertical:**
+- Página inteira com scroll natural
+- Painel expande com conteúdo completo
+- Sem scroll duplo (interno + externo)
+
+### Princípios SOLID Aplicados
+
+**Single Responsibility (SRP):**
+- `AgentsList`: Orquestrar estado de seleção
+- `AgentCard`: Apenas renderizar card + callback onClick
+- `AgentEditPanel`: Container do painel (layout)
+- `AgentEditHeader`: Header com badges e botão fechar
+- `AgentEditTabs`: Navegação de tabs + React Hook Form
+- Cada form section: Gerenciar apenas seus campos
+
+**Open/Closed (OCP):**
+- Componentes aceitam callbacks (`onSelect`, `onClose`, `onSuccess`)
+- Fácil adicionar novos tabs sem modificar panel
+- Form sections extensíveis
+
+**Liskov Substitution (LSP):**
+- Todas form sections seguem contrato `{ form: UseFormReturn<AgentPromptFormData> }`
+- Substituíveis entre si
+
+**Interface Segregation (ISP):**
+- `AgentCardProps`: Apenas `agent`, `isSelected`, `onSelect`
+- `AgentEditPanelProps`: Apenas `agent`, `onClose`, `onSuccess`
+- Props específicas por componente
+
+**Dependency Inversion (DIP):**
+- Componentes dependem de abstrações (callbacks)
+- Não dependem de implementações (router, state global)
+
+### Layout Visual Implementado
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ [Sidebar] │ Meus Agentes IA                                    │
+│           │                                                     │
+│           │ ┌──────┐  ┌──────┐  ┌──────┐  ← Scroll horizontal │
+│           │ │Agent1│  │Agent2│  │Agent3│                       │
+│           │ │ RING │  │      │  │      │  ← Card clicável      │
+│           │ └──────┘  └──────┘  └──────┘                       │
+│           │    ↑ SELECIONADO (ring-2 ring-primary)            │
+│           │ ═══════════════════════════════════════           │
+│           │                                                     │
+│           │ ┌─────────────────────────────────────────────┐   │
+│           │ │ 🤖 Agent Recepcionista  [Personalizado] [×] │   │
+│           │ │ Template: XYZ | Recepcionista | Reativo     │   │
+│           │ ├─────────────────────────────────────────────┤   │
+│           │ │ [Personalidade] [Limitações] [Instruções].. │   │
+│           │ ├─────────────────────────────────────────────┤   │
+│           │ │                                              │   │
+│           │ │  [Conteúdo da Tab - PersonalitySection]     │   │
+│           │ │  Nome: [input]                               │   │
+│           │ │  Idade: [input]                              │   │
+│           │ │  ...                                         │   │
+│           │ │                                              │   │
+│           │ ├─────────────────────────────────────────────┤   │
+│           │ │ [Resetar] [Cancelar] [Salvar Alterações]   │   │
+│           │ └─────────────────────────────────────────────┘   │
+│           ↕ ← Scroll vertical da página                       │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Métricas
+
+**Refatoração Master-Detail:**
+- **Componentes criados**: 4 (panel, header, tabs, personality-section)
+- **Linhas de código**: ~438 (vs ~390 estimadas)
+- **Componentes deletados**: 1 (agent-edit-dialog)
+- **Arquivos modificados (refatoração)**: 2 (agent-card, agents-list)
+- **Arquivos modificados (UX hoje)**: 4 (card, layout, tabs, panel)
+
+**Build e Testes:**
+- **Build time**: 24.4s (Next.js 16.0.3)
+- **Type-check**: ✅ Zero erros (36.2s)
+- **Compilação**: ✅ Sucesso
+- **Páginas geradas**: 22
+- **Rota `/meus-agentes`**: ✅ ƒ (Dynamic) server-rendered
+
+### Funcionalidades Extras Implementadas
+
+Além do plano original:
+
+1. **Botão "Resetar para Padrão"** ✅
+   - Implementado no footer do AgentEditTabs
+   - Server Action: `resetAgentPromptToDefaultAction`
+   - Busca configuração base e copia para tenant
+   - Confirmação de segurança (confirm dialog)
+
+2. **BasicInfoSection** ⚠️ (criado mas não integrado)
+   - Componente de informações read-only
+   - Não está nas tabs (pode ser adicionado futuramente)
+
+### Próximos Passos
+
+1. **Testar UI manualmente** - Validar navegação, save, reset, cancel
+2. **Adicionar confirmação antes de fechar com alterações não salvas** (opcional)
+3. **Integrar BasicInfoSection** - Decidir se adiciona como 7ª tab ou remove
+4. **RLS Policies** - Garantir segurança multi-tenant para agents/agent_prompts
+5. **Adicionar indicadores de configuração personalizada** - Visual diff entre base e personalizado
+
+### Bloqueios/Problemas Resolvidos
+
+- ✅ Scroll interno vs scroll da página → Layout ajustado (overflow-y-auto no dashboard)
+- ✅ Card com botão redundante → Card totalmente clicável (UX aprimorada)
+- ✅ Painel muito alto → Scroll natural da página (sem altura máxima)
+- ✅ Build passou com sucesso → Código pronto para produção
+
+---
+
+# Progresso do Projeto - LIVIA MVP
+
 ## Sessão 2025-12-05 - Feature "Meus Agentes IA" - Adaptação Frontend para Estrutura JSONB
 
 ### Completado

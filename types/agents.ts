@@ -10,7 +10,6 @@ export type Agent = {
   template_id: string | null;
   name: string;
   type: Database['public']['Enums']['agent_type_enum'];
-  function?: Database['public']['Enums']['agent_function_enum']; // Opcional - campo não existe no banco
   created_at: string;
   updated_at: string;
 };
@@ -39,6 +38,34 @@ export type AgentPrompt = {
 
   created_at: string;
   updated_at: string;
+};
+
+// AgentPromptIntention - Tabela agent_prompts_intention
+export type AgentPromptIntention = {
+  id: string;
+  id_agent: string;
+  id_tenant: string | null;
+  prompt: string | null;
+  created_at: string;
+};
+
+// AgentPromptObserver - Tabela agent_prompts_observer
+export type AgentPromptObserver = {
+  id: string;
+  id_agent: string;
+  id_tenant: string | null;
+  prompt: string | null;
+  created_at: string;
+};
+
+// AgentPromptGuardRails - Tabela agent_prompts_guard_rails
+export type AgentPromptGuardRails = {
+  id: string;
+  id_agent: string;
+  id_tenant: string | null;
+  prompt_jailbreak: string | null;
+  prompt_nsfw: string | null;
+  created_at: string;
 };
 
 // AgentTemplate - configurações base criadas pelo Super Admin
@@ -107,8 +134,10 @@ export type AgentPromptFormData = {
 
 // Agent type labels for UI (baseado em agent_type_enum)
 export const AGENT_TYPE_LABELS: Record<string, string> = {
-  active: 'Proativo',    // database usa "active" não "proactive"
-  reactive: 'Reativo',
+  attendant: 'Atendente',
+  intention: 'Intenção',
+  observer: 'Observador',
+  in_guard_rails: 'Guard Rails',
 };
 
 // Agent function labels for UI (baseado em agent_function_enum)

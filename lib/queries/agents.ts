@@ -44,12 +44,7 @@ export async function getAgentsByTenant(tenantId: string) {
     .order('name');
 
   if (agentsError) {
-    console.error('[getAgentsByTenant] Error fetching agents:', {
-      message: agentsError.message,
-      details: agentsError.details,
-      hint: agentsError.hint,
-      code: agentsError.code,
-    });
+    console.error('[getAgentsByTenant] Error fetching agents:', JSON.stringify(agentsError, null, 2));
     throw agentsError;
   }
 

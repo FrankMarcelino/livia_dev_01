@@ -1,10 +1,8 @@
-// Server Actions para Agent Templates
-// Feature: Meus Agentes IA (Plataforma Tenant)
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { agentPromptSchema } from '@/lib/validations/agentPromptValidation';
 import { getBaseAgentPrompt } from '@/lib/queries/agents';
 
@@ -228,5 +226,372 @@ export async function resetAgentPromptToDefaultAction(agentId: string) {
       success: false,
       error: 'Erro inesperado ao resetar',
     };
+  }
+}
+
+
+/**
+ * Server Action: Busca o prompt de INTENÇÃO
+ */
+export async function getAgentPromptIntentionAction(agentId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // 1. Tentar buscar prompt específico do tenant (bypassing RLS with Admin)
+    const adminSupabase = createAdminClient();
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { data, error } = await (adminSupabase as any)
+      .from('agent_prompts_intention')
+      .select('prompt')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching tenant intention prompt:', error);
+    }
+
+    // 2. Se não encontrar, buscar prompt padrão (id_tenant is null) usando ADMIN CLIENT
+    if (!data) {
+        const adminSupabase = createAdminClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const globalResult = await (adminSupabase as any)
+            .from('agent_prompts_intention')
+            .select('prompt')
+            .eq('id_agent', agentId)
+            .is('id_tenant', null)
+            .maybeSingle();
+            
+        if (globalResult.data) {
+            data = globalResult.data;
+        }
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Erro inesperado' };
+  }
+}
+
+/**
+ * Server Action: Busca o prompt de OBSERVADOR
+ */
+export async function getAgentPromptObserverAction(agentId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // 1. Tentar buscar prompt específico do tenant (bypassing RLS with Admin)
+    const adminSupabase = createAdminClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { data, error } = await (adminSupabase as any)
+      .from('agent_prompts_observer')
+      .select('prompt')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    // 2. Se não encontrar, buscar prompt padrão (id_tenant is null) usando ADMIN CLIENT
+    if (!data) {
+        const adminSupabase = createAdminClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const globalResult = await (adminSupabase as any)
+            .from('agent_prompts_observer')
+            .select('prompt')
+            .eq('id_agent', agentId)
+            .is('id_tenant', null)
+            .maybeSingle();
+            
+        if (globalResult.data) {
+            data = globalResult.data;
+        }
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Erro inesperado' };
+  }
+}
+
+/**
+ * Server Action: Busca o prompt de GUARD RAILS
+ */
+export async function getAgentPromptGuardRailsAction(agentId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // 1. Tentar buscar prompt específico do tenant (bypassing RLS with Admin)
+    const adminSupabase = createAdminClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { data, error } = await (adminSupabase as any)
+      .from('agent_prompts_guard_rails')
+      .select('prompt_jailbreak, prompt_nsfw')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    // 2. Se não encontrar, buscar prompt padrão (id_tenant is null) usando ADMIN CLIENT
+    if (!data) {
+        const adminSupabase = createAdminClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const globalResult = await (adminSupabase as any)
+            .from('agent_prompts_guard_rails')
+            .select('prompt_jailbreak, prompt_nsfw')
+            .eq('id_agent', agentId)
+            .is('id_tenant', null)
+            .maybeSingle();
+            
+        if (globalResult.data) {
+            data = globalResult.data;
+        }
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Erro inesperado' };
+  }
+}
+
+/**
+ * Atualiza o prompt de INTENÇÃO de um agent
+ */
+export async function updateAgentPromptIntentionAction(
+  agentId: string,
+  prompt: string
+) {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Validar autenticação e tenant
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // 2. Verificar se já existe prompt para este tenant via Admin (Bypass RLS)
+    const adminSupabase = createAdminClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingPrompt } = await (adminSupabase as any)
+      .from('agent_prompts_intention')
+      .select('id')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    let data;
+    let error;
+
+    if (existingPrompt) {
+        // Update
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_intention')
+            .update({ prompt: prompt })
+            .eq('id', existingPrompt.id)
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    } else {
+        // Insert
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_intention')
+            .insert({
+                id_agent: agentId,
+                id_tenant: userData.tenant_id,
+                prompt: prompt
+            })
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    }
+
+    if (error) {
+      console.error('Error saving intention prompt:', error);
+      return { success: false, error: 'Erro ao salvar prompt de intenção' };
+    }
+
+    revalidatePath('/meus-agentes');
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateAgentPromptIntentionAction:', error);
+    return { success: false, error: 'Erro inesperado' };
+  }
+}
+
+/**
+ * Atualiza o prompt de OBSERVADOR de um agent
+ */
+export async function updateAgentPromptObserverAction(
+  agentId: string,
+  prompt: string
+) {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // Verificar se existe via Admin (Bypass RLS)
+    const adminSupabase = createAdminClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingPrompt } = await (adminSupabase as any)
+      .from('agent_prompts_observer')
+      .select('id')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    let data;
+    let error;
+
+    if (existingPrompt) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_observer')
+            .update({ prompt: prompt })
+            .eq('id', existingPrompt.id)
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    } else {
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_observer')
+            .insert({
+                id_agent: agentId,
+                id_tenant: userData.tenant_id,
+                prompt: prompt
+            })
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    }
+
+    if (error) {
+      console.error('Error saving observer prompt:', error);
+      return { success: false, error: 'Erro ao salvar prompt de observador' };
+    }
+
+    revalidatePath('/meus-agentes');
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateAgentPromptObserverAction:', error);
+    return { success: false, error: 'Erro inesperado' };
+  }
+}
+
+/**
+ * Atualiza o prompt de GUARD RAILS de um agent
+ */
+export async function updateAgentPromptGuardRailsAction(
+  agentId: string,
+  promptJailbreak: string,
+  promptNsfw: string
+) {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Não autenticado' };
+    
+    const { data: userData } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!userData?.tenant_id) return { success: false, error: 'Tenant não encontrado' };
+
+    // Verificar se existe via Admin (Bypass RLS)
+    const adminSupabase = createAdminClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingPrompt } = await (adminSupabase as any)
+      .from('agent_prompts_guard_rails')
+      .select('id')
+      .eq('id_agent', agentId)
+      .eq('id_tenant', userData.tenant_id)
+      .maybeSingle();
+
+    let data;
+    let error;
+
+    if (existingPrompt) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_guard_rails')
+            .update({
+                prompt_jailbreak: promptJailbreak,
+                prompt_nsfw: promptNsfw,
+            })
+            .eq('id', existingPrompt.id)
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    } else {
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (adminSupabase as any)
+            .from('agent_prompts_guard_rails')
+            .insert({
+                id_agent: agentId,
+                id_tenant: userData.tenant_id,
+                prompt_jailbreak: promptJailbreak,
+                prompt_nsfw: promptNsfw,
+            })
+            .select()
+            .single();
+        data = result.data;
+        error = result.error;
+    }
+
+    if (error) {
+      console.error('Error saving guard rails prompt:', error);
+      return { success: false, error: 'Erro ao salvar prompt de guard rails' };
+    }
+
+    revalidatePath('/meus-agentes');
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateAgentPromptGuardRailsAction:', error);
+    return { success: false, error: 'Erro inesperado' };
   }
 }

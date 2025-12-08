@@ -5,16 +5,30 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAgentsByTenant } from '@/lib/queries/agents';
 import { AgentsList } from '@/components/agents/agents-list';
+import { AgentCategorySelector, AgentCategory } from '@/components/agents/navigation/agent-category-selector';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const metadata = {
   title: 'Meus Agentes IA | LIVIA',
   description: 'Gerencie as configurações dos seus agentes de inteligência artificial',
 };
 
-export default async function MeusAgentesPage() {
-  const supabase = await createClient();
+// Interface correta para Next.js 13+ Server Components
+// searchParams é uma Promise em versões mais novas, mas em Next 13/14 pode ser objeto direto dependendo da config.
+// Assumindo padrão mais comum:
+interface PageProps {
+  searchParams: {
+    category?: string;
+  };
+}
 
-  console.log('[MeusAgentesPage] Starting...');
+export default async function MeusAgentesPage({ searchParams }: PageProps) {
+  const supabase = await createClient();
+  const { category: categoryParam } = await searchParams; // Await params
+  const category = (categoryParam as AgentCategory) || 'main';
+
+  console.log('[MeusAgentesPage] Starting... Category:', category);
 
   // Verificar autenticação
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -24,8 +38,6 @@ export default async function MeusAgentesPage() {
     redirect('/login');
   }
 
-  console.log('[MeusAgentesPage] User authenticated:', user.id);
-
   // Buscar tenant_id do usuário
   const { data: userData, error: userError } = await supabase
     .from('users')
@@ -33,24 +45,16 @@ export default async function MeusAgentesPage() {
     .eq('id', user.id)
     .single();
 
-  if (userError) {
-    console.error('[MeusAgentesPage] Error fetching user data:', {
-      message: userError.message,
-      details: userError.details,
-      code: userError.code,
-    });
-  }
-
   if (userError || !userData?.tenant_id) {
-    console.log('[MeusAgentesPage] No tenant found for user');
     return (
       <div className="container mx-auto py-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive">Erro</h1>
-          <p className="text-muted-foreground mt-2">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>
             Tenant não encontrado. Entre em contato com o suporte.
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -61,20 +65,36 @@ export default async function MeusAgentesPage() {
   let agents;
   try {
     agents = await getAgentsByTenant(userData.tenant_id);
-    console.log('[MeusAgentesPage] Agents loaded successfully:', agents.length);
+    
+    // Filtrar agents por categoria usando a coluna TYPE (Confirmed via User Screenshot)
+    switch (category) {
+      case 'intention':
+        agents = agents.filter(a => a.type === 'intention');
+        break;
+      case 'observer':
+        agents = agents.filter(a => a.type === 'observer');
+        break;
+      case 'guard-rails':
+        agents = agents.filter(a => a.type === 'in_guard_rails');
+        break;
+      case 'main':
+      default:
+        agents = agents.filter(a => a.type === 'attendant');
+        break;
+    }
+    
+    console.log('[MeusAgentesPage] Agents loaded:', agents.length, 'for category:', category);
   } catch (error) {
     console.error('[MeusAgentesPage] Error loading agents:', error);
     return (
       <div className="container mx-auto py-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive">Erro</h1>
-          <p className="text-muted-foreground mt-2">
-            Erro ao carregar agents. Tente novamente mais tarde.
-          </p>
-          <pre className="mt-4 text-xs text-left bg-muted p-4 rounded">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar agentes</AlertTitle>
+          <AlertDescription>
             {error instanceof Error ? error.message : String(error)}
-          </pre>
-        </div>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -88,9 +108,12 @@ export default async function MeusAgentesPage() {
           Gerencie as configurações dos seus agentes de inteligência artificial
         </p>
       </div>
+
+      {/* Seletor de Categoria */}
+      <AgentCategorySelector currentCategory={category} />
       
-      {/* Lista de Agents */}
-      <AgentsList agents={agents} />
+      {/* Lista de Agents - Passamos a categoria atual */}
+      <AgentsList key={category} agents={agents} currentCategory={category} />
     </div>
   );
 }

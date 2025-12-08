@@ -1115,7 +1115,7 @@ export type Database = {
       access_user_role: "super_admin" | "user"
       agent_function_enum: "support" | "sales" | "after_sales" | "research"
       agent_gender_enum: "male" | "female"
-      agent_type_enum: "reactive" | "active"
+      agent_type_enum: "attendant" | "intention" | "observer" | "in_guard_rails"
       contact_status_enum: "open" | "with_ai" | "paused" | "closed"
       conversation_status_enum: "open" | "paused" | "closed"
       feedback_process_status_enum: "open" | "in_progress" | "closed"
@@ -1253,7 +1253,7 @@ export const Constants = {
       access_user_role: ["super_admin", "user"],
       agent_function_enum: ["support", "sales", "after_sales", "research"],
       agent_gender_enum: ["male", "female"],
-      agent_type_enum: ["reactive", "active"],
+      agent_type_enum: ["attendant", "intention", "observer", "in_guard_rails"],
       contact_status_enum: ["open", "with_ai", "paused", "closed"],
       conversation_status_enum: ["open", "paused", "closed"],
       feedback_process_status_enum: ["open", "in_progress", "closed"],

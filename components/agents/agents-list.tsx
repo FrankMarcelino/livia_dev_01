@@ -9,11 +9,14 @@ import { AgentCard } from './agent-card';
 import { AgentEditPanel } from './agent-edit-panel';
 import type { AgentWithPrompt } from '@/types/agents';
 
+import { AgentCategory } from './navigation/agent-category-selector';
+
 interface AgentsListProps {
   agents: AgentWithPrompt[];
+  currentCategory?: AgentCategory;
 }
 
-export function AgentsList({ agents }: AgentsListProps) {
+export function AgentsList({ agents, currentCategory = 'main' }: AgentsListProps) {
   const router = useRouter();
   const [selectedAgent, setSelectedAgent] = useState<AgentWithPrompt | null>(null);
 
@@ -73,10 +76,12 @@ export function AgentsList({ agents }: AgentsListProps) {
         <>
           <div className="border-t my-6" />
 
+
           <AgentEditPanel
             agent={selectedAgent}
             onClose={() => setSelectedAgent(null)}
             onSuccess={handleSuccess}
+            currentCategory={currentCategory}
           />
         </>
       )}

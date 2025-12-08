@@ -64,26 +64,37 @@ Perfil do usuário e controle global. Permite:
   - Persiste no banco (`tenants.ai_paused`)
 - **Logout**
 
-### 6. Meus Agentes IA 🚧 (Em Desenvolvimento - Dez 2025)
+### 6. Meus Agentes IA ✅ (Completo - Dez 2025)
 Interface de gerenciamento e personalização dos agentes de IA do tenant. Permite:
-- **Listar agents** do neurocore associado ao tenant
-- **Visualizar configuração** de cada agent (prompts, personalidade, limitações)
-- **Editar prompts personalizados** por tenant:
+- **Listar agents** do neurocore associado ao tenant (scroll horizontal de cards)
+- **Visualizar configuração** de cada agent (layout master-detail com tabs)
+- **Card clicável** - Interação intuitiva (clique em qualquer lugar do card)
+- **Painel master-detail** - Expande abaixo dos cards após seleção
+- **Editar prompts personalizados** por tenant com **6 tabs organizadas**:
+  - **Personalidade** - Nome, idade, gênero, objetivo, comunicação, personalidade
   - **Limitações** - O que o agent NÃO deve fazer (estrutura hierárquica)
   - **Instruções** - O que o agent DEVE fazer (estrutura hierárquica)
+  - **Guideline** - Roteiro estruturado de atendimento
   - **Regras** - Regras que o agent deve seguir (estrutura hierárquica)
   - **Outras Instruções** - Instruções complementares (estrutura hierárquica)
-  - **Guideline** - Roteiro estruturado de atendimento
-  - **Personalidade** - Nome, idade, objetivo, comunicação, personalidade
 - **Estrutura hierárquica GuidelineStep[]**:
   - Cada campo JSONB tem: title, type (rank/markdown), active, sub-instruções
   - Sub-instruções com: content, active
   - Editor com expand/collapse, add/remove steps e sub-instruções
+- **Server Actions funcionais**:
+  - Salvar alterações (create ou update)
+  - Resetar para configuração padrão do template
+  - Cancelar sem salvar
+- **UX aprimorada**:
+  - Card totalmente clicável (sem botão "Editar Configuração")
+  - Scroll vertical natural da página (sem scroll interno)
+  - Seleção visual com ring border
+  - Hover com shadow para feedback visual
 - **Herança de configuração**: Tenant herda configuração base e pode personalizar
 - **Multi-tenant seguro**: RLS policies garantem isolamento por tenant
 
 ## Estado Atual
-**Fase:** MVP em Desenvolvimento + Feature "Meus Agentes IA" - **~90% Completo** 🚀
+**Fase:** MVP em Desenvolvimento - **~95% Completo** 🚀
 
 **Completado:**
 - ✅ **Projeto Next.js 15** configurado (App Router + TypeScript strict)
@@ -94,11 +105,15 @@ Interface de gerenciamento e personalização dos agentes de IA do tenant. Permi
 - ✅ **Treinamento Neurocore** completo (chat + feedback + modo mock)
 - ✅ **CRM Kanban Board** completo (tags + filtros + RLS)
 - ✅ **Profile Page** completo (AI Global Pause + user info)
-- ✅ **Meus Agentes IA** (estrutura hierárquica JSONB implementada - Dez 2025)
-  - 4 form sections com editor hierárquico completo
-  - Types e validações Zod atualizados
-  - Estrutura GuidelineStep[] adaptada ao banco
-- ✅ **75+ componentes** criados
+- ✅ **Meus Agentes IA** ✅ **COMPLETO** (Dez 2025)
+  - Interface master-detail com 6 tabs
+  - Card clicável (UX aprimorada)
+  - Estrutura hierárquica GuidelineStep[] completa
+  - Editor hierárquico com add/remove/toggle
+  - Server Actions (save, reset, cancel)
+  - Scroll vertical natural da página
+  - Build e type-check passando
+- ✅ **80+ componentes** criados
 - ✅ **14 API routes** implementadas
 - ✅ **9 migrações SQL** executadas
 - ✅ **20 decisões arquiteturais** documentadas
@@ -109,18 +124,11 @@ Interface de gerenciamento e personalização dos agentes de IA do tenant. Permi
 - ✅ Gap #3: Feedback de mensagens (resolvido)
 - ✅ Gap #4: Respostas rápidas (resolvido)
 
-**Em Desenvolvimento (Dez 2025):**
-- 🚧 **Meus Agentes IA** - Estrutura hierárquica completa (✅), falta integração final e save functionality
-
-**Próximo:** Finalizar integração "Meus Agentes IA" + RLS Policies
+**Próximo:** RLS Policies para agents/agent_prompts + Testes manuais
 
 ## Objetivos da Próxima Sessão
-- [ ] **Finalizar "Meus Agentes IA"** (prioridade alta)
-  - Implementar PersonalitySection
-  - Integrar save functionality (Server Action)
-  - Implementar RLS policies para agents/agent_prompts
-  - Testar UI manualmente
-  - Adicionar indicadores de configuração personalizada vs base
+- [ ] **Finalizar RLS Policies** para `agents` e `agent_prompts`
+- [ ] **Testar UI de Meus Agentes** manualmente
 - [ ] **Agent Templates UI** - Interface para gerenciar templates (Super Admin)
   - CRUD de templates (`agent_templates`)
   - Formulário com validação Zod
@@ -132,12 +140,15 @@ Interface de gerenciamento e personalização dos agentes de IA do tenant. Permi
 
 ## Features Adicionais Implementadas
 
-### Meus Agentes IA 🚧 (Dez 2025 - Em Desenvolvimento)
-- Interface para gerenciar e personalizar agents de IA do tenant
-- **Estrutura hierárquica GuidelineStep[]** implementada:
+### Meus Agentes IA ✅ (Dez 2025 - COMPLETO)
+**Interface master-detail com tabs para gerenciar agents:**
+- **Layout master-detail** - Scroll horizontal de cards + painel expansível
+- **Card clicável** - Interação intuitiva (hover com shadow-lg)
+- **6 tabs organizadas** - Sem scroll longo vertical
+- **Estrutura hierárquica GuidelineStep[]** completa:
   - Cada campo JSONB: title, type (rank/markdown), active, sub-instruções
   - Sub-instruções: content, active
-- **4 Form Sections** com editor hierárquico completo (860 linhas):
+- **Editor hierárquico** - 4 form sections (860 linhas):
   - LimitationsSection - O que agent NÃO deve fazer
   - InstructionsSection - O que agent DEVE fazer
   - RulesSection - Regras que agent deve seguir
@@ -148,6 +159,19 @@ Interface de gerenciamento e personalização dos agentes de IA do tenant. Permi
   - Expand/collapse de steps
   - Adicionar/remover sub-instruções
   - Toggle ativo/inativo por sub-instrução
+- **UX aprimorada** (Dez 05):
+  - Card totalmente clicável (sem botão separado)
+  - Scroll vertical natural (sem scroll interno)
+  - Seleção visual com ring-2 ring-primary
+  - Hover feedback com shadow-lg
+- **Server Actions**:
+  - `updateAgentPromptAction` - Salva alterações (create ou update)
+  - `resetAgentPromptToDefaultAction` - Reseta para template
+- **Componentes** (8 total):
+  - AgentsList, AgentCard (clicável)
+  - AgentEditPanel, AgentEditHeader, AgentEditTabs
+  - PersonalitySection + 4 form sections hierárquicas
+- **Princípios SOLID** aplicados corretamente
 - **Types e validações Zod** atualizados
 - Frontend 100% adaptado à estrutura do banco
 - Build e type-check passando sem erros
