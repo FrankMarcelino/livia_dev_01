@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { navItems } from './nav-items';
 import { cn } from '@/lib/utils';
@@ -50,6 +53,7 @@ export function AppSidebar({
   avatarUrl,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -116,7 +120,7 @@ export function AppSidebar({
                             isActive && 'text-primary'
                           )}
                         />
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 flex-1">
                           {item.title}
                           {item.badge === 'BETA' && (
                             <span className="text-[10px] font-normal text-muted-foreground">
@@ -126,6 +130,37 @@ export function AppSidebar({
                         </span>
                       </Link>
                     </SidebarMenuButton>
+                    
+                    {/* Render Submenu if active and has items */}
+                    {item.items && isActive && (
+                      <SidebarMenuSub>
+                        {item.items.map((subItem) => {
+                          // Simple check for query param match if present
+                          const subQuery = subItem.url.split('?')[1];
+                          const subCategory = new URLSearchParams(subQuery || '').get('category');
+                          const currentCategory = searchParams.get('category'); // We need to import useSearchParams
+                          
+                          // Active if paths match AND (if category is present, it matches context)
+                          // Fallback: if no category in URL but we are on the page, maybe highlight first?
+                          // The user logic in page.tsx defaults to 'main'.
+                          // So if currentCategory is null and subCategory is 'main', it's active.
+                          
+                          const isSubActive = subCategory 
+                            ? (currentCategory === subCategory || (!currentCategory && subCategory === 'main'))
+                            : pathname === subItem.url;
+
+                          return (
+                            <SidebarMenuSubItem key={subItem.url}>
+                              <SidebarMenuSubButton asChild isActive={isSubActive}>
+                                <Link href={subItem.url}>
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

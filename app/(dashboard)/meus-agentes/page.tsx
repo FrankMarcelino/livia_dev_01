@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAgentsByTenant } from '@/lib/queries/agents';
 import { AgentsList } from '@/components/agents/agents-list';
-import { AgentCategorySelector, AgentCategory } from '@/components/agents/navigation/agent-category-selector';
+import { AgentCategory } from '@/components/agents/navigation/agent-category-selector';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -27,13 +27,13 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
   const category = (resolvedParams.category as AgentCategory) || 'main';
 
-  console.log('[MeusAgentesPage] Starting... Category:', category);
+  console.warn('[MeusAgentesPage] Starting... Category:', category);
 
   // Verificar autenticação
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    console.log('[MeusAgentesPage] Auth error or no user, redirecting to login');
+    console.warn('[MeusAgentesPage] Auth error or no user, redirecting to login');
     redirect('/login');
   }
 
@@ -58,7 +58,7 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
     );
   }
 
-  console.log('[MeusAgentesPage] Tenant ID:', userData.tenant_id);
+  console.warn('[MeusAgentesPage] Tenant ID:', userData.tenant_id);
 
   // Buscar agents do tenant
   let agents;
@@ -82,7 +82,7 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
         break;
     }
     
-    console.log('[MeusAgentesPage] Agents loaded:', agents.length, 'for category:', category);
+    console.warn('[MeusAgentesPage] Agents loaded:', agents.length, 'for category:', category);
   } catch (error) {
     console.error('[MeusAgentesPage] Error loading agents:', error);
     return (
@@ -108,8 +108,6 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {/* Seletor de Categoria */}
-      <AgentCategorySelector currentCategory={category} />
       
       {/* Lista de Agents - Passamos a categoria atual */}
       <AgentsList key={category} agents={agents} currentCategory={category} />
