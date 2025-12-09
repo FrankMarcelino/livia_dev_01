@@ -10,7 +10,6 @@ export type Agent = {
   template_id: string | null;
   name: string;
   type: Database['public']['Enums']['agent_type_enum'];
-  function: Database['public']['Enums']['agent_function_enum'];
   created_at: string;
   updated_at: string;
 };

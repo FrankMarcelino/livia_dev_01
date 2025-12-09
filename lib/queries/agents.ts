@@ -37,7 +37,6 @@ export async function getAgentsByTenant(tenantId: string) {
       id,
       name,
       type,
-      function,
       template_id,
       created_at,
       updated_at
@@ -183,7 +182,6 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
       id,
       name,
       type,
-      function,
       template_id,
       created_at,
       updated_at

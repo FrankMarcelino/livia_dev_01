@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import type { AgentWithPrompt } from '@/types/agents';
-import { AGENT_FUNCTION_LABELS } from '@/types/agents';
+import { AGENT_TYPE_LABELS } from '@/types/agents';
 
 interface AgentEditHeaderProps {
   agent: AgentWithPrompt;
@@ -43,7 +43,7 @@ export function AgentEditHeader({ agent, onClose }: AgentEditHeaderProps) {
 
           {/* Tipo do Agent */}
           <Badge variant="outline">
-            {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'}
+            {AGENT_TYPE_LABELS[agent.type]}
           </Badge>
 
           {/* Modo (Reativo/Proativo) - COMMENTED OUT: type field has different values now */}

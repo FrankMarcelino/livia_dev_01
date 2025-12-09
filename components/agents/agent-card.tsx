@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { AgentWithPrompt } from '@/types/agents';
-import { AGENT_FUNCTION_LABELS } from '@/types/agents';
+import { AGENT_TYPE_LABELS } from '@/types/agents';
 
 interface AgentCardProps {
   agent: AgentWithPrompt;
@@ -29,7 +29,7 @@ export function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
             <div className="flex-1 min-w-0">
               <CardTitle className="truncate">{agent.name}</CardTitle>
               <CardDescription className="mt-1">
-                {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'}
+                {AGENT_TYPE_LABELS[agent.type]}
               </CardDescription>
             </div>
             {agent.is_customized && (

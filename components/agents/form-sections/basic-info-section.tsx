@@ -4,7 +4,7 @@
 'use client';
 
 import type { AgentWithPrompt } from '@/types/agents';
-import { AGENT_FUNCTION_LABELS } from '@/types/agents';
+import { AGENT_TYPE_LABELS } from '@/types/agents';
 
 interface BasicInfoSectionProps {
   agent: AgentWithPrompt;
@@ -29,7 +29,7 @@ export function BasicInfoSection({ agent }: BasicInfoSectionProps) {
         <div>
           <label className="text-xs font-medium text-muted-foreground">Tipo</label>
           <p className="text-sm font-medium mt-1">
-            {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'}
+            {AGENT_TYPE_LABELS[agent.type]}
           </p>
         </div>
 
