@@ -14,19 +14,18 @@ export const metadata = {
   description: 'Gerencie as configurações dos seus agentes de inteligência artificial',
 };
 
-// Interface correta para Next.js 13+ Server Components
-// searchParams é uma Promise em versões mais novas, mas em Next 13/14 pode ser objeto direto dependendo da config.
-// Assumindo padrão mais comum:
+// Interface correta para Next.js 16+ Server Components
+// searchParams é uma Promise em Next.js 16+
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     category?: string;
-  };
+  }>;
 }
 
 export default async function MeusAgentesPage({ searchParams }: PageProps) {
   const supabase = await createClient();
-  const { category: categoryParam } = await searchParams; // Await params
-  const category = (categoryParam as AgentCategory) || 'main';
+  const resolvedParams = await searchParams;
+  const category = (resolvedParams.category as AgentCategory) || 'main';
 
   console.log('[MeusAgentesPage] Starting... Category:', category);
 
