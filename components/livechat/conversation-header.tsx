@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pause, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 import { ConversationSummaryModal } from './conversation-summary-modal';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 

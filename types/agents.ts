@@ -1,7 +1,7 @@
 // Types for Agent Templates Feature
 // Feature: Meus Agentes IA (Plataforma Tenant)
 
-import type { Database } from './database';
+import type { Database } from './database-helpers';
 
 // Agent type com campos relevantes para a UI
 // NOTA: Apenas campos essenciais que EXISTEM na tabela real
@@ -10,6 +10,7 @@ export type Agent = {
   template_id: string | null;
   name: string;
   type: Database['public']['Enums']['agent_type_enum'];
+  id_neurocore: string | null; // Neurocore ao qual este agent pertence
   created_at: string;
   updated_at: string;
 };

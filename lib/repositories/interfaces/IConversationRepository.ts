@@ -1,5 +1,5 @@
 import type { ConversationWithContact, ConversationFilters } from '@/types/livechat';
-import type { Contact } from '@/types/database';
+import type { Contact } from '@/types/database-helpers';
 
 /**
  * Interface de Repository para Conversas

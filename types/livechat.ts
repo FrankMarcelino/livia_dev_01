@@ -7,7 +7,7 @@ import type {
   Conversation,
   Message,
   User,
-} from './database';
+} from './database-helpers';
 
 // ============================================================================
 // ENUMS
@@ -54,7 +54,6 @@ export interface ConversationWithContact extends Conversation {
  */
 export interface MessageWithSender extends Message {
   senderUser?: Pick<User, 'id' | 'full_name' | 'avatar_url'> | null;
-  status?: MessageStatus; // Status de entrega (adicionado na migration)
 }
 
 /**

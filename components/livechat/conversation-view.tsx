@@ -10,7 +10,7 @@ import { MessagesSkeleton } from './messages-skeleton';
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages';
 import { useRealtimeConversation } from '@/lib/hooks/use-realtime-conversation';
 import { useChatScroll } from '@/lib/hooks/use-chat-scroll';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 import type { MessageWithSender } from '@/types/livechat';
 
 interface ConversationViewProps {

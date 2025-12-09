@@ -1,4 +1,4 @@
-import type { Conversation, Contact, Tag, ConversationStatus } from './database';
+import type { Conversation, Contact, Tag, ConversationStatus } from './database-helpers';
 
 /**
  * CRM Types - Feature Kanban Board

@@ -9,7 +9,7 @@ import { QuickRepliesPanel } from './quick-replies-panel';
 import { QuickReplyCommand } from './quick-reply-command';
 import { useQuickReplyCommand } from '@/hooks/use-quick-reply-command';
 import { usePrefetchQuickReplies } from '@/hooks/use-quick-replies-cache';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 import { useApiCall } from '@/lib/hooks';
 import { SEARCH_DEBOUNCE_DELAY } from '@/config/constants';

@@ -6,6 +6,100 @@ Lista de tarefas técnicas pendentes e melhorias futuras.
 
 ## 🔴 Crítico (Segurança)
 
+### [BACKLOG-016] Investigar e Corrigir RLS Policy de Agents
+
+**Prioridade:** CRÍTICA (Antes de produção)
+**Status:** 🔶 Workaround Aplicado (Solução Temporária)
+**Criado em:** 2025-12-09
+
+**Problema Identificado:**
+- RLS policy existe e está configurada corretamente (`tenants_can_view_their_agents`)
+- Policy usa `id_neurocore IN (SELECT neurocore_id ...)` com `auth.uid()`
+- Mesmo com `auth.uid()` funcionando na aplicação, a RLS não filtra os agents
+- Resultado: Todos os tenants veem agents de TODOS os neurocores (18 agents ao invés de 8)
+
+**Evidências:**
+```
+User autenticado: b194c90c-e158-4c88-bdf0-5cbd6e35fba9
+Email: admin@signumcursos.com
+Agents esperados: 8 (do neurocore e266d1f8-1cc1-4db2-b0f5-4d14c9e5e2b4)
+Agents retornados pela RLS: 18 (TODOS os neurocores)
+```
+
+**Hipótese Principal:**
+- User pode ser `super_admin` (role que bypassa RLS intencionalmente)
+- Ou: Sintaxe `IN (subquery)` não funciona bem com RLS em Next.js SSR
+- Ou: Contexto de auth não está sendo passado corretamente para PostgreSQL
+
+**Solução Temporária Aplicada:**
+```typescript
+// lib/queries/agents.ts
+// Filtro manual adicionado até RLS funcionar
+const agentsFiltered = agentsData.filter(agent =>
+  agent.id_neurocore === tenantData.neurocore_id
+);
+```
+
+**Arquivos Modificados:**
+- ✅ `lib/queries/agents.ts` - Filtro manual + logs de debug
+- ✅ `types/agents.ts` - Adicionado campo `id_neurocore`
+
+**Scripts SQL de Diagnóstico Criados:**
+- `check-agents-policies.sql` - Verificar policies existentes
+- `check-policies-simples.sql` - Verificar sintaxe das policies
+- `debug-agents-session.sql` - Diagnóstico completo com auth.uid()
+- `test-rls-directly-fixed.sql` - Testar RLS no SQL Editor
+- `verify-rls-policies.sql` - Validar configuração de RLS
+- `fix-rls-with-exists.sql` - Solução proposta (usar EXISTS ao invés de IN)
+- `fix-rls-force-rebuild.sql` - Reconstruir RLS do zero
+- `check-my-role.sql` - Verificar se user é super_admin
+
+**Próximos Passos (URGENTE):**
+
+1. **Verificar Role do Usuário**
+   - Executar `check-my-role.sql` para confirmar se é super_admin
+   - Se for super_admin, a RLS está funcionando CORRETAMENTE
+   - Nesse caso, ajustar filtro manual para permitir super_admin ver todos
+
+2. **Se NÃO for super_admin:**
+   - Aplicar `fix-rls-with-exists.sql` (usar EXISTS ao invés de IN)
+   - Testar com usuário normal (não super_admin)
+   - Se funcionar, remover filtro manual
+
+3. **Ajustar Filtro Manual para Super Admin:**
+   ```typescript
+   // Buscar role do usuário
+   const { data: userData } = await supabase
+     .from('users')
+     .select('role')
+     .eq('id', user.id)
+     .single();
+
+   const isSuperAdmin = userData?.role === 'super_admin';
+
+   // Super admin vê tudo, usuário normal vê apenas seu neurocore
+   const agentsFiltered = isSuperAdmin
+     ? agentsData
+     : agentsData.filter(agent => agent.id_neurocore === tenantData.neurocore_id);
+   ```
+
+4. **Testes Necessários:**
+   - ✅ Testar com super_admin (deve ver 18 agents)
+   - ⏳ Testar com admin normal (deve ver 8 agents)
+   - ⏳ Testar com attendant (deve ver 8 agents)
+
+**Impacto de Segurança:**
+- 🔴 **ALTO** - Vazamento de dados entre tenants
+- ✅ **MITIGADO** - Filtro manual impede vazamento temporariamente
+- ⚠️ **RISCO** - Se filtro manual for removido sem corrigir RLS
+
+**Referências:**
+- Policy atual: `tenants_can_view_their_agents` (usa IN + subquery)
+- Policy super admin: `super_admins_full_access` (usa EXISTS + role check)
+- Logs confirmam: auth.uid() funciona, mas RLS não filtra
+
+---
+
 ### [BACKLOG-001] Corrigir Políticas RLS da Tabela Users
 
 **Prioridade:** Alta (Antes de produção)

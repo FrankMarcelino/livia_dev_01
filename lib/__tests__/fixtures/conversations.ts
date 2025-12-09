@@ -1,5 +1,5 @@
 import type { ConversationWithContact } from '@/types/livechat';
-import type { Contact, Message } from '@/types/database';
+import type { Contact, Message } from '@/types/database-helpers';
 
 /**
  * Fixtures para testes do Livechat
@@ -32,7 +32,7 @@ export const mockContact: Contact = {
   last_negotiation: null,
   phone_secondary: null,
   rg: null,
-  tags: null,
+  tag: null,
   zip_code: null,
 };
 
@@ -59,7 +59,7 @@ export const mockContact2: Contact = {
   last_negotiation: null,
   phone_secondary: null,
   rg: null,
-  tags: null,
+  tag: null,
   zip_code: null,
 };
 
@@ -78,6 +78,7 @@ export const mockMessage: Message = {
   external_message_id: 'ext-msg-1',
   feedback_type: null,
   feedback_text: null,
+  status: null,
 };
 
 export const mockMessage2: Message = {
@@ -93,6 +94,7 @@ export const mockMessage2: Message = {
   external_message_id: 'ext-msg-2',
   feedback_type: null,
   feedback_text: null,
+  status: null,
 };
 
 export const mockMessage3: Message = {
@@ -108,6 +110,7 @@ export const mockMessage3: Message = {
   external_message_id: 'ext-msg-3',
   feedback_type: null,
   feedback_text: null,
+  status: null,
 };
 
 // ===== CONVERSAS =====

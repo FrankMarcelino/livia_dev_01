@@ -13,7 +13,7 @@ import {
   formatCPF,
   formatPhone,
 } from '@/lib/utils/validators';
-import type { Contact } from '@/types/database';
+import type { Contact } from '@/types/database-helpers';
 import { useApiCall } from '@/lib/hooks';
 
 interface CustomerDataPanelProps {

@@ -14,7 +14,7 @@ import type {
   ContactFilters,
   ConversationFilters,
 } from '@/types/livechat';
-import type { QuickReplyTemplate } from '@/types/database';
+import type { QuickReplyTemplate } from '@/types/database-helpers';
 
 /**
  * Busca contatos com conversas
