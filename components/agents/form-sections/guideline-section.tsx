@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { AgentPromptFormData } from '@/lib/validations/agentPromptValidation';
 import type { GuidelineStep } from '@/types/agents';
@@ -125,6 +125,18 @@ export function GuidelineSection({ form }: GuidelineSectionProps) {
                       onChange={(e) => updateStep(stepIndex, 'title', e.target.value)}
                       className="flex-1"
                     />
+                          <Select
+                    value={step.type}
+                    onValueChange={(value) => updateStep(stepIndex, 'type', value)}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rank">Numerado (1, 2, 3...)</SelectItem>
+                      <SelectItem value="markdown">Markdown (formatado)</SelectItem>
+                    </SelectContent>
+                  </Select>
                     
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`step-active-${stepIndex}`} className="text-xs">
@@ -143,22 +155,11 @@ export function GuidelineSection({ form }: GuidelineSectionProps) {
                       size="icon"
                       onClick={() => removeStep(stepIndex)}
                     >
-                      <X className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
                   
-                  <Select
-                    value={step.type}
-                    onValueChange={(value) => updateStep(stepIndex, 'type', value)}
-                  >
-                    <SelectTrigger className="w-full md:w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rank">Numerado (1, 2, 3...)</SelectItem>
-                      <SelectItem value="markdown">Markdown (formatado)</SelectItem>
-                    </SelectContent>
-                  </Select>
+            
                 </div>
               </div>
               
@@ -194,7 +195,7 @@ export function GuidelineSection({ form }: GuidelineSectionProps) {
                           size="icon"
                           onClick={() => removeSubInstruction(stepIndex, subIndex)}
                         >
-                          <X className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
