@@ -140,63 +140,33 @@ export type Database = {
       }
       agents: {
         Row: {
-          associated_neurocores: string[]
-          communication_medium: string | null
-          conversation_roteiro: Json
-          created_at: string
-          function: Database["public"]["Enums"]["agent_function_enum"]
-          gender: Database["public"]["Enums"]["agent_gender_enum"] | null
           id: string
-          instructions: Json
-          is_intent_agent: boolean
-          limitations: Json
           name: string
-          objective: string | null
-          other_instructions: Json
-          persona: string | null
-          personality_tone: string | null
-          template_id: string | null
           type: Database["public"]["Enums"]["agent_type_enum"]
+          id_neurocore: string
+          reactive: boolean
+          template_id: string | null
+          created_at: string
           updated_at: string
         }
         Insert: {
-          associated_neurocores?: string[]
-          communication_medium?: string | null
-          conversation_roteiro?: Json
-          created_at?: string
-          function: Database["public"]["Enums"]["agent_function_enum"]
-          gender?: Database["public"]["Enums"]["agent_gender_enum"] | null
           id?: string
-          instructions?: Json
-          is_intent_agent?: boolean
-          limitations?: Json
           name: string
-          objective?: string | null
-          other_instructions?: Json
-          persona?: string | null
-          personality_tone?: string | null
-          template_id?: string | null
           type: Database["public"]["Enums"]["agent_type_enum"]
+          id_neurocore: string
+          reactive?: boolean
+          template_id?: string | null
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          associated_neurocores?: string[]
-          communication_medium?: string | null
-          conversation_roteiro?: Json
-          created_at?: string
-          function?: Database["public"]["Enums"]["agent_function_enum"]
-          gender?: Database["public"]["Enums"]["agent_gender_enum"] | null
           id?: string
-          instructions?: Json
-          is_intent_agent?: boolean
-          limitations?: Json
           name?: string
-          objective?: string | null
-          other_instructions?: Json
-          persona?: string | null
-          personality_tone?: string | null
-          template_id?: string | null
           type?: Database["public"]["Enums"]["agent_type_enum"]
+          id_neurocore?: string
+          reactive?: boolean
+          template_id?: string | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: [
