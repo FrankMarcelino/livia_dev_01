@@ -7,7 +7,7 @@ import { ConversationView } from './conversation-view';
 import { CustomerDataPanel } from './customer-data-panel';
 import { MessagesSkeleton } from './messages-skeleton';
 import type { ConversationWithContact, MessageWithSender } from '@/types/livechat';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 
 interface LivechatContentProps {
   conversations: ConversationWithContact[];

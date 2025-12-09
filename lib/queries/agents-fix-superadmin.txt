@@ -1,0 +1,16 @@
+// CORREÇÃO: Permitir super_admin ver todos os agents
+
+// Buscar o role do usuário
+const { data: userData } = await supabase
+  .from('users')
+  .select('role')
+  .eq('id', user.id)
+  .single();
+
+const isSuperAdmin = userData?.role === 'super_admin';
+
+// Se for super admin, NÃO filtrar
+// Se for usuário normal, filtrar por neurocore
+const agentsFiltered = isSuperAdmin
+  ? agentsData
+  : agentsData.filter(agent => agent.id_neurocore === tenantData.neurocore_id);

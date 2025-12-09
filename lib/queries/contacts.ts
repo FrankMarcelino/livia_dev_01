@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Contact } from '@/types/database';
+import type { Contact } from '@/types/database-helpers';
 import type { ContactBulkUpdatePayload } from '@/types/livechat';
 
 /**

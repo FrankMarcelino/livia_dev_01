@@ -154,7 +154,7 @@ function MessageHeader({ senderName, isIA, isAttendant, isCustomer }: MessageHea
  */
 interface MessageFooterProps {
   timestamp: string;
-  status?: MessageStatus;
+  status?: MessageStatus | null;
   isAttendant: boolean;
 }
 
@@ -177,7 +177,7 @@ function MessageFooter({ timestamp, status, isAttendant }: MessageFooterProps) {
  * SRP: Responsabilidade única de renderizar status visual
  */
 interface MessageStatusIconProps {
-  status?: MessageStatus;
+  status?: MessageStatus | null;
   isInverted?: boolean; // Para mensagens enviadas (fundo escuro)
 }
 

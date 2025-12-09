@@ -14,7 +14,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { sortContactsByLastMessage } from '@/lib/utils/contact-list';
 import type { ContactWithConversations } from '@/types/livechat';
-import type { Conversation, Message } from '@/types/database';
+import type { Conversation, Message } from '@/types/database-helpers';
 
 export function useRealtimeContactList(
   tenantId: string,

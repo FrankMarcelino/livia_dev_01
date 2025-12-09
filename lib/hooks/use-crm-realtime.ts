@@ -15,7 +15,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tag, Conversation, ConversationTag } from '@/types/database';
+import type { Tag, Conversation, ConversationTag } from '@/types/database-helpers';
 import type { ConversationWithTagsAndContact } from '@/types/crm';
 
 interface UseCRMRealtimeProps {

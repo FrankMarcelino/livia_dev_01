@@ -17,7 +17,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ConversationWithContact } from '@/types/livechat';
-import type { Conversation, Message } from '@/types/database';
+import type { Conversation, Message } from '@/types/database-helpers';
 
 export function useRealtimeConversations(
   tenantId: string,

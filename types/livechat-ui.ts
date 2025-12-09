@@ -1,5 +1,5 @@
 import type { ConversationWithContact } from './livechat';
-import type { ConversationStatus, MessageSenderType } from './database';
+import type { ConversationStatus, MessageSenderType } from './database-helpers';
 
 /**
  * Tipos otimizados para UI do Livechat

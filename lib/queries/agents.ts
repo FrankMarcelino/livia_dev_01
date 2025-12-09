@@ -13,6 +13,31 @@ export async function getAgentsByTenant(tenantId: string) {
 
   console.log('[getAgentsByTenant] Fetching agents for tenant:', tenantId);
 
+  // DEBUG: Verificar se a autenticação está funcionando
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  console.log('[getAgentsByTenant] 🔐 Auth Debug:');
+  console.log('  - User ID:', user?.id);
+  console.log('  - User Email:', user?.email);
+  console.log('  - Auth Error:', userError);
+
+  if (!user) {
+    console.error('[getAgentsByTenant] ❌ PROBLEMA: Usuário não autenticado! RLS não vai funcionar!');
+  }
+
+  // PRIMEIRO: Buscar qual neurocore_id esse tenant tem
+  const { data: tenantData, error: tenantError } = await supabase
+    .from('tenants')
+    .select('neurocore_id')
+    .eq('id', tenantId)
+    .single();
+
+  if (tenantError) {
+    console.error('[getAgentsByTenant] Error fetching tenant:', tenantError);
+    throw tenantError;
+  }
+
+  console.log('[getAgentsByTenant] Tenant neurocore_id:', tenantData.neurocore_id);
+
   // Buscar agents - a RLS policy automaticamente filtra pelos agents do neurocore do tenant
   // NOTA: Não precisamos filtrar manualmente, a policy "Tenants can view agents from their neurocore" faz isso
   const { data: agentsData, error: agentsError } = await supabase
@@ -23,7 +48,8 @@ export async function getAgentsByTenant(tenantId: string) {
       type,
       template_id,
       created_at,
-      updated_at
+      updated_at,
+      id_neurocore
     `)
     .order('name');
 
@@ -32,14 +58,35 @@ export async function getAgentsByTenant(tenantId: string) {
     throw agentsError;
   }
 
-  console.log('[getAgentsByTenant] Agents fetched:', agentsData?.length || 0);
+  console.log('[getAgentsByTenant] Agents fetched (raw):', agentsData?.length || 0);
 
   if (!agentsData || agentsData.length === 0) {
     return [];
   }
 
+  // ⚠️ FILTRO MANUAL: Como a RLS não está funcionando, filtrar manualmente
+  // TODO: REMOVER quando RLS estiver funcionando corretamente
+  console.log('[getAgentsByTenant] ⚠️ APLICANDO FILTRO MANUAL (RLS não está funcionando)');
+  console.log('Meu neurocore_id:', tenantData.neurocore_id);
+
+  const agentsFiltered = agentsData.filter(agent => {
+    const pertence = agent.id_neurocore === tenantData.neurocore_id;
+    console.log(
+      pertence ? '✓ MANTIDO' : '✗ REMOVIDO',
+      'Agent:', agent.name,
+      '| id_neurocore:', agent.id_neurocore
+    );
+    return pertence;
+  });
+
+  console.log('[getAgentsByTenant] Agents após filtro manual:', agentsFiltered.length);
+
+  if (agentsFiltered.length === 0) {
+    return [];
+  }
+
   // Buscar os prompts do tenant para esses agents
-  const agentIds = agentsData.map(a => a.id);
+  const agentIds = agentsFiltered.map(a => a.id);
 
   console.log('[getAgentsByTenant] Fetching prompts for', agentIds.length, 'agents');
 
@@ -67,7 +114,7 @@ export async function getAgentsByTenant(tenantId: string) {
   // Combinar agents com seus prompts
   // Se não houver prompt do tenant, criar um vazio (será preenchido ao editar)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = agentsData.map((agent: any) => {
+  const result = agentsFiltered.map((agent: any) => {
     const rawPrompt = promptsMap.get(agent.id);
 
     // Parse de TODOS os campos JSONB (podem vir como string ou já parseados)
@@ -166,6 +213,7 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
       name,
       type,
       template_id,
+      id_neurocore,
       created_at,
       updated_at
     `)

@@ -12,7 +12,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Tag, ConversationStatus } from '@/types/database';
+import type { Tag, ConversationStatus } from '@/types/database-helpers';
 import type { ConversationWithTagsAndContact } from '@/types/crm';
 
 /**

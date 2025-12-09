@@ -8,7 +8,7 @@ import { ContactItem } from './contact-item';
 import { Search } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import type { ConversationWithContact } from '@/types/livechat';
-import type { ConversationStatus } from '@/types/database';
+import type { ConversationStatus } from '@/types/database-helpers';
 
 interface ContactListProps {
   initialConversations: ConversationWithContact[];

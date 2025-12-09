@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pause, Lock, Unlock } from 'lucide-react';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 import { useApiCall } from '@/lib/hooks';
 

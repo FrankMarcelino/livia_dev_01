@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { MessageWithSender } from '@/types/livechat';
-import type { Message } from '@/types/database';
+import type { Message } from '@/types/database-helpers';
 
 export function useRealtimeMessages(conversationId: string, initialMessages: MessageWithSender[]) {
   const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);

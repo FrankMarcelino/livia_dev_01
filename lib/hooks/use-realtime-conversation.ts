@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Conversation } from '@/types/database';
+import type { Conversation } from '@/types/database-helpers';
 
 export function useRealtimeConversation(initialConversation: Conversation) {
   const [conversation, setConversation] = useState<Conversation>(initialConversation);
