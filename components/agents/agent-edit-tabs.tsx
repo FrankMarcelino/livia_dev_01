@@ -114,9 +114,16 @@ export function AgentEditTabs({ agent, onSuccess, onCancel }: AgentEditTabsProps
     }
   }
 
+  function onInvalid(errors: Partial<Record<keyof AgentPromptFormData, unknown>>) {
+    console.error('Form validation errors:', errors);
+    toast.error('Existem erros no formulário. Verifique os campos em vermelho nas abas.', {
+      duration: 5000,
+    });
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col">
         <Tabs defaultValue="personality" className="w-full">
           <TabsList className="w-full justify-start border-b rounded-none h-auto flex-wrap">
             <TabsTrigger value="personality">Personalidade</TabsTrigger>

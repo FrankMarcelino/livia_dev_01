@@ -49,13 +49,13 @@ export function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
             </div>
           )}
           
-          {/* Modo (Reativo/Proativo) */}
-          <div className="text-sm">
+          {/* Modo (Reativo/Proativo) - COMMENTED OUT: type field has different values now */}
+          {/* <div className="text-sm">
             <span className="text-muted-foreground">Modo:</span>{' '}
             <Badge variant="outline" className="ml-1">
               {agent.type === 'active' ? 'Proativo' : 'Reativo'}
             </Badge>
-          </div>
+          </div> */}
           
           {/* Indicadores de Configuração JSONB */}
           <div className="flex flex-wrap gap-2 pt-2">

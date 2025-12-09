@@ -46,10 +46,10 @@ export function AgentEditHeader({ agent, onClose }: AgentEditHeaderProps) {
             {agent.function ? AGENT_FUNCTION_LABELS[agent.function] : 'Agent'}
           </Badge>
 
-          {/* Modo (Reativo/Proativo) */}
-          <Badge variant="outline">
+          {/* Modo (Reativo/Proativo) - COMMENTED OUT: type field has different values now */}
+          {/* <Badge variant="outline">
             {agent.type === 'active' ? 'Proativo' : 'Reativo'}
-          </Badge>
+          </Badge> */}
         </div>
       </div>
 

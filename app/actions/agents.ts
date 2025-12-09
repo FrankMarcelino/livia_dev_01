@@ -244,7 +244,7 @@ export async function getAgentPromptIntentionAction(agentId: string) {
 
     // 1. Tentar buscar prompt específico do tenant (bypassing RLS with Admin)
     const adminSupabase = createAdminClient();
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let { data, error } = await (adminSupabase as any)
       .from('agent_prompts_intention')
@@ -295,7 +295,7 @@ export async function getAgentPromptObserverAction(agentId: string) {
     const adminSupabase = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let { data, error } = await (adminSupabase as any)
+    let { data } = await (adminSupabase as any)
       .from('agent_prompts_observer')
       .select('prompt')
       .eq('id_agent', agentId)
@@ -319,7 +319,7 @@ export async function getAgentPromptObserverAction(agentId: string) {
     }
 
     return { success: true, data };
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Erro inesperado' };
   }
 }
@@ -340,7 +340,7 @@ export async function getAgentPromptGuardRailsAction(agentId: string) {
     const adminSupabase = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let { data, error } = await (adminSupabase as any)
+    let { data } = await (adminSupabase as any)
       .from('agent_prompts_guard_rails')
       .select('prompt_jailbreak, prompt_nsfw')
       .eq('id_agent', agentId)
@@ -364,7 +364,7 @@ export async function getAgentPromptGuardRailsAction(agentId: string) {
     }
 
     return { success: true, data };
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Erro inesperado' };
   }
 }
@@ -434,7 +434,7 @@ export async function updateAgentPromptIntentionAction(
 
     if (error) {
       console.error('Error saving intention prompt:', error);
-      return { success: false, error: 'Erro ao salvar prompt de intenção' };
+      return { success: false, error: `Erro ao salvar prompt de intenção: ${error.message || JSON.stringify(error)}` };
     }
 
     revalidatePath('/meus-agentes');
@@ -507,7 +507,7 @@ export async function updateAgentPromptObserverAction(
 
     if (error) {
       console.error('Error saving observer prompt:', error);
-      return { success: false, error: 'Erro ao salvar prompt de observador' };
+      return { success: false, error: `Erro ao salvar prompt de observador: ${error.message || JSON.stringify(error)}` };
     }
 
     revalidatePath('/meus-agentes');
@@ -585,7 +585,7 @@ export async function updateAgentPromptGuardRailsAction(
 
     if (error) {
       console.error('Error saving guard rails prompt:', error);
-      return { success: false, error: 'Erro ao salvar prompt de guard rails' };
+      return { success: false, error: `Erro ao salvar prompt de guard rails: ${error.message || JSON.stringify(error)}` };
     }
 
     revalidatePath('/meus-agentes');

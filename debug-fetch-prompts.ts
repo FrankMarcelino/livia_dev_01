@@ -14,6 +14,10 @@ async function debugFetch() {
   if (!agents?.length) return;
 
   const agent = agents[0];
+  if (!agent) {
+    console.log('No agent found');
+    return;
+  }
   console.log(`Checking agent: ${agent.name} (${agent.id}) type=${agent.type}`);
 
   // 2. Try to fetch global intention prompt

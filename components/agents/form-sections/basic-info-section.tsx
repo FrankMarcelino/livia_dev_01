@@ -3,7 +3,6 @@
 
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import type { AgentWithPrompt } from '@/types/agents';
 import { AGENT_FUNCTION_LABELS } from '@/types/agents';
 
@@ -34,14 +33,15 @@ export function BasicInfoSection({ agent }: BasicInfoSectionProps) {
           </p>
         </div>
 
-        <div>
+        {/* COMMENTED OUT: type field has different values now */}
+        {/* <div>
           <label className="text-xs font-medium text-muted-foreground">Modo</label>
           <div className="mt-1">
             <Badge variant="outline">
               {agent.type === 'active' ? 'Proativo' : 'Reativo'}
             </Badge>
           </div>
-        </div>
+        </div> */}
         
         {agent.template_name && (
           <div>
