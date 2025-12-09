@@ -13,24 +13,8 @@ export async function getAgentsByTenant(tenantId: string) {
 
   console.log('[getAgentsByTenant] Fetching agents for tenant:', tenantId);
 
-  // Buscar o neurocore_id do tenant
-  const { data: tenantData, error: tenantError } = await supabase
-    .from('tenants')
-    .select('neurocore_id')
-    .eq('id', tenantId)
-    .single();
-
-  if (tenantError || !tenantData) {
-    console.error('[getAgentsByTenant] Error fetching tenant:', tenantError);
-    throw new Error('Tenant not found');
-  }
-
-  const neurocoreId = tenantData.neurocore_id;
-  console.log('[getAgentsByTenant] Neurocore ID:', neurocoreId);
-
-  // Buscar agents do neurocore do tenant
-  // NOTA: Buscando apenas campos essenciais que sabemos que existem
-  // IMPORTANTE: associated_neurocores é um array, usando @> (contains operator)
+  // Buscar agents - a RLS policy automaticamente filtra pelos agents do neurocore do tenant
+  // NOTA: Não precisamos filtrar manualmente, a policy "Tenants can view agents from their neurocore" faz isso
   const { data: agentsData, error: agentsError } = await supabase
     .from('agents')
     .select(`
@@ -41,7 +25,6 @@ export async function getAgentsByTenant(tenantId: string) {
       created_at,
       updated_at
     `)
-    .contains('associated_neurocores', [neurocoreId])
     .order('name');
 
   if (agentsError) {

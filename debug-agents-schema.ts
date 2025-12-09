@@ -1,9 +1,11 @@
+import { createClient } from '@supabase/supabase-js';
 
-import { createClient } from './lib/supabase/client';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 async function checkSchema() {
-  const supabase = createClient();
-  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   console.log('Fetching one agent to check schema...');
   const { data, error } = await supabase
     .from('agents')
@@ -17,7 +19,7 @@ async function checkSchema() {
   }
 
   console.log('Agent keys:', Object.keys(data));
-  console.log('is_intent_agent value:', data.is_intent_agent);
+  console.log('Sample data:', JSON.stringify(data, null, 2));
 }
 
 checkSchema();
