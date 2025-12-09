@@ -30,6 +30,7 @@ export async function getAgentsByTenant(tenantId: string) {
 
   // Buscar agents do neurocore do tenant
   // NOTA: Buscando apenas campos essenciais que sabemos que existem
+  // IMPORTANTE: associated_neurocores é um array, usando @> (contains operator)
   const { data: agentsData, error: agentsError } = await supabase
     .from('agents')
     .select(`
@@ -41,7 +42,7 @@ export async function getAgentsByTenant(tenantId: string) {
       created_at,
       updated_at
     `)
-    .eq('id_neurocore', neurocoreId)
+    .contains('associated_neurocores', [neurocoreId])
     .order('name');
 
   if (agentsError) {
