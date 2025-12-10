@@ -56,7 +56,7 @@ export function PersonalitySection({ form }: PersonalitySectionProps) {
           <Label htmlFor="gender">Gênero</Label>
           <Select
             value={form.watch('gender') || ''}
-            onValueChange={(value) => form.setValue('gender', value as any)}
+            onValueChange={(value) => form.setValue('gender', value as 'male' | 'female')}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione o gênero" />
@@ -64,8 +64,6 @@ export function PersonalitySection({ form }: PersonalitySectionProps) {
             <SelectContent>
               <SelectItem value="male">Masculino</SelectItem>
               <SelectItem value="female">Feminino</SelectItem>
-              <SelectItem value="neutral">Neutro</SelectItem>
-              <SelectItem value="other">Outro</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">

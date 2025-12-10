@@ -25,7 +25,7 @@ export const agentPromptSchema = z.object({
   // Campos de Personalidade (TEXT/ENUM) - todos opcionais
   name: z.string().max(200, 'Máximo 200 caracteres').optional().nullable(),
   age: z.string().max(50, 'Máximo 50 caracteres').optional().nullable(),
-  gender: z.enum(['male', 'female', 'other', 'neutral']).optional().nullable(),
+  gender: z.enum(['male', 'female']).optional().nullable(),
   objective: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),
   comunication: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),
   personality: z.string().max(1000, 'Máximo 1000 caracteres').optional().nullable(),

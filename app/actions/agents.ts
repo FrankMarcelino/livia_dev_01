@@ -15,34 +15,34 @@ export async function updateAgentPromptAction(
 ) {
   try {
     const supabase = await createClient();
-    
+
     // 1. Validar autenticação
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return {
         success: false,
         error: 'Não autenticado',
       };
     }
-    
+
     // 2. Buscar tenant_id do usuário
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('tenant_id')
       .eq('id', user.id)
       .single();
-    
+
     if (userError || !userData?.tenant_id) {
       return {
         success: false,
         error: 'Tenant não encontrado',
       };
     }
-    
+
     // 3. Validar schema com Zod
     const validationResult = agentPromptSchema.safeParse(updates);
-    
+
     if (!validationResult.success) {
       return {
         success: false,
@@ -50,9 +50,9 @@ export async function updateAgentPromptAction(
         details: validationResult.error.format(),
       };
     }
-    
+
     const validated = validationResult.data;
-    
+
     // 4. Verificar se já existe um prompt para este agent e tenant
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingPrompt } = await (supabase as any)
@@ -76,7 +76,7 @@ export async function updateAgentPromptAction(
       objective: validated.objective || null,
       comunication: validated.comunication || null,
       personality: validated.personality || null,
-      updated_at: new Date().toISOString(),
+      // NOTA: A tabela agent_prompts NÃO possui coluna updated_at
     };
 
     let data;
@@ -119,10 +119,10 @@ export async function updateAgentPromptAction(
         error: 'Erro ao salvar configuração',
       };
     }
-    
+
     // 5. Revalidar cache
     revalidatePath('/meus-agentes');
-    
+
     return {
       success: true,
       data,
@@ -198,7 +198,7 @@ export async function resetAgentPromptToDefaultAction(agentId: string) {
         objective: baseAny.objective,
         comunication: baseAny.comunication,
         personality: baseAny.personality,
-        updated_at: new Date().toISOString(),
+        // NOTA: A tabela agent_prompts NÃO possui coluna updated_at
       })
       .eq('id_agent', agentId)
       .eq('id_tenant', userData.tenant_id)
@@ -274,7 +274,7 @@ export async function getAgentPromptIntentionAction(agentId: string) {
     }
 
     return { success: true, data };
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Erro inesperado' };
   }
 }

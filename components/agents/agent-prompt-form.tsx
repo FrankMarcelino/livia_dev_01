@@ -52,10 +52,10 @@ export function AgentPromptForm({ agent, onSuccess }: AgentPromptFormProps) {
   
   async function onSubmit(data: AgentPromptFormData) {
     setIsSubmitting(true);
-    
+
     try {
       const result = await updateAgentPromptAction(agent.id, data);
-      
+
       if (result.success) {
         toast.success('Configuração atualizada com sucesso!');
         onSuccess?.();
