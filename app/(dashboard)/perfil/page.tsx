@@ -39,15 +39,19 @@ export default async function PerfilPage() {
   // Busca dados completos do usuário e tenant
   const { data: userData } = await supabase
     .from('users')
-    .select('tenant_id, full_name, email, avatar_url, ai_paused, tenants(name, created_at)')
+    .select('tenant_id, full_name, email, avatar_url, tenants(name, created_at, ia_active)')
     .eq('id', authData.user.id)
     .single();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = userData as any;
   const tenant = user?.tenants;
-  // Type assertion necessária até a migration 008 ser aplicada
-  const aiPaused = (user as any)?.ai_paused || false;
+  const tenantId = user?.tenant_id;
+
+  // isPaused é o INVERSO de ia_active
+  // ia_active=true -> isPaused=false (IA ativa)
+  // ia_active=false -> isPaused=true (IA pausada)
+  const aiPaused = !(tenant?.ia_active ?? true); // Default: IA ativa (não pausada)
 
   // Gera iniciais do nome
   const initials = user?.full_name
@@ -144,7 +148,17 @@ export default async function PerfilPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AIControl userId={authData.user.id} initialPaused={aiPaused} />
+          {tenantId ? (
+            <AIControl
+              userId={authData.user.id}
+              tenantId={tenantId}
+              initialPaused={aiPaused}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Usuário não associado a nenhum tenant
+            </p>
+          )}
         </CardContent>
       </Card>
 

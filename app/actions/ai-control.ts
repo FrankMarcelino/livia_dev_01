@@ -3,26 +3,28 @@
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Server Action para pausar/retomar IA
+ * Server Action para pausar/retomar IA do Tenant
  *
  * Princípios SOLID:
  * - Single Responsibility: Gerencia apenas o estado de pausa da IA
  *
- * Esta action atualiza a preferência do usuário para pausar ou retomar
+ * Esta action atualiza a configuração do tenant para pausar ou retomar
  * a assistente virtual. Quando pausada, a IA não responderá automaticamente
  * às mensagens.
  *
  * Fluxo:
  * 1. Valida autenticação
  * 2. Busca tenant_id do usuário
- * 3. Atualiza users.ai_paused
- * 4. Atualiza TODAS as conversas abertas do tenant (ia_active)
+ * 3. Valida associação usuário-tenant
+ * 4. Atualiza tenants.ia_active
+ * 5. Atualiza TODAS as conversas abertas do tenant (ia_active)
  *
  * @param userId - ID do usuário
+ * @param tenantId - ID do tenant
  * @param isPaused - true para pausar, false para retomar
  * @returns Resultado da operação com sucesso ou erro
  */
-export async function toggleAIPause(userId: string, isPaused: boolean) {
+export async function toggleAIPause(userId: string, tenantId: string, isPaused: boolean) {
   const startTime = Date.now();
   const supabase = await createClient();
 
@@ -34,7 +36,7 @@ export async function toggleAIPause(userId: string, isPaused: boolean) {
       return { error: 'Não autorizado' };
     }
 
-    // 2. Busca tenant_id do usuário
+    // 2. Busca e valida associação usuário-tenant
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('tenant_id')
@@ -47,43 +49,54 @@ export async function toggleAIPause(userId: string, isPaused: boolean) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tenantId = (userData as any).tenant_id;
+    const userTenantId = (userData as any).tenant_id;
 
-    if (!tenantId) {
+    if (!userTenantId) {
       console.error('[toggleAIPause] User has no tenant_id');
-      return { error: 'Tenant não encontrado' };
+      return { error: 'Usuário não associado a nenhum tenant' };
+    }
+
+    // 3. Valida que o usuário pertence ao tenant solicitado
+    if (userTenantId !== tenantId) {
+      console.error(
+        `[toggleAIPause] User ${userId.slice(0, 8)} tried to modify tenant ${tenantId.slice(0, 8)} but belongs to ${userTenantId.slice(0, 8)}`
+      );
+      return { error: 'Usuário não autorizado para este tenant' };
     }
 
     console.log(
       `[toggleAIPause] ${isPaused ? 'PAUSING' : 'RESUMING'} IA for user ${userId.slice(0, 8)}, tenant ${tenantId.slice(0, 8)}`
     );
 
-    // 3. Atualiza configuração do usuário
-    // Nota: O campo 'ai_paused' precisa existir na tabela 'users'
-    // Execute a migration: supabase/migrations/008_add_ai_paused_to_users.sql
-    const { error: userUpdateError } = await supabase
-      .from('users')
-      .update({ ai_paused: isPaused } as any)
-      .eq('id', userId);
+    // 4. Atualiza configuração do tenant
+    // ia_active é o INVERSO de isPaused
+    // isPaused=true -> ia_active=false
+    // isPaused=false -> ia_active=true
+    const { error: tenantUpdateError } = await supabase
+      .from('tenants')
+      .update({ ia_active: !isPaused })
+      .eq('id', tenantId);
 
-    if (userUpdateError) {
-      console.error('[toggleAIPause] Error updating user:', userUpdateError);
-      return { error: 'Erro ao atualizar configuração do usuário' };
+    if (tenantUpdateError) {
+      console.error('[toggleAIPause] Error updating tenant:', tenantUpdateError);
+      return { error: 'Erro ao atualizar configuração do tenant' };
     }
 
-    const userUpdateTime = Date.now() - startTime;
-    console.log(`[toggleAIPause] ✅ User updated in ${userUpdateTime}ms`);
+    const tenantUpdateTime = Date.now() - startTime;
+    console.log(`[toggleAIPause] ✅ Tenant updated in ${tenantUpdateTime}ms`);
 
-    // 4. Atualiza TODAS as conversas abertas do tenant
+    // 5. Atualiza TODAS as conversas abertas do tenant
     // ia_active = !isPaused (se pausar, ia_active = false)
+    const conversationUpdate = {
+      ia_active: !isPaused,
+      pause_notes: isPaused
+        ? 'IA pausada pelo usuário via Perfil'
+        : null,
+    };
+
     const { error: conversationsError, count } = await supabase
       .from('conversations')
-      .update({
-        ia_active: !isPaused,
-        pause_notes: isPaused
-          ? 'IA pausada pelo usuário via Perfil'
-          : null,
-      } as any)
+      .update(conversationUpdate)
       .eq('tenant_id', tenantId)
       .eq('status', 'open'); // Só atualiza conversas abertas
 
@@ -93,11 +106,11 @@ export async function toggleAIPause(userId: string, isPaused: boolean) {
         conversationsError
       );
 
-      // Reverte mudança no usuário
+      // Reverte mudança no tenant
       await supabase
-        .from('users')
-        .update({ ai_paused: !isPaused } as any)
-        .eq('id', userId);
+        .from('tenants')
+        .update({ ia_active: isPaused })
+        .eq('id', tenantId);
 
       return { error: 'Erro ao atualizar conversas' };
     }
@@ -118,12 +131,13 @@ export async function toggleAIPause(userId: string, isPaused: boolean) {
 }
 
 /**
- * Server Action para buscar status da IA
+ * Server Action para buscar status da IA do Tenant
  *
  * @param userId - ID do usuário
+ * @param tenantId - ID do tenant
  * @returns Status de pausa da IA
  */
-export async function getAIPauseStatus(userId: string) {
+export async function getAIPauseStatus(userId: string, tenantId: string) {
   const supabase = await createClient();
 
   const { data: authData } = await supabase.auth.getUser();
@@ -132,10 +146,23 @@ export async function getAIPauseStatus(userId: string) {
     return { error: 'Não autorizado', isPaused: false };
   }
 
-  const { data, error } = await supabase
+  // Valida associação usuário-tenant
+  const { data: userData } = await supabase
     .from('users')
-    .select('ai_paused')
+    .select('tenant_id')
     .eq('id', userId)
+    .single();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((userData as any)?.tenant_id !== tenantId) {
+    return { error: 'Usuário não autorizado para este tenant', isPaused: false };
+  }
+
+  // Busca status do tenant
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('ia_active')
+    .eq('id', tenantId)
     .single();
 
   if (error) {
@@ -143,6 +170,7 @@ export async function getAIPauseStatus(userId: string) {
     return { error: 'Erro ao buscar configuração', isPaused: false };
   }
 
-  // Type assertion necessária até a migration ser aplicada
-  return { isPaused: (data as any)?.ai_paused || false };
+  // isPaused é o INVERSO de ia_active
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { isPaused: !(data as any)?.ia_active };
 }

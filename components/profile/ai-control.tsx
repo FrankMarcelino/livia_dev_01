@@ -23,23 +23,24 @@ import { toggleAIPause } from '@/app/actions/ai-control';
  *
  * Princípios SOLID:
  * - Single Responsibility: Gerencia apenas o toggle de pausar/retomar IA
- * - Interface Segregation: Props mínimas (userId)
+ * - Interface Segregation: Props mínimas (userId, tenantId)
  *
  * Features:
- * - Switch para pausar/retomar IA
+ * - Switch para pausar/retomar IA do tenant
  * - Dialog de confirmação ao pausar (requer digitar "PAUSAR")
  * - Retomar é simples (sem confirmação)
  * - Feedback com toast
  * - Loading state durante atualização
- * - Persiste estado no Supabase
+ * - Persiste estado no Supabase (tenants.ia_active)
  */
 
 interface AIControlProps {
   userId: string;
+  tenantId: string;
   initialPaused?: boolean;
 }
 
-export function AIControl({ userId, initialPaused = false }: AIControlProps) {
+export function AIControl({ userId, tenantId, initialPaused = false }: AIControlProps) {
   const [isPaused, setIsPaused] = useState(initialPaused);
   const [isPending, startTransition] = useTransition();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -50,7 +51,7 @@ export function AIControl({ userId, initialPaused = false }: AIControlProps) {
   // Executa a ação de pausar/retomar no servidor
   const executeToggle = async (shouldPause: boolean) => {
     startTransition(async () => {
-      const result = await toggleAIPause(userId, shouldPause);
+      const result = await toggleAIPause(userId, tenantId, shouldPause);
 
       if (result.error) {
         // Reverte em caso de erro
