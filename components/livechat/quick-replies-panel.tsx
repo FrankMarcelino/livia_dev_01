@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Zap, Search, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Zap, Search, Plus, MoreVertical, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -33,6 +33,7 @@ import {
 import { QuickReplyDialog } from './quick-reply-dialog';
 import { replaceQuickReplyVariables } from '@/lib/utils/quick-replies';
 import { useQuickRepliesCache } from '@/hooks/use-quick-replies-cache';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { toast } from 'sonner';
 import type { QuickReply } from '@/types/livechat';
 import { useApiCall } from '@/lib/hooks';
@@ -54,6 +55,7 @@ export function QuickRepliesPanel({
 }: QuickRepliesPanelProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300); // Debounce para busca server-side
 
   // Estados para dialogs
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,28 +79,24 @@ export function QuickRepliesPanel({
     },
   });
 
-  // Hook otimizado com cache (reutiliza cache do QuickReplyCommand!)
+  // Hook otimizado com cache e busca server-side
   const {
-    quickReplies: allQuickReplies,
+    quickReplies,
+    total,
+    hasMore,
     isLoading,
     refetch,
+    loadMore,
   } = useQuickRepliesCache({
     tenantId,
+    limit: 20, // 20 por página
+    search: debouncedSearch, // Busca debounced server-side
     enabled: open, // Só carrega quando popover está aberto
     onError: (error) => {
       console.error('Erro ao carregar quick replies:', error);
       toast.error('Erro ao carregar quick replies');
     },
   });
-
-  // Filtra quick replies localmente (filtro client-side)
-  const quickReplies = search.trim()
-    ? allQuickReplies.filter(
-        (reply) =>
-          reply.title.toLowerCase().includes(search.toLowerCase()) ||
-          reply.content.toLowerCase().includes(search.toLowerCase())
-      )
-    : allQuickReplies;
 
   const handleSelect = (quickReply: QuickReply) => {
     // Substituir variáveis dinâmicas
@@ -156,8 +154,8 @@ export function QuickRepliesPanel({
     await deleteQuickReply.execute();
   };
 
-  // Top 3 mais usadas (usa allQuickReplies pois já estão ordenados por usage_count)
-  const top3Ids = allQuickReplies
+  // Top 3 mais usadas da primeira página
+  const top3Ids = quickReplies
     .slice(0, 3)
     .map((reply) => reply.id);
 
@@ -208,9 +206,10 @@ export function QuickRepliesPanel({
               className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <CommandList>
-            {isLoading ? (
+          <CommandList className="max-h-[400px] overflow-y-auto">
+            {isLoading && quickReplies.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
                 Carregando...
               </div>
             ) : quickReplies.length === 0 ? (
@@ -220,8 +219,9 @@ export function QuickRepliesPanel({
                   : 'Nenhuma resposta rápida cadastrada.'}
               </CommandEmpty>
             ) : (
-              <CommandGroup>
-                {quickReplies.map((reply) => {
+              <>
+                <CommandGroup>
+                  {quickReplies.map((reply) => {
                   const isPopular = top3Ids.includes(reply.id);
 
                   return (
@@ -287,8 +287,40 @@ export function QuickRepliesPanel({
                       </DropdownMenu>
                     </div>
                   );
-                })}
-              </CommandGroup>
+                  })}
+                </CommandGroup>
+
+                {/* Footer com contador e botão carregar mais */}
+                <div className="border-t px-3 py-2 bg-muted/30">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                    <span>
+                      Mostrando {quickReplies.length} de {total}
+                    </span>
+                  </div>
+
+                  {hasMore && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadMore();
+                      }}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>Carregar mais ({total - quickReplies.length} restantes)</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </>
             )}
           </CommandList>
         </Command>

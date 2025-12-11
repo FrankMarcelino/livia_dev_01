@@ -53,30 +53,87 @@ function mapToDatabase(data: Partial<QuickReply>): any {
 }
 
 /**
- * Busca quick replies do tenant ordenadas por uso
+ * Opções para busca de quick replies
+ */
+export interface GetQuickRepliesOptions {
+  onlyActive?: boolean;
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
+/**
+ * Resultado da busca de quick replies com metadados de paginação
+ */
+export interface QuickRepliesResult {
+  data: QuickReply[];
+  total: number;
+  hasMore: boolean;
+}
+
+/**
+ * Busca quick replies do tenant com paginação e busca server-side
  * @param tenantId - ID do tenant (OBRIGATÓRIO para multi-tenancy)
- * @param onlyActive - Se true, retorna apenas quick replies ativas (default: true)
+ * @param options - Opções de busca e paginação
+ * @returns Resultado com dados, total e flag hasMore
  */
 export async function getQuickReplies(
   tenantId: string,
-  onlyActive: boolean = true
-): Promise<QuickReply[]> {
+  options: GetQuickRepliesOptions = {}
+): Promise<QuickRepliesResult> {
+  const {
+    onlyActive = true,
+    limit = 50, // Default: 50 por página (balanço entre performance e UX)
+    offset = 0,
+    search
+  } = options;
+
   const supabase = await createClient();
 
   let query = supabase
     .from('quick_reply_templates')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('tenant_id', tenantId);
 
   if (onlyActive) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query = query.eq('active', true) as any;
+    query = query.eq('active', true);
   }
 
-  const { data, error } = await query.order('usage_count', { ascending: false });
+  // Busca server-side (PostgreSQL ilike - case insensitive)
+  if (search && search.trim()) {
+    const searchTerm = search.trim();
+    query = query.or(`title.ilike.%${searchTerm}%,message.ilike.%${searchTerm}%`);
+  }
+
+  const { data, error, count } = await query
+    .order('usage_count', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
-  return (data || []).map(mapFromDatabase);
+
+  const total = count || 0;
+  const quickReplies = (data || []).map(mapFromDatabase);
+
+  return {
+    data: quickReplies,
+    total,
+    hasMore: offset + limit < total
+  };
+}
+
+/**
+ * LEGACY: Busca todas as quick replies sem paginação
+ * @deprecated Use getQuickReplies() com options para paginação
+ */
+export async function getAllQuickReplies(
+  tenantId: string,
+  onlyActive: boolean = true
+): Promise<QuickReply[]> {
+  const result = await getQuickReplies(tenantId, {
+    onlyActive,
+    limit: 1000 // Limite alto para compatibilidade
+  });
+  return result.data;
 }
 
 /**

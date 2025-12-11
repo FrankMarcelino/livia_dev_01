@@ -40,7 +40,7 @@ export function QuickReplyCommand({
   conversationId,
   onSelect,
 }: QuickReplyCommandProps) {
-  // Hook otimizado com cache inteligente
+  // Hook otimizado com cache e paginação
   const {
     quickReplies: allQuickReplies,
     popularQuickReplies,
@@ -48,6 +48,7 @@ export function QuickReplyCommand({
     isError,
   } = useQuickRepliesCache({
     tenantId,
+    limit: mode === 'popular' ? 5 : 30, // Popular: 5, All: 30 primeiros
     enabled: isOpen, // Só carrega quando command está aberto
     onError: (error) => {
       console.error('Erro ao carregar respostas rápidas:', error);

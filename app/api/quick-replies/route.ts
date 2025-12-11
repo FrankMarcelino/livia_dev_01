@@ -20,7 +20,13 @@ const createQuickReplySchema = z.object({
 
 /**
  * GET /api/quick-replies
- * Lista quick replies do tenant
+ * Lista quick replies do tenant com paginação e busca
+ *
+ * Query params:
+ * - tenantId: ID do tenant (obrigatório)
+ * - limit: Número de itens por página (default: 50)
+ * - offset: Offset para paginação (default: 0)
+ * - search: Termo de busca (opcional)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,13 +38,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Buscar tenantId do query params
+    // 2. Buscar params do query
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    const limitStr = searchParams.get('limit');
+    const offsetStr = searchParams.get('offset');
+    const search = searchParams.get('search');
 
     if (!tenantId) {
       return NextResponse.json(
         { error: 'tenantId é obrigatório' },
+        { status: 400 }
+      );
+    }
+
+    // Parse limit e offset
+    const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+    const offset = offsetStr ? parseInt(offsetStr, 10) : undefined;
+
+    // Valida limit e offset
+    if (limit !== undefined && (isNaN(limit) || limit < 1 || limit > 100)) {
+      return NextResponse.json(
+        { error: 'limit deve estar entre 1 e 100' },
+        { status: 400 }
+      );
+    }
+
+    if (offset !== undefined && (isNaN(offset) || offset < 0)) {
+      return NextResponse.json(
+        { error: 'offset deve ser maior ou igual a 0' },
         { status: 400 }
       );
     }
@@ -56,10 +84,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 4. Buscar quick replies
-    const quickReplies = await getQuickReplies(tenantId);
+    // 4. Buscar quick replies com paginação
+    const result = await getQuickReplies(tenantId, {
+      limit,
+      offset,
+      search: search || undefined,
+    });
 
-    return NextResponse.json({ data: quickReplies });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Error in GET /api/quick-replies:', error);
