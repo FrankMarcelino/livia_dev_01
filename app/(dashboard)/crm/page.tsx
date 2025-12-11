@@ -49,15 +49,6 @@ export default async function CRMPage() {
   const tags = await getAllTags(tenantId);
   const conversations = await getConversationsWithTags(tenantId);
 
-  // Debug logs (remover depois)
-  console.log('🔍 CRM Page Debug:');
-  console.log('  Tenant ID:', tenantId);
-  console.log('  Tags:', tags.length);
-  console.log('  Conversations:', conversations.length);
-  if (tags.length > 0) {
-    console.log('  Tag names:', tags.map(t => t.tag_name));
-  }
-
   return (
     <CRMKanbanBoard
       initialTags={tags}

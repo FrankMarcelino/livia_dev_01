@@ -24,7 +24,7 @@ import type { ConversationWithTagsAndContact } from '@/types/crm';
 export async function getTags(tenantId: string): Promise<Tag[]> {
   const supabase = await createClient();
 
-  // @ts-ignore - tabela 'tags' não está nos tipos gerados do Supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('tags')
     .select('*')
@@ -49,7 +49,7 @@ export async function getTags(tenantId: string): Promise<Tag[]> {
 export async function getAllTags(tenantId: string): Promise<Tag[]> {
   const supabase = await createClient();
 
-  // @ts-ignore - tabela 'tags' não está nos tipos gerados do Supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('tags')
     .select('*')

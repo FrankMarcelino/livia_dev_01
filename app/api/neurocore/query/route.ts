@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
             statusText: n8nResponse.statusText,
             body: errorBody,
           });
-        } catch (e) {
+        } catch (_e) {
           console.error('[neurocore] ❌ Não foi possível ler corpo do erro');
         }
         

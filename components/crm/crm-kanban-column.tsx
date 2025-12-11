@@ -28,7 +28,10 @@ export function CRMKanbanColumn({
   const conversationsInThisColumn = useMemo(() => {
     return conversations.filter((conv) => {
       // Verificar se a conversa tem esta tag
-      const hasTag = conv.conversation_tags?.some((ct) => ct.tag.id === tag.id);
+      // Defensive: Verificar se ct.tag existe (pode ser undefined se JOIN falhar)
+      const hasTag = conv.conversation_tags?.some(
+        (ct) => ct.tag && ct.tag.id === tag.id
+      );
 
       if (!hasTag) return false;
 
