@@ -27,11 +27,12 @@ export function TagBadge({ tag, size = 'sm', className }: TagBadgeProps) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
+          r: parseInt(result[1]??"00", 16),
+          g: parseInt(result[2]??"00", 16),
+          b: parseInt(result[3]??"00", 16),
         }
       : { r: 59, g: 130, b: 246 }; // fallback: azul
+      
   };
 
   const rgb = hexToRgb(tag.color || '#3B82F6');

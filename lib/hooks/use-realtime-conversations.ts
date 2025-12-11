@@ -227,7 +227,11 @@ export function useRealtimeConversations(
                 tag_name,
                 color,
                 is_category,
-                order_index
+                order_index,
+                active,
+                created_at,
+                id_tenant,
+                prompt_to_ai
               )
             `)
             .eq('conversation_id', conversationId);
@@ -246,6 +250,9 @@ export function useRealtimeConversations(
               return prev;
             }
 
+            const existing = prev[index];
+            if (!existing) return prev; // Safety check
+
             // Calcular categoria
             const tags = tagsData || [];
             const category = tags
@@ -255,11 +262,10 @@ export function useRealtimeConversations(
 
             const updated = [...prev];
             updated[index] = {
-              ...updated[index],
+              ...existing,
               conversation_tags: tags,
               category,
             };
-
             return updated;
           });
         }
