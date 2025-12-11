@@ -5,13 +5,13 @@ import { z } from 'zod';
 
 // Sub-instrução do guideline
 export const guidelineSubInstructionSchema = z.object({
-  content: z.string().min(1, 'Conteúdo é obrigatório').max(500, 'Máximo 500 caracteres'),
+  content: z.string().max(2000, 'Máximo 2000 caracteres'),
   active: z.boolean(),
 });
 
 // Etapa do guideline
 export const guidelineStepSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório').max(200, 'Máximo 200 caracteres'),
+  title: z.string().max(300, 'Máximo 300 caracteres'),
   type: z.enum(['rank', 'markdown'], {
     message: 'Tipo deve ser "rank" ou "markdown"',
   }),

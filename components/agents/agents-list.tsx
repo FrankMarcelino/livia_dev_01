@@ -78,6 +78,7 @@ export function AgentsList({ agents, currentCategory = 'main' }: AgentsListProps
 
 
           <AgentEditPanel
+            key={selectedAgent.id}
             agent={selectedAgent}
             onClose={() => setSelectedAgent(null)}
             onSuccess={handleSuccess}
