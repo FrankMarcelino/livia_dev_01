@@ -5,16 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
+import { TagBadge } from './tag-badge';
 import { Search } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import type { ConversationWithContact } from '@/types/livechat';
-import type { ConversationStatus } from '@/types/database-helpers';
+import type { ConversationStatus, Tag } from '@/types/database-helpers';
 
 interface ContactListProps {
   initialConversations: ConversationWithContact[];
   selectedConversationId?: string;
   tenantId: string;
   onConversationClick?: (conversationId: string) => void;
+  categories: Tag[];
 }
 
 export function ContactList({
@@ -22,6 +24,7 @@ export function ContactList({
   selectedConversationId,
   tenantId,
   onConversationClick,
+  categories,
 }: ContactListProps) {
   // ✅ Hook simplificado - trabalha direto com conversas (sem transformações)
   const { conversations } = useRealtimeConversations(tenantId, initialConversations);
@@ -30,6 +33,7 @@ export function ContactList({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ConversationStatus | 'all'>('open');
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
@@ -37,9 +41,13 @@ export function ContactList({
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    if (statusFilter === 'all') return matchesSearch;
+    const matchesStatus =
+      statusFilter === 'all' || conversation.status === statusFilter;
 
-    return matchesSearch && conversation.status === statusFilter;
+    const matchesCategory =
+      categoryFilter === 'all' || conversation.category?.id === categoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   // Contadores de status
@@ -93,6 +101,36 @@ export function ContactList({
             Todas ({statusCounts.all})
           </Badge>
         </div>
+
+        {categories.length > 0 && (
+          <div className="flex gap-2 flex-wrap items-center">
+            <span className="text-xs text-muted-foreground">Categorias:</span>
+            <Badge
+              variant={categoryFilter === 'all' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setCategoryFilter('all')}
+            >
+              Todas
+            </Badge>
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                className="cursor-pointer"
+                onClick={() => setCategoryFilter(category.id)}
+              >
+                <TagBadge
+                  tag={category}
+                  size="sm"
+                  className={
+                    categoryFilter === category.id
+                      ? 'ring-2 ring-offset-1 ring-primary'
+                      : 'opacity-70 hover:opacity-100'
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth">

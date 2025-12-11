@@ -5,20 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pause, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Conversation } from '@/types/database-helpers';
+import type { Conversation, Tag } from '@/types/database-helpers';
 import { ConversationSummaryModal } from './conversation-summary-modal';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
+import { CategorySelect } from './category-select';
 
 interface ConversationHeaderProps {
   contactName: string;
   conversation: Conversation;
   tenantId: string;
+  currentCategory?: Tag | null;
+  categories?: Tag[];
 }
 
 export function ConversationHeader({
   contactName,
   conversation,
   tenantId,
+  currentCategory,
+  categories = [],
 }: ConversationHeaderProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPauseIADialog, setShowPauseIADialog] = useState(false);
@@ -108,8 +113,20 @@ export function ConversationHeader({
         </div>
       </div>
 
-      {/* Linha 2: Canal • Status • IA */}
+      {/* Linha 2: Categoria • Canal • Status • IA */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        {categories.length > 0 && (
+          <>
+            <CategorySelect
+              conversationId={conversation.id}
+              tenantId={tenantId}
+              currentCategory={currentCategory}
+              categories={categories}
+            />
+            <span>•</span>
+          </>
+        )}
+
         <div className="flex items-center gap-1">
           <MessageSquare className="h-3.5 w-3.5" />
           <span>WhatsApp</span>

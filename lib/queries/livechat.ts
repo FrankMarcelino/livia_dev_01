@@ -151,7 +151,7 @@ export async function getConversationsWithContact(
 ): Promise<ConversationWithContact[]> {
   const supabase = await createClient();
 
-  // ===== PASSO 1: Buscar conversas com JOIN para contatos =====
+  // ===== PASSO 1: Buscar conversas com JOIN para contatos e tags =====
   let query = supabase
     .from('conversations')
     .select(`
@@ -162,6 +162,15 @@ export async function getConversationsWithContact(
         phone,
         email,
         status
+      ),
+      conversation_tags(
+        tag:tags(
+          id,
+          tag_name,
+          color,
+          is_category,
+          order_index
+        )
       )
     `)
     .eq('tenant_id', tenantId);
@@ -191,10 +200,19 @@ export async function getConversationsWithContact(
     query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
   }
 
-  const { data: conversationsData, error: conversationsError } = await query;
+  let { data: conversationsData, error: conversationsError } = await query;
 
   if (conversationsError) throw conversationsError;
   if (!conversationsData || conversationsData.length === 0) return [];
+
+  // ===== Filtrar por categoria (se especificado) =====
+  // Nota: Filtro aplicado aqui porque Supabase não suporta filtros em relacionamentos aninhados facilmente
+  if (filters?.categoryId) {
+    conversationsData = conversationsData.filter((conv: any) => {
+      const tags = conv.conversation_tags || [];
+      return tags.some((ct: any) => ct.tag?.id === filters.categoryId && ct.tag?.is_category);
+    });
+  }
 
   // ===== PASSO 2: Buscar última mensagem de cada conversa =====
   const conversationIds = conversationsData.map((conv: any) => conv.id);
@@ -217,11 +235,21 @@ export async function getConversationsWithContact(
   });
 
   // ===== PASSO 4: Montar estrutura final =====
-  return conversationsData.map((conv: any) => ({
-    ...conv,
-    contact: conv.contacts, // Dados do contato (JOIN)
-    lastMessage: lastMessageMap.get(conv.id) || null,
-  })) as ConversationWithContact[];
+  return conversationsData.map((conv: any) => {
+    // Extrair categoria (primeira tag com is_category=true)
+    const category = conv.conversation_tags
+      ?.map((ct: any) => ct.tag)
+      .filter((tag: any) => tag && tag.is_category)
+      .sort((a: any, b: any) => a.order_index - b.order_index)[0] || null;
+
+    return {
+      ...conv,
+      contact: conv.contacts, // Dados do contato (JOIN)
+      lastMessage: lastMessageMap.get(conv.id) || null,
+      conversation_tags: conv.conversation_tags || [],
+      category,
+    };
+  }) as ConversationWithContact[];
 }
 
 /**
@@ -330,4 +358,25 @@ export async function getContact(contactId: string, tenantId: string) {
   if (error) throw error;
 
   return data;
+}
+
+/**
+ * Busca categorias (tags com is_category=true) do tenant
+ * @param tenantId - ID do tenant
+ * @returns Lista de categorias ordenadas por order_index
+ */
+export async function getCategories(tenantId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .eq('id_tenant', tenantId)
+    .eq('is_category', true)
+    .eq('active', true)
+    .order('order_index', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
 }

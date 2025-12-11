@@ -10,6 +10,7 @@ import {
   getConversationLastTimestamp,
 } from '@/lib/utils/contact-list';
 import type { ConversationWithContact } from '@/types/livechat';
+import { TagBadge } from './tag-badge';
 
 interface ContactItemProps {
   conversation: ConversationWithContact;
@@ -22,7 +23,7 @@ export function ContactItem({
   isSelected = false,
   onClick,
 }: ContactItemProps) {
-  const { contact, lastMessage, status, ia_active } = conversation;
+  const { contact, lastMessage, status, ia_active, category } = conversation;
 
   // Usar utilities para formatação (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
@@ -63,7 +64,10 @@ export function ContactItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-medium truncate">{contact.name}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-medium truncate">{contact.name}</span>
+              {category && <TagBadge tag={category} size="sm" />}
+            </div>
             {timeDisplay && (
               <span className="text-xs text-muted-foreground shrink-0 ml-2">
                 {timeDisplay}

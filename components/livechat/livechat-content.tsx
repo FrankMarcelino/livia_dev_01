@@ -7,7 +7,7 @@ import { ConversationView } from './conversation-view';
 import { CustomerDataPanel } from './customer-data-panel';
 import { MessagesSkeleton } from './messages-skeleton';
 import type { ConversationWithContact, MessageWithSender } from '@/types/livechat';
-import type { Conversation } from '@/types/database-helpers';
+import type { Conversation, Tag } from '@/types/database-helpers';
 
 interface LivechatContentProps {
   conversations: ConversationWithContact[];
@@ -16,6 +16,7 @@ interface LivechatContentProps {
   selectedConversation: ConversationWithContact | null;
   conversation: Conversation | null;
   messages: MessageWithSender[] | null;
+  categories: Tag[];
 }
 
 export function LivechatContent({
@@ -25,6 +26,7 @@ export function LivechatContent({
   selectedConversation,
   conversation,
   messages,
+  categories,
 }: LivechatContentProps) {
   const router = useRouter();
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export function LivechatContent({
             selectedConversationId={selectedConversationId}
             tenantId={tenantId}
             onConversationClick={handleConversationClick}
+            categories={categories}
           />
         </div>
       </aside>
@@ -82,6 +85,8 @@ export function LivechatContent({
             initialMessages={messages}
             tenantId={tenantId}
             contactName={selectedConversation.contact.name}
+            currentCategory={selectedConversation.category}
+            categories={categories}
           />
         ) : (
           <div className="flex h-full items-center justify-center">

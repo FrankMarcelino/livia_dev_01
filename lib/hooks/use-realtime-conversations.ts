@@ -103,12 +103,21 @@ export function useRealtimeConversations(
             return;
           }
 
-          // Buscar dados completos da conversa (com contato)
+          // Buscar dados completos da conversa (com contato e tags)
           const { data, error } = await supabase
             .from('conversations')
             .select(`
               *,
-              contacts!inner(*)
+              contacts!inner(*),
+              conversation_tags(
+                tag:tags(
+                  id,
+                  tag_name,
+                  color,
+                  is_category,
+                  order_index
+                )
+              )
             `)
             .eq('id', payload.new.id)
             .single();
@@ -125,10 +134,19 @@ export function useRealtimeConversations(
             }
 
             // Criar nova conversa com estrutura correta
+            const dataAny = data as any;
+            const tags = dataAny.conversation_tags || [];
+            const category = tags
+              .map((ct: any) => ct.tag)
+              .filter((tag: any) => tag && tag.is_category)
+              .sort((a: any, b: any) => a.order_index - b.order_index)[0] || null;
+
             const newConv: ConversationWithContact = {
               ...data,
-              contact: (data as any).contacts, // Supabase retorna como objeto aninhado
+              contact: dataAny.contacts, // Supabase retorna como objeto aninhado
               lastMessage: null,
+              conversation_tags: tags,
+              category,
             };
 
             // Adicionar no início e reordenar
@@ -179,10 +197,80 @@ export function useRealtimeConversations(
       )
       .subscribe();
 
+    // ========================================
+    // Channel 3: Mudanças em CONVERSATION_TAGS
+    // ========================================
+    const tagsChannel = supabase
+      .channel(`conversation_tags:tenant:${tenantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'conversation_tags',
+        },
+        async (payload) => {
+          // Buscar conversation_id do payload
+          const conversationId =
+            payload.eventType === 'DELETE'
+              ? (payload.old as any)?.conversation_id
+              : (payload.new as any)?.conversation_id;
+
+          if (!conversationId) return;
+
+          // Buscar tags atualizadas da conversa
+          const { data: tagsData, error: tagsError } = await supabase
+            .from('conversation_tags')
+            .select(`
+              tag:tags(
+                id,
+                tag_name,
+                color,
+                is_category,
+                order_index
+              )
+            `)
+            .eq('conversation_id', conversationId);
+
+          if (tagsError) {
+            console.error('Erro ao buscar tags atualizadas:', tagsError);
+            return;
+          }
+
+          // Atualizar conversa na lista
+          setConversations((prev) => {
+            const index = prev.findIndex(c => c.id === conversationId);
+
+            if (index === -1) {
+              // Conversa não está na lista
+              return prev;
+            }
+
+            // Calcular categoria
+            const tags = tagsData || [];
+            const category = tags
+              .map((ct: any) => ct.tag)
+              .filter((tag: any) => tag && tag.is_category)
+              .sort((a: any, b: any) => a.order_index - b.order_index)[0] || null;
+
+            const updated = [...prev];
+            updated[index] = {
+              ...updated[index],
+              conversation_tags: tags,
+              category,
+            };
+
+            return updated;
+          });
+        }
+      )
+      .subscribe();
+
     // Cleanup: remover channels ao desmontar
     return () => {
       supabase.removeChannel(conversationsChannel);
       supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(tagsChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]); // Apenas tenantId - supabase é estável

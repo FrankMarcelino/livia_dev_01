@@ -4,6 +4,7 @@ import {
   getConversationsWithContact,
   getConversation,
   getMessages,
+  getCategories,
 } from '@/lib/queries/livechat';
 import { LivechatContent } from '@/components/livechat/livechat-content';
 
@@ -44,6 +45,9 @@ export default async function LivechatPage({
     includeClosedConversations: true,
   });
 
+  // Buscar categorias disponíveis
+  const categories = await getCategories(tenantId);
+
   const resolvedParams = await searchParams;
   const selectedConversationId = resolvedParams.conversation;
 
@@ -70,6 +74,7 @@ export default async function LivechatPage({
       selectedConversation={selectedConversation || null}
       conversation={conversation}
       messages={messages}
+      categories={categories}
     />
   );
 }

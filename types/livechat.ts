@@ -7,6 +7,7 @@ import type {
   Conversation,
   Message,
   User,
+  Tag,
 } from './database-helpers';
 
 // ============================================================================
@@ -37,6 +38,13 @@ export interface ConversationWithLastMessage extends Conversation {
 }
 
 /**
+ * Tag de conversa com informações da tag
+ */
+export interface ConversationTagWithTag {
+  tag: Tag;
+}
+
+/**
  * Conversa com dados do contato e última mensagem
  *
  * NOVO MODELO (2025-11-22): Cada card na UI representa uma CONVERSA (não um contato).
@@ -47,6 +55,8 @@ export interface ConversationWithLastMessage extends Conversation {
 export interface ConversationWithContact extends Conversation {
   contact: Pick<Contact, 'id' | 'name' | 'phone' | 'email' | 'status'>;
   lastMessage: Message | null;
+  conversation_tags?: ConversationTagWithTag[];
+  category?: Tag | null; // Helper: primeira tag com is_category=true (se existir)
 }
 
 /**
@@ -124,6 +134,7 @@ export interface ContactFilters {
 export interface ConversationFilters {
   search?: string; // Busca por nome ou phone do contato
   status?: Conversation['status']; // 'open' | 'paused' | 'closed'
+  categoryId?: string; // Filtrar por categoria específica
   includeClosedConversations?: boolean; // Se true, inclui conversas encerradas
   limit?: number;
   offset?: number;
@@ -286,4 +297,17 @@ export interface ContactBulkUpdatePayload {
   address_complement?: string | null;
   city?: string | null;
   zip_code?: string | null;
+}
+
+// ============================================================================
+// CATEGORIES / TAGS
+// ============================================================================
+
+/**
+ * Payload para atualizar categoria de uma conversa
+ */
+export interface UpdateCategoryPayload {
+  conversationId: string;
+  categoryId: string | null; // null remove a categoria
+  tenantId: string;
 }

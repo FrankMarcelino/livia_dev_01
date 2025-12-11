@@ -1487,6 +1487,7 @@ export type Database = {
           created_at: string
           id: string
           id_tenant: string
+          is_category: boolean | null
           order_index: number
           prompt_to_ai: string | null
           tag_name: string
@@ -1497,6 +1498,7 @@ export type Database = {
           created_at?: string
           id?: string
           id_tenant: string
+          is_category?: boolean | null
           order_index?: number
           prompt_to_ai?: string | null
           tag_name: string
@@ -1507,6 +1509,7 @@ export type Database = {
           created_at?: string
           id?: string
           id_tenant?: string
+          is_category?: boolean | null
           order_index?: number
           prompt_to_ai?: string | null
           tag_name?: string

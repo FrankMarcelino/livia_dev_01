@@ -10,7 +10,7 @@ import { MessagesSkeleton } from './messages-skeleton';
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages';
 import { useRealtimeConversation } from '@/lib/hooks/use-realtime-conversation';
 import { useChatScroll } from '@/lib/hooks/use-chat-scroll';
-import type { Conversation } from '@/types/database-helpers';
+import type { Conversation, Tag } from '@/types/database-helpers';
 import type { MessageWithSender } from '@/types/livechat';
 
 interface ConversationViewProps {
@@ -18,6 +18,8 @@ interface ConversationViewProps {
   initialMessages: MessageWithSender[];
   tenantId: string;
   contactName: string;
+  currentCategory?: Tag | null;
+  categories: Tag[];
 }
 
 export function ConversationView({
@@ -25,6 +27,8 @@ export function ConversationView({
   initialMessages,
   tenantId,
   contactName,
+  currentCategory,
+  categories,
 }: ConversationViewProps) {
   const { messages } = useRealtimeMessages(
     initialConversation.id,
@@ -68,6 +72,8 @@ export function ConversationView({
         contactName={contactName}
         conversation={conversation}
         tenantId={tenantId}
+        currentCategory={currentCategory}
+        categories={categories}
       />
 
       <div className="flex-1 relative overflow-hidden">
