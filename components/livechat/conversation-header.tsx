@@ -9,6 +9,7 @@ import type { Conversation, Tag } from '@/types/database-helpers';
 import { ConversationSummaryModal } from './conversation-summary-modal';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 import { CategorySelect } from './category-select';
+import { StatusSelect } from './status-select';
 
 interface ConversationHeaderProps {
   contactName: string;
@@ -61,20 +62,6 @@ export function ConversationHeader({
   };
 
 
-  const getStatusDisplay = () => {
-    switch (conversation.status) {
-      case 'open':
-        return { label: 'Conversa Ativa', variant: 'default' as const, className: 'bg-green-600' };
-      case 'paused':
-        return { label: 'Conversa Aguardando', variant: 'default' as const, className: 'bg-yellow-600' };
-      case 'closed':
-        return { label: 'Conversa Encerrada', variant: 'outline' as const, className: 'bg-gray-600' };
-      default:
-        return { label: conversation.status, variant: 'outline' as const, className: '' };
-    }
-  };
-
-  const statusDisplay = getStatusDisplay();
   const iaDisabled = conversation.status === 'closed';
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
@@ -134,15 +121,11 @@ export function ConversationHeader({
 
         <span>•</span>
 
-        <div className="flex items-center gap-1.5">
-          {/* <span>Status:</span> */}
-          <Badge
-            variant={statusDisplay.variant}
-            className={statusDisplay.className}
-          >
-            {statusDisplay.label}
-          </Badge>
-        </div>
+        <StatusSelect
+          conversationId={conversation.id}
+          tenantId={tenantId}
+          currentStatus={conversation.status}
+        />
 
         <span>•</span>
 
