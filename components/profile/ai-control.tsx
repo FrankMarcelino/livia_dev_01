@@ -61,23 +61,26 @@ export function AIControl({ userId, tenantId, initialPaused = false }: AIControl
         });
       } else {
         const conversationsCount = result.affectedConversations || 0;
-        const conversationsText =
-          conversationsCount === 0
-            ? 'Nenhuma conversa aberta foi afetada'
-            : conversationsCount === 1
-            ? '1 conversa aberta foi atualizada'
-            : `${conversationsCount} conversas abertas foram atualizadas`;
 
-        toast.success(
-          shouldPause ? 'IA pausada com sucesso' : 'IA retomada com sucesso',
-          {
-            description: `${conversationsText}. ${
-              shouldPause
-                ? 'A IA não responderá automaticamente às mensagens'
-                : 'A IA voltará a responder automaticamente'
-            }`,
-          }
-        );
+        if (shouldPause) {
+          // Mensagem ao PAUSAR IA
+          const conversationsText =
+            conversationsCount === 0
+              ? 'Nenhuma conversa aberta foi afetada'
+              : conversationsCount === 1
+              ? '1 conversa foi movida para "Aguardando"'
+              : `${conversationsCount} conversas foram movidas para "Aguardando"`;
+
+          toast.success('IA pausada com sucesso', {
+            description: `${conversationsText}. A IA não responderá automaticamente às mensagens. Conversas aguardam atendimento manual.`,
+          });
+        } else {
+          // Mensagem ao RETOMAR IA
+          toast.success('IA reativada com sucesso', {
+            description:
+              'A IA voltará a funcionar apenas para NOVAS conversas. Conversas em "Aguardando" continuam aguardando atendimento manual.',
+          });
+        }
       }
     });
   };
@@ -155,8 +158,12 @@ export function AIControl({ userId, tenantId, initialPaused = false }: AIControl
                 mensagens.
               </p>
               <p>
-                Suas conversas ficarão sem atendimento automático até você retomar
-                manualmente.
+                Todas as conversas abertas serão movidas para o status{' '}
+                <strong>&quot;Aguardando&quot;</strong> e precisarão de atendimento manual.
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Ao reativar a IA, ela funcionará apenas para novas conversas. As conversas
+                em &quot;Aguardando&quot; continuarão aguardando atendimento manual.
               </p>
               <div className="pt-2">
                 <Label htmlFor="confirm-pause" className="text-sm font-medium">

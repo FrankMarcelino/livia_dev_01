@@ -9,15 +9,26 @@ import { createClient } from '@/lib/supabase/server';
  * - Single Responsibility: Gerencia apenas o estado de pausa da IA
  *
  * Esta action atualiza a configuração do tenant para pausar ou retomar
- * a assistente virtual. Quando pausada, a IA não responderá automaticamente
- * às mensagens.
+ * a assistente virtual.
  *
- * Fluxo:
+ * Fluxo de PAUSAR (isPaused=true):
  * 1. Valida autenticação
  * 2. Busca tenant_id do usuário
  * 3. Valida associação usuário-tenant
- * 4. Atualiza tenants.ia_active
- * 5. Atualiza TODAS as conversas abertas do tenant (ia_active)
+ * 4. Atualiza tenants.ia_active = false
+ * 5. Atualiza conversas com status='open':
+ *    - ia_active = false
+ *    - status = 'paused' (move para aguardando)
+ *    - pause_notes = 'IA pausada pelo usuário via Perfil'
+ *
+ * Fluxo de RETOMAR (isPaused=false):
+ * 1. Valida autenticação
+ * 2. Busca tenant_id do usuário
+ * 3. Valida associação usuário-tenant
+ * 4. Atualiza tenants.ia_active = true
+ * 5. NÃO atualiza conversas existentes
+ *    - Conversas com status='paused' permanecem aguardando
+ *    - IA funciona apenas para NOVAS conversas
  *
  * @param userId - ID do usuário
  * @param tenantId - ID do tenant
@@ -85,20 +96,36 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
     const tenantUpdateTime = Date.now() - startTime;
     console.log(`[toggleAIPause] ✅ Tenant updated in ${tenantUpdateTime}ms`);
 
-    // 5. Atualiza TODAS as conversas abertas do tenant
-    // ia_active = !isPaused (se pausar, ia_active = false)
-    const conversationUpdate = {
-      ia_active: !isPaused,
-      pause_notes: isPaused
-        ? 'IA pausada pelo usuário via Perfil'
-        : null,
-    };
+    // 5. Atualiza conversas do tenant (comportamento diferente para pausar/retomar)
+    let count = 0;
+    let conversationsError = null;
 
-    const { error: conversationsError, count } = await supabase
-      .from('conversations')
-      .update(conversationUpdate)
-      .eq('tenant_id', tenantId)
-      .eq('status', 'open'); // Só atualiza conversas abertas
+    if (isPaused) {
+      // PAUSAR IA: Atualiza conversas abertas
+      // - Define ia_active=false
+      // - Move status para 'paused' (aguardando atendimento manual)
+      // - Adiciona nota de pausa
+      const { error, count: affectedCount } = await supabase
+        .from('conversations')
+        .update({
+          ia_active: false,
+          status: 'paused',
+          pause_notes: 'IA pausada pelo usuário via Perfil',
+        })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'open'); // Só atualiza conversas abertas
+
+      conversationsError = error;
+      count = affectedCount || 0;
+    } else {
+      // RETOMAR IA: NÃO atualiza conversas existentes
+      // Conversas com status='paused' permanecem aguardando atendimento manual
+      // IA funcionará apenas para NOVAS conversas
+      console.log(
+        '[toggleAIPause] ℹ️ RESUMING IA: Existing paused conversations will remain paused. IA will work only for NEW conversations.'
+      );
+      count = 0; // Nenhuma conversa afetada
+    }
 
     if (conversationsError) {
       console.error(
