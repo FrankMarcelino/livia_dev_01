@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,11 +9,14 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { Button } from '@/components/ui/button';
 import { replaceQuickReplyVariables } from '@/lib/utils/quick-replies';
 import { useQuickRepliesCache } from '@/hooks/use-quick-replies-cache';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import type { QuickReply } from '@/types/livechat';
 import type { QuickReplyMode } from '@/hooks/use-quick-reply-command';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface QuickReplyCommandProps {
   isOpen: boolean;
@@ -40,15 +44,25 @@ export function QuickReplyCommand({
   conversationId,
   onSelect,
 }: QuickReplyCommandProps) {
+  // State para busca (apenas para modo "all")
+  const [searchValue, setSearchValue] = useState('');
+
+  // Debounce da busca (300ms) - só para modo "all"
+  const debouncedSearch = useDebouncedValue(searchValue, 300);
+
   // Hook otimizado com cache e paginação
   const {
     quickReplies: allQuickReplies,
     popularQuickReplies,
+    total,
+    hasMore,
     isLoading,
     isError,
+    loadMore,
   } = useQuickRepliesCache({
     tenantId,
-    limit: mode === 'popular' ? 5 : 30, // Popular: 5, All: 30 primeiros
+    limit: mode === 'popular' ? 5 : 50, // Popular: 5, All: 50 primeiros (otimizado)
+    search: mode === 'all' ? debouncedSearch : undefined, // Busca server-side apenas para "all"
     enabled: isOpen, // Só carrega quando command está aberto
     onError: (error) => {
       console.error('Erro ao carregar respostas rápidas:', error);
@@ -117,7 +131,10 @@ export function QuickReplyCommand({
     <CommandDialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open) {
+          setSearchValue(''); // Limpa busca ao fechar
+          onClose();
+        }
       }}
       title={getTitle()}
       description={getDescription()}
@@ -128,6 +145,8 @@ export function QuickReplyCommand({
             ? 'Buscar nas populares...'
             : 'Buscar resposta rápida...'
         }
+        value={searchValue}
+        onValueChange={setSearchValue}
       />
       <CommandList>
         {isLoading ? (
@@ -173,6 +192,35 @@ export function QuickReplyCommand({
                 </CommandItem>
               ))}
             </CommandGroup>
+
+            {/* Footer com contador e botão "Carregar mais" (apenas modo "all") */}
+            {mode === 'all' && quickReplies.length > 0 && (
+              <div className="border-t px-4 py-3 flex items-center justify-between bg-muted/30">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {quickReplies.length} de {total} respostas
+                </p>
+                {hasMore && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={loadMore}
+                    disabled={isLoading}
+                    className="h-7 text-xs"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        Carregar mais ({total - quickReplies.length} restantes)
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
           </>
         )}
       </CommandList>
