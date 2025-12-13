@@ -15,11 +15,11 @@ import type { AgentWithPrompt } from '@/types/agents';
 import { agentPromptSchema, type AgentPromptFormData } from '@/lib/validations/agentPromptValidation';
 import { updateAgentPromptAction, resetAgentPromptToDefaultAction } from '@/app/actions/agents';
 import { PersonalitySection } from './form-sections/personality-section';
-import { LimitationsSection } from './form-sections/limitations-section';
-import { InstructionsSection } from './form-sections/instructions-section';
-import { GuidelineSection } from './form-sections/guideline-section';
-import { RulesSection } from './form-sections/rules-section';
-import { OthersInstructionsSection } from './form-sections/others-instructions-section';
+import { LimitationsSectionV2 as LimitationsSection } from './form-sections/limitations-section-v2';
+import { InstructionsSectionV2 as InstructionsSection } from './form-sections/instructions-section-v2';
+import { GuidelineSectionV2 as GuidelineSection } from './form-sections/guideline-section-v2';
+import { RulesSectionV2 as RulesSection } from './form-sections/rules-section-v2';
+import { OthersInstructionsSectionV2 as OthersInstructionsSection } from './form-sections/others-instructions-section-v2';
 
 interface AgentEditTabsProps {
   agent: AgentWithPrompt;
