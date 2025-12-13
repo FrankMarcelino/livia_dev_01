@@ -58,6 +58,11 @@ export function AgentEditTabs({ agent, onSuccess, onCancel }: AgentEditTabsProps
 
       if (result.success) {
         toast.success('Configuração atualizada com sucesso!');
+
+        // ✅ Reset do form para marcar como pristine (não modificado)
+        // Mantém os valores atuais mas remove o estado "dirty"
+        form.reset(data);
+
         onSuccess?.();
       } else {
         toast.error(result.error || 'Erro ao atualizar configuração');

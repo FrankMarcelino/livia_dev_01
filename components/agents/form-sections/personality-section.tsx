@@ -73,14 +73,22 @@ export function PersonalitySection({ form }: PersonalitySectionProps) {
 
         {/* Comunicação (typo no banco: comunication) */}
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="comunication">Estilo de Comunicação</Label>
-          <Input
+          <div className="flex items-center justify-between">
+            <Label htmlFor="comunication">Estilo de Comunicação</Label>
+            <span className="text-xs text-muted-foreground">
+              {form.watch('comunication')?.length || 0}/1000
+            </span>
+          </div>
+          <Textarea
             id="comunication"
-            placeholder="Ex: Amigável, formal, descontraído"
+            placeholder="Descreva o estilo de comunicação do agent (pode usar múltiplas linhas)&#10;Ex: Tom amigável e profissional&#10;- Usa emojis moderadamente&#10;- Adapta linguagem ao contexto"
+            rows={4}
+            maxLength={1000}
             {...form.register('comunication')}
+            className="resize-y min-h-[100px]"
           />
           <p className="text-xs text-muted-foreground">
-            Como o agent se comunica
+            Como o agent se comunica com os usuários
           </p>
         </div>
       </div>

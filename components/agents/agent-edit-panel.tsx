@@ -20,7 +20,8 @@ export function AgentEditPanel({ agent, onClose, onSuccess, currentCategory = 'm
 
   const handleSuccess = () => {
     onSuccess?.();
-    onClose();
+    // ✅ Não fecha mais o painel automaticamente após salvar
+    // Usuário pode continuar editando ou fechar manualmente
   };
 
   const renderContent = () => {

@@ -49,7 +49,7 @@ export default async function DashboardLayout({
         tenantName={tenantName}
         avatarUrl={user?.avatar_url}
       />
-      <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden">
+      <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden pl-4 md:pl-6">
         <SidebarAutoCollapseWrapper>
           <div className="flex-1 overflow-y-auto">
             {children}
