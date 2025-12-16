@@ -1,8 +1,6 @@
-export { SynapseDialog } from './synapse-dialog';
-export { DeleteSynapseDialog } from './delete-synapse-dialog';
-export { SynapseActions } from './synapse-actions';
-export { SynapsesTable } from './synapses-table';
-export { BaseConhecimentoCard } from './base-conhecimento-card';
-export { BaseConhecimentoCarousel } from './base-conhecimento-carousel';
+// Componentes refatorados (sem synapses)
+export { DomainCarousel } from './domain-carousel';
+export { DomainBasesAccordion } from './domain-bases-accordion';
 export { BaseConhecimentoFormDialog } from './base-conhecimento-form-dialog';
-export { KnowledgeBaseMasterDetail } from './knowledge-base-master-detail';
+export { DeleteBaseDialog } from './delete-base-dialog';
+export { KnowledgeBasePageContent } from './knowledge-base-page-content';

@@ -493,6 +493,7 @@ export type Database = {
           base_conhecimentos_vectors: string | null
           created_at: string
           description: string | null
+          domain: string | null
           id: string
           is_active: boolean
           name: string
@@ -505,6 +506,7 @@ export type Database = {
           base_conhecimentos_vectors?: string | null
           created_at?: string
           description?: string | null
+          domain?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -517,6 +519,7 @@ export type Database = {
           base_conhecimentos_vectors?: string | null
           created_at?: string
           description?: string | null
+          domain?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -531,6 +534,13 @@ export type Database = {
             columns: ["base_conhecimentos_vectors"]
             isOneToOne: false
             referencedRelation: "base_conhecimentos_vectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_conhecimentos_domain_fkey"
+            columns: ["domain"]
+            isOneToOne: false
+            referencedRelation: "knowledge_domains"
             referencedColumns: ["id"]
           },
           {
@@ -587,6 +597,38 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_domains: {
+        Row: {
+          id: string
+          created_at: string
+          domain: string
+          neurocore_id: string
+          active: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          domain: string
+          neurocore_id: string
+          active?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          domain?: string
+          neurocore_id?: string
+          active?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_domains_neurocore_id_fkey"
+            columns: ["neurocore_id"]
+            isOneToOne: false
+            referencedRelation: "neurocores"
             referencedColumns: ["id"]
           },
         ]

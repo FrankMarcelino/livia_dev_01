@@ -1,262 +1,183 @@
 import { createClient } from '@/lib/supabase/server';
 import type {
-  Synapse,
-  CreateSynapseData,
-  UpdateSynapseData,
-  SynapsesFilters,
+  KnowledgeDomain,
   BaseConhecimento,
-  BaseConhecimentoWithCount,
-  BaseConhecimentoWithSynapses,
-  BaseConhecimentoWithNeuroCore,
+  BaseConhecimentoWithDomain,
+  DomainWithCount,
   CreateBaseConhecimentoData,
   UpdateBaseConhecimentoData,
 } from '@/types/knowledge-base';
 
-/**
- * Buscar todas as synapses de um tenant
- *
- * Princípio SOLID:
- * - Single Responsibility: Apenas busca synapses
- * - Dependency Inversion: Depende da abstração createClient
- */
-export async function getSynapses(
-  tenantId: string,
-  filters?: SynapsesFilters
-): Promise<Synapse[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('synapses')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .order('updated_at', { ascending: false });
-
-  // Aplicar filtros opcionais
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
-
-  if (filters?.is_enabled !== undefined) {
-    query = query.eq('is_enabled', filters.is_enabled);
-  }
-
-  if (filters?.search) {
-    query = query.or(
-      `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-    );
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Failed to fetch synapses: ${error.message}`);
-  }
-
-  return (data || []) as Synapse[];
-}
+// ============================================================================
+// KNOWLEDGE DOMAINS QUERIES
+// ============================================================================
 
 /**
- * Buscar synapse por ID
+ * Buscar todos os domínios de um neurocore
  */
-export async function getSynapse(
-  synapseId: string,
-  tenantId: string
-): Promise<Synapse | null> {
+export async function getDomains(neurocoreId: string): Promise<KnowledgeDomain[]> {
   const supabase = await createClient();
 
+  // Tentar buscar domínios do neurocore específico
   const { data, error } = await supabase
-    .from('synapses')
+    .from('knowledge_domains')
     .select('*')
-    .eq('id', synapseId)
-    .eq('tenant_id', tenantId)
-    .single();
+    .eq('neurocore_id', neurocoreId)
+    .eq('active', true)
+    .order('domain', { ascending: true });
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null; // Not found
+    console.error('[getDomains] Erro ao buscar domínios:', error);
+    throw new Error(`Failed to fetch knowledge domains: ${error.message}`);
+  }
+
+  // Se não encontrou nenhum, buscar TODOS os domínios ativos (fallback)
+  if (!data || data.length === 0) {
+    console.warn('[getDomains] Nenhum domínio encontrado para este neurocore, buscando todos os domínios ativos...');
+
+    const { data: allDomains, error: allError } = await supabase
+      .from('knowledge_domains')
+      .select('*')
+      .eq('active', true)
+      .order('domain', { ascending: true });
+
+    if (allError) {
+      console.error('[getDomains] Erro ao buscar todos os domínios:', allError);
+      throw new Error(`Failed to fetch all domains: ${allError.message}`);
     }
-    throw new Error(`Failed to fetch synapse: ${error.message}`);
+
+    if (allDomains && allDomains.length > 0) {
+      console.warn('[getDomains] ⚠️ ATENÇÃO: Usando domínios de outros neurocores! Verifique o neurocore_id dos domínios.');
+    }
+
+    return (allDomains || []) as KnowledgeDomain[];
   }
 
-  return data as Synapse;
+  return (data || []) as KnowledgeDomain[];
 }
 
 /**
- * Criar nova synapse (status: 'draft')
+ * Buscar domínios com contagem de bases
  */
-export async function createSynapse(
-  tenantId: string,
-  baseConhecimentoId: string,
-  data: CreateSynapseData
-): Promise<Synapse> {
-  const supabase = await createClient();
-
-  const { data: synapse, error } = await supabase
-    .from('synapses')
-    .insert({
-      tenant_id: tenantId,
-      base_conhecimento_id: baseConhecimentoId,
-      title: data.title,
-      content: data.content,
-      description: data.description || null,
-      image_url: data.image_url || null,
-      status: 'draft',
-      is_enabled: false, // Nova synapse começa desabilitada
-    })
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create synapse: ${error.message}`);
-  }
-
-  return synapse as Synapse;
-}
-
-/**
- * Atualizar synapse existente
- */
-export async function updateSynapse(
-  synapseId: string,
-  tenantId: string,
-  data: UpdateSynapseData
-): Promise<Synapse> {
-  const supabase = await createClient();
-
-  const { data: synapse, error } = await supabase
-    .from('synapses')
-    .update(data)
-    .eq('id', synapseId)
-    .eq('tenant_id', tenantId)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to update synapse: ${error.message}`);
-  }
-
-  return synapse as Synapse;
-}
-
-/**
- * Deletar synapse
- */
-export async function deleteSynapse(
-  synapseId: string,
+export async function getDomainsWithCount(
+  neurocoreId: string,
   tenantId: string
-): Promise<void> {
+): Promise<DomainWithCount[]> {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from('synapses')
-    .delete()
-    .eq('id', synapseId)
-    .eq('tenant_id', tenantId);
-
-  if (error) {
-    throw new Error(`Failed to delete synapse: ${error.message}`);
-  }
-}
-
-/**
- * Toggle is_enabled de uma synapse
- */
-export async function toggleSynapseEnabled(
-  synapseId: string,
-  tenantId: string,
-  isEnabled: boolean
-): Promise<Synapse> {
-  return updateSynapse(synapseId, tenantId, { is_enabled: isEnabled });
-}
-
-/**
- * Buscar synapses de uma base específica
- *
- * Usado no BaseConhecimentoDialog para exibir synapses da base
- */
-export async function getSynapsesByBase(
-  baseConhecimentoId: string,
-  tenantId: string,
-  filters?: SynapsesFilters
-): Promise<Synapse[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('synapses')
+  // Buscar domínios do neurocore específico
+  let { data: domains, error: domainsError } = await supabase
+    .from('knowledge_domains')
     .select('*')
-    .eq('base_conhecimento_id', baseConhecimentoId)
-    .eq('tenant_id', tenantId)
-    .order('updated_at', { ascending: false });
+    .eq('neurocore_id', neurocoreId)
+    .eq('active', true)
+    .order('domain', { ascending: true });
 
-  // Aplicar filtros opcionais
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
+  if (domainsError) {
+    console.error('[getDomainsWithCount] Erro ao buscar domínios:', domainsError);
+    throw new Error(`Failed to fetch domains: ${domainsError.message}`);
   }
 
-  if (filters?.is_enabled !== undefined) {
-    query = query.eq('is_enabled', filters.is_enabled);
+  // Fallback: Se não encontrou domínios para este neurocore, buscar TODOS os domínios
+  if (!domains || domains.length === 0) {
+    console.warn('[getDomainsWithCount] Nenhum domínio encontrado para este neurocore, buscando todos os domínios ativos...');
+
+    const { data: allDomains, error: allError } = await supabase
+      .from('knowledge_domains')
+      .select('*')
+      .eq('active', true)
+      .order('domain', { ascending: true });
+
+    if (allError) {
+      console.error('[getDomainsWithCount] Erro ao buscar todos os domínios:', allError);
+      throw new Error(`Failed to fetch all domains: ${allError.message}`);
+    }
+
+    if (allDomains && allDomains.length > 0) {
+      console.warn('[getDomainsWithCount] ⚠️ ATENÇÃO: Usando domínios de outros neurocores! Verifique o neurocore_id dos domínios.');
+      domains = allDomains;
+    } else {
+      console.error('[getDomainsWithCount] Nenhum domínio ativo no sistema');
+      return [];
+    }
   }
 
-  if (filters?.search) {
-    query = query.or(
-      `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-    );
-  }
+  // Buscar contagem de bases para cada domínio
+  const domainsWithCount = await Promise.all(
+    domains.map(async (domain) => {
+      const { count: totalCount, error: countError } = await supabase
+        .from('base_conhecimentos')
+        .select('*', { count: 'exact', head: true })
+        .eq('domain', domain.id)
+        .eq('tenant_id', tenantId);
 
-  const { data, error } = await query;
+      const { count: publishedCount, error: publishedError } = await supabase
+        .from('base_conhecimentos')
+        .select('*', { count: 'exact', head: true })
+        .eq('domain', domain.id)
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .not('base_conhecimentos_vectors', 'is', null);
 
-  if (error) {
-    throw new Error(`Failed to fetch synapses: ${error.message}`);
-  }
+      const { count: processingCount, error: processingError } = await supabase
+        .from('base_conhecimentos')
+        .select('*', { count: 'exact', head: true })
+        .eq('domain', domain.id)
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .is('base_conhecimentos_vectors', null);
 
-  return (data || []) as Synapse[];
+      if (countError || publishedError || processingError) {
+        console.error('[getDomainsWithCount] Erro ao contar bases:', {
+          domain: domain.domain,
+          countError,
+          publishedError,
+          processingError,
+        });
+      }
+
+      return {
+        ...domain,
+        bases_count: totalCount || 0,
+        published_count: publishedCount || 0,
+        processing_count: processingCount || 0,
+      };
+    })
+  );
+
+  return domainsWithCount as DomainWithCount[];
 }
 
 // ============================================================================
-// BASE DE CONHECIMENTO QUERIES
+// BASE CONHECIMENTO QUERIES
 // ============================================================================
 
 /**
- * Buscar todas as bases de conhecimento de um tenant com contagem de synapses
- *
- * Princípio SOLID:
- * - Single Responsibility: Apenas busca bases com contagem
- * - Performance: JOIN com count (evita N+1 queries)
+ * Buscar todas as bases de um domínio específico
  */
-export async function getBaseConhecimentos(
+export async function getBasesByDomain(
+  domainId: string,
   tenantId: string
-): Promise<BaseConhecimentoWithCount[]> {
+): Promise<BaseConhecimento[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('base_conhecimentos')
-    .select(
-      `
-      *,
-      synapses(count)
-    `,
-      { count: 'exact' }
-    )
+    .select('*')
+    .eq('domain', domainId)
     .eq('tenant_id', tenantId)
     .order('updated_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Failed to fetch bases de conhecimento: ${error.message}`);
+    console.error('[getBasesByDomain] Erro ao buscar bases:', error);
+    throw new Error(`Failed to fetch bases: ${error.message}`);
   }
 
-  // Transform response para incluir synapses_count
-  const basesWithCount: BaseConhecimentoWithCount[] = (data || []).map(
-    (base) => ({
-      ...base,
-      synapses_count: base.synapses?.[0]?.count || 0,
-    })
-  );
-
-  return basesWithCount;
+  return (data || []) as BaseConhecimento[];
 }
 
 /**
- * Buscar base de conhecimento por ID (sem synapses)
+ * Buscar base por ID
  */
 export async function getBaseConhecimento(
   baseId: string,
@@ -275,21 +196,19 @@ export async function getBaseConhecimento(
     if (error.code === 'PGRST116') {
       return null; // Not found
     }
-    throw new Error(`Failed to fetch base de conhecimento: ${error.message}`);
+    throw new Error(`Failed to fetch base: ${error.message}`);
   }
 
   return data as BaseConhecimento;
 }
 
 /**
- * Buscar base de conhecimento com synapses relacionadas
- *
- * Usado no BaseConhecimentoDialog para exibir base + synapses
+ * Buscar base com informações do domínio
  */
-export async function getBaseConhecimentoWithSynapses(
+export async function getBaseConhecimentoWithDomain(
   baseId: string,
   tenantId: string
-): Promise<BaseConhecimentoWithSynapses | null> {
+): Promise<BaseConhecimentoWithDomain | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -297,7 +216,7 @@ export async function getBaseConhecimentoWithSynapses(
     .select(
       `
       *,
-      synapses(*)
+      knowledge_domains(*)
     `
     )
     .eq('id', baseId)
@@ -306,53 +225,19 @@ export async function getBaseConhecimentoWithSynapses(
 
   if (error) {
     if (error.code === 'PGRST116') {
-      return null; // Not found
+      return null;
     }
-    throw new Error(`Failed to fetch base with synapses: ${error.message}`);
+    throw new Error(`Failed to fetch base with domain: ${error.message}`);
   }
 
-  return data as BaseConhecimentoWithSynapses;
-}
-
-/**
- * Buscar base de conhecimento com informações do NeuroCore
- *
- * Usado para exibir nome do NeuroCore no select disabled
- */
-export async function getBaseConhecimentoWithNeuroCore(
-  baseId: string,
-  tenantId: string
-): Promise<BaseConhecimentoWithNeuroCore | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('base_conhecimentos')
-    .select(
-      `
-      *,
-      neurocores(id, name)
-    `
-    )
-    .eq('id', baseId)
-    .eq('tenant_id', tenantId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null; // Not found
-    }
-    throw new Error(
-      `Failed to fetch base with neurocore: ${error.message}`
-    );
-  }
-
-  return data as BaseConhecimentoWithNeuroCore;
+  return data as BaseConhecimentoWithDomain;
 }
 
 /**
  * Criar nova base de conhecimento
  *
- * Nota: neurocore_id vem do tenant (relação 1:1)
+ * IMPORTANTE: Base começa com is_active=false e sem vector
+ * O N8N será chamado depois para processar e ativar
  */
 export async function createBaseConhecimento(
   tenantId: string,
@@ -367,39 +252,64 @@ export async function createBaseConhecimento(
       tenant_id: tenantId,
       neurocore_id: neurocoreId,
       name: data.name,
-      description: data.description || null,
-      is_active: true, // Nova base começa ativa
+      description: data.description,
+      domain: data.domain,
+      is_active: false, // Começa desativada até N8N processar
+      base_conhecimentos_vectors: null,
     })
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Failed to create base de conhecimento: ${error.message}`);
+    throw new Error(`Failed to create base: ${error.message}`);
   }
 
   return base as BaseConhecimento;
 }
 
 /**
- * Atualizar base de conhecimento existente
+ * Atualizar base de conhecimento
+ *
+ * Se description mudar, reseta vector e is_active
  */
 export async function updateBaseConhecimento(
   baseId: string,
   tenantId: string,
-  data: UpdateBaseConhecimentoData
+  data: UpdateBaseConhecimentoData,
+  resetVector: boolean = false
 ): Promise<BaseConhecimento> {
   const supabase = await createClient();
 
+  const updateData: {
+    name?: string;
+    domain?: string;
+    description?: string;
+    is_active?: boolean;
+    base_conhecimentos_vectors?: string | null;
+  } = {};
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.domain !== undefined) updateData.domain = data.domain;
+
+  // Se description mudou, reseta vector
+  if (data.description !== undefined) {
+    updateData.description = data.description;
+    if (resetVector) {
+      updateData.is_active = false;
+      updateData.base_conhecimentos_vectors = null;
+    }
+  }
+
   const { data: base, error } = await supabase
     .from('base_conhecimentos')
-    .update(data)
+    .update(updateData)
     .eq('id', baseId)
     .eq('tenant_id', tenantId)
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Failed to update base de conhecimento: ${error.message}`);
+    throw new Error(`Failed to update base: ${error.message}`);
   }
 
   return base as BaseConhecimento;
@@ -407,8 +317,6 @@ export async function updateBaseConhecimento(
 
 /**
  * Deletar base de conhecimento
- *
- * AVISO: Falhará se houver synapses relacionadas (constraint FK)
  */
 export async function deleteBaseConhecimento(
   baseId: string,
@@ -423,23 +331,61 @@ export async function deleteBaseConhecimento(
     .eq('tenant_id', tenantId);
 
   if (error) {
-    // Erro específico de FK constraint
-    if (error.code === '23503') {
-      throw new Error(
-        'Não é possível deletar base com synapses relacionadas. Delete ou mova as synapses primeiro.'
-      );
-    }
-    throw new Error(`Failed to delete base de conhecimento: ${error.message}`);
+    throw new Error(`Failed to delete base: ${error.message}`);
   }
 }
 
 /**
- * Toggle is_active de uma base de conhecimento
+ * Toggle is_active (ativar/desativar sazonal)
+ *
+ * Mantém o vector intacto, só muda is_active
  */
-export async function toggleBaseConhecimentoActive(
+export async function toggleBaseActive(
   baseId: string,
   tenantId: string,
   isActive: boolean
 ): Promise<BaseConhecimento> {
-  return updateBaseConhecimento(baseId, tenantId, { is_active: isActive });
+  const supabase = await createClient();
+
+  const { data: base, error } = await supabase
+    .from('base_conhecimentos')
+    .update({ is_active: isActive })
+    .eq('id', baseId)
+    .eq('tenant_id', tenantId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to toggle base active: ${error.message}`);
+  }
+
+  return base as BaseConhecimento;
+}
+
+/**
+ * Atualizar base após N8N processar (callback)
+ *
+ * Chamado pelo webhook do N8N quando vetor é criado
+ */
+export async function updateBaseAfterVectorization(
+  baseId: string,
+  vectorId: string
+): Promise<BaseConhecimento> {
+  const supabase = await createClient();
+
+  const { data: base, error } = await supabase
+    .from('base_conhecimentos')
+    .update({
+      is_active: true,
+      base_conhecimentos_vectors: vectorId,
+    })
+    .eq('id', baseId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update base after vectorization: ${error.message}`);
+  }
+
+  return base as BaseConhecimento;
 }

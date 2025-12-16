@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getBaseConhecimentos } from '@/lib/queries/knowledge-base';
-import { KnowledgeBaseMasterDetail } from '@/components/knowledge-base';
+import { getDomainsWithCount, getBasesByDomain, getDomains } from '@/lib/queries/knowledge-base';
+import { KnowledgeBasePageContent } from '@/components/knowledge-base/knowledge-base-page-content';
 
 export default async function KnowledgeBasePage() {
   const supabase = await createClient();
@@ -31,7 +31,6 @@ export default async function KnowledgeBasePage() {
   }
 
   // Buscar dados do tenant (incluindo neurocore)
-   
   const { data: tenantData } = (await supabase
     .from('tenants')
     .select(
@@ -55,24 +54,57 @@ export default async function KnowledgeBasePage() {
   }
 
   const neurocoreId = tenantData.neurocore_id;
-  const neurocoreName = tenantData.neurocores.name;
 
-  // Buscar bases de conhecimento
-  const bases = await getBaseConhecimentos(tenantId);
+  let domains;
+  let allDomains;
+  let basesByDomain: Record<string, Awaited<ReturnType<typeof getBasesByDomain>>> = {};
+  let error = null;
+
+  try {
+    // Buscar domínios com contagem
+    domains = await getDomainsWithCount(neurocoreId, tenantId);
+
+    // Buscar todos os domínios (sem contagem) para o select do form
+    allDomains = await getDomains(neurocoreId);
+
+    // Buscar bases de cada domínio
+    await Promise.all(
+      domains.map(async (domain) => {
+        const bases = await getBasesByDomain(domain.id, tenantId);
+        basesByDomain[domain.id] = bases;
+      })
+    );
+  } catch (e) {
+    console.error('Error loading knowledge base:', e);
+    error = e;
+  }
+
+  if (error || !domains || !allDomains) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-destructive">
+          Erro ao carregar base de conhecimento. Verifique o console para
+          detalhes.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col p-6 w-full overflow-x-hidden">
-      <KnowledgeBaseMasterDetail
-        bases={bases}
+      <KnowledgeBasePageContent
+        domains={domains}
+        basesByDomain={basesByDomain}
+        allDomains={allDomains}
         tenantId={tenantId}
         neurocoreId={neurocoreId}
-        neurocoreName={neurocoreName}
       />
 
       <div className="mt-8 text-sm text-muted-foreground">
         <p>
-          💡 <strong>Dica:</strong> Organize synapses em bases temáticas para
-          facilitar o gerenciamento do conhecimento da IA.
+          💡 <strong>Dica:</strong> Organize suas bases de conhecimento por
+          domínios para facilitar o gerenciamento. O conteúdo será
+          automaticamente vetorizado pela IA.
         </p>
       </div>
     </div>

@@ -32,7 +32,7 @@ export async function callN8nWebhook(
 ): Promise<N8nWebhookResponse> {
   // Modo mock: apenas loga e retorna sucesso
   if (N8N_MOCK) {
-    console.log('[N8N MOCK] Webhook chamado:', endpoint, payload);
+    console.warn('[N8N MOCK] Webhook chamado:', endpoint, payload);
     return { success: true, mock: true };
   }
 
@@ -44,8 +44,6 @@ export async function callN8nWebhook(
 
   try {
     const url = `${N8N_BASE_URL}${endpoint}`;
-
-    console.log('[N8N] Chamando webhook:', url);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -60,7 +58,6 @@ export async function callN8nWebhook(
       throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
     }
 
-    console.log('[N8N] Webhook chamado com sucesso:', endpoint);
     return { success: true };
   } catch (error) {
     // Log erro mas não lança exceção (não bloqueia CRUD)
@@ -135,4 +132,110 @@ export async function inactivateBaseWebhook(payload: InactivateBasePayload) {
     process.env.N8N_INACTIVATE_BASE_WEBHOOK || '/webhook/livia/inactivate-base',
     payload
   );
+}
+
+/**
+ * Payload para criar vetor de base de conhecimento
+ */
+export interface CreateBaseConhecimentoVectorPayload {
+  id_base_conhecimento_geral: string;
+}
+
+/**
+ * Chama N8N para criar vetor de base de conhecimento
+ *
+ * POST /webhook/create_base_conhecimento_geral
+ * Body: { id_base_conhecimento_geral: "uuid" }
+ *
+ * O N8N vai:
+ * 1. Buscar o conteúdo (description) da base
+ * 2. Fazer chunking do conteúdo
+ * 3. Gerar embeddings
+ * 4. Criar registro em base_conhecimentos_vectors
+ * 5. Atualizar base_conhecimentos:
+ *    - base_conhecimentos_vectors = vector_id
+ *    - is_active = true
+ */
+export async function createBaseConhecimentoVectorWebhook(
+  payload: CreateBaseConhecimentoVectorPayload
+): Promise<N8nWebhookResponse> {
+  // Modo mock: apenas loga e retorna sucesso
+  if (N8N_MOCK) {
+    console.warn('[N8N MOCK] Create Base Vector:', payload);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const url =
+      process.env.N8N_CREATE_BASE_VECTOR_URL ||
+      'https://acesse.ligeiratelecom.com.br/webhook/create_base_conhecimento_geral';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000), // 30s timeout (processamento pode demorar)
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[N8N ERROR] Falha ao criar vetor:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Chama N8N para atualizar vetor de base de conhecimento
+ *
+ * PATCH /webhook/update_vetor_base_conhecimento
+ * Body: { id_base_conhecimento_geral: "uuid" }
+ *
+ * O N8N vai:
+ * 1. Deletar vector antigo da base
+ * 2. Buscar novo conteúdo (description)
+ * 3. Fazer chunking
+ * 4. Gerar novos embeddings
+ * 5. Criar novo registro em base_conhecimentos_vectors
+ * 6. Atualizar base_conhecimentos:
+ *    - base_conhecimentos_vectors = novo_vector_id
+ *    - is_active = true
+ */
+export async function updateBaseConhecimentoVectorWebhook(
+  payload: CreateBaseConhecimentoVectorPayload
+): Promise<N8nWebhookResponse> {
+  // Modo mock: apenas loga e retorna sucesso
+  if (N8N_MOCK) {
+    console.warn('[N8N MOCK] Update Base Vector:', payload);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const url =
+      process.env.N8N_UPDATE_BASE_VECTOR_URL ||
+      'https://acesse.ligeiratelecom.com.br/webhook/update_vetor_base_conhecimento';
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000), // 30s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[N8N ERROR] Falha ao atualizar vetor:', error);
+    return { success: false, error };
+  }
 }

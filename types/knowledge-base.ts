@@ -1,129 +1,136 @@
 /**
- * Types para Base de Conhecimento (Synapses)
- */
-
-/**
- * Status possíveis de uma synapse durante seu ciclo de vida
- */
-export type SynapseStatus = 'draft' | 'indexing' | 'publishing' | 'error';
-
-/**
- * Synapse - Unidade de conhecimento da base
+ * Types para Base de Conhecimento Refatorada
  *
- * Fluxo de publicação:
- * 1. draft → Criada, pode ser editada
- * 2. indexing → Enviada para n8n processar
- * 3. publishing → Embeddings criados, IA usando
- * 4. error → Falha no processamento
+ * Estrutura simplificada:
+ * Domain (FAQ, Políticas, etc) → Base Conhecimento (conteúdo direto)
  */
-export interface Synapse {
-  id: string;
-  base_conhecimento_id: string;
-  tenant_id: string;
-  title: string;
-  content: string;
-  description: string | null;
-  image_url: string | null;
-  status: SynapseStatus;
-  is_enabled: boolean;
-  created_at: string;
-  updated_at: string;
-}
+
+import type { Tables } from './database';
 
 /**
- * Dados para criar uma nova synapse
- */
-export interface CreateSynapseData {
-  title: string;
-  content: string;
-  description?: string;
-  image_url?: string;
-}
-
-/**
- * Dados para atualizar uma synapse existente
- */
-export interface UpdateSynapseData {
-  title?: string;
-  content?: string;
-  description?: string | null;
-  image_url?: string | null;
-  is_enabled?: boolean;
-}
-
-/**
- * Filtros para listagem de synapses
- */
-export interface SynapsesFilters {
-  status?: SynapseStatus;
-  is_enabled?: boolean;
-  search?: string; // Busca em title/description
-}
-
-/**
- * Base de Conhecimento - Agrupa synapses relacionadas
+ * Domínio de conhecimento - Agrupa bases por categoria
  *
- * Estrutura hierárquica:
- * Base de Conhecimento → Synapses
- *
- * Exemplos:
- * - Base: "Políticas de Devolução" → Synapses sobre prazos, produtos não devolúveis, etc.
- * - Base: "Suporte Técnico" → Synapses sobre reset de senha, problemas de login, etc.
+ * Exemplos: "FAQ", "Políticas", "Documentação", "Procedimentos"
  */
-export interface BaseConhecimento {
-  id: string;
-  tenant_id: string;
-  neurocore_id: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+export type KnowledgeDomain = Tables<'knowledge_domains'>;
+
+/**
+ * Base de Conhecimento - Conteúdo vetorizado
+ *
+ * Cada base contém:
+ * - name: Título da base
+ * - description: Conteúdo completo (texto)
+ * - domain: FK para knowledge_domains
+ * - base_conhecimentos_vectors: FK 1:1 para o vetor (se null = processando)
+ */
+export type BaseConhecimento = Tables<'base_conhecimentos'>;
+
+/**
+ * Status calculado de uma base de conhecimento
+ */
+export type BaseStatus =
+  | 'published'    // is_active=true e tem vector
+  | 'processing'   // is_active=true mas sem vector
+  | 'inactive'     // is_active=false e tem vector (sazonal)
+  | 'draft';       // is_active=false e sem vector
+
+/**
+ * Interface para calcular status da base
+ */
+export interface BaseStatusInfo {
+  status: BaseStatus;
+  label: string;
+  icon: string;
+  color: 'success' | 'default' | 'secondary' | 'outline' | 'destructive';
 }
 
 /**
- * Base de Conhecimento com contagem de synapses
- *
- * Usado na listagem de bases para exibir quantidade de synapses
+ * Base de conhecimento com informações do domínio
  */
-export interface BaseConhecimentoWithCount extends BaseConhecimento {
-  synapses_count: number;
+export interface BaseConhecimentoWithDomain extends BaseConhecimento {
+  knowledge_domains: KnowledgeDomain | null;
 }
 
 /**
- * Base de Conhecimento com synapses relacionadas
- *
- * Usado no modal de edição para exibir base + synapses juntas
+ * Base de conhecimento com status calculado
  */
-export interface BaseConhecimentoWithSynapses extends BaseConhecimento {
-  synapses: Synapse[];
+export interface BaseConhecimentoWithStatus extends BaseConhecimento {
+  statusInfo: BaseStatusInfo;
 }
 
 /**
- * Base de Conhecimento com informações do NeuroCore
- *
- * Usado para exibir nome do NeuroCore no select disabled
+ * Domínio com contagem de bases
  */
-export interface BaseConhecimentoWithNeuroCore extends BaseConhecimento {
-  neurocores: {
-    id: string;
-    name: string;
-  };
+export interface DomainWithCount extends KnowledgeDomain {
+  bases_count: number;
+  published_count: number;
+  processing_count: number;
 }
 
 /**
- * Dados para criar uma nova base de conhecimento
+ * Dados para criar nova base de conhecimento
  */
 export interface CreateBaseConhecimentoData {
   name: string;
-  description?: string;
+  description: string;      // Conteúdo completo
+  domain: string;            // UUID do knowledge_domain
 }
 
 /**
- * Dados para atualizar uma base de conhecimento existente
+ * Dados para atualizar base de conhecimento existente
  */
 export interface UpdateBaseConhecimentoData {
   name?: string;
-  description?: string | null;
-  is_active?: boolean;
+  description?: string;      // Novo conteúdo (reseta vector)
+  domain?: string;
+}
+
+/**
+ * Dados para toggle ativo/inativo (sazonal)
+ */
+export interface ToggleBaseActiveData {
+  is_active: boolean;
+}
+
+/**
+ * Helper para calcular status da base
+ */
+export function getBaseStatus(base: BaseConhecimento): BaseStatusInfo {
+  // Desativado (sazonal) - tem vector mas está off
+  if (!base.is_active && base.base_conhecimentos_vectors) {
+    return {
+      status: 'inactive',
+      label: 'Desativado (Sazonal)',
+      icon: '⚠️',
+      color: 'secondary',
+    };
+  }
+
+  // Rascunho - nunca foi vetorizado
+  if (!base.is_active && !base.base_conhecimentos_vectors) {
+    return {
+      status: 'draft',
+      label: 'Rascunho',
+      icon: '📝',
+      color: 'outline',
+    };
+  }
+
+  // Processando - ativo mas ainda sem vector
+  if (base.is_active && !base.base_conhecimentos_vectors) {
+    return {
+      status: 'processing',
+      label: 'Processando...',
+      icon: '⏳',
+      color: 'default',
+    };
+  }
+
+  // Publicado - ativo e com vector
+  return {
+    status: 'published',
+    label: 'Publicado',
+    icon: '✅',
+    color: 'success',
+  };
 }

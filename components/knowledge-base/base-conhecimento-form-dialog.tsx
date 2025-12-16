@@ -26,38 +26,36 @@ import {
   createBaseConhecimentoAction,
   updateBaseConhecimentoAction,
 } from '@/app/actions/base-conhecimento';
-import type { BaseConhecimento } from '@/types/knowledge-base';
+import type { BaseConhecimento, KnowledgeDomain } from '@/types/knowledge-base';
 
 interface BaseConhecimentoFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: string;
   neurocoreId: string;
-  neurocoreName: string;
+  domains: KnowledgeDomain[];
+  selectedDomainId?: string | null;
   base?: BaseConhecimento; // Se fornecido, está editando
   onSuccess: () => void;
 }
 
 /**
- * Dialog SIMPLES para criar ou editar base de conhecimento
- * (SEM synapses aninhadas - layout master-detail cuida disso)
- *
- * Princípios SOLID:
- * - Single Responsibility: Apenas form de base
- * - Open/Closed: Callback onSuccess
- * - Dependency Inversion: Não depende de router.refresh
+ * Dialog para criar ou editar base de conhecimento
  *
  * Features:
  * - Modo criar/editar
- * - Select NeuroCore disabled (informativo)
- * - Validação: nome min 3 chars
+ * - Select de domínio
+ * - Campo nome (mín 3 chars)
+ * - Campo conteúdo (textarea grande, obrigatório)
+ * - Validação completa
  */
 export function BaseConhecimentoFormDialog({
   open,
   onOpenChange,
   tenantId,
   neurocoreId,
-  neurocoreName,
+  domains,
+  selectedDomainId,
   base,
   onSuccess,
 }: BaseConhecimentoFormDialogProps) {
@@ -65,6 +63,9 @@ export function BaseConhecimentoFormDialog({
 
   const [name, setName] = useState(base?.name || '');
   const [description, setDescription] = useState(base?.description || '');
+  const [domainId, setDomainId] = useState(
+    base?.domain || selectedDomainId || (domains.length > 0 ? domains[0]?.id : '') || ''
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset form quando dialog abre/fecha ou base muda
@@ -72,12 +73,16 @@ export function BaseConhecimentoFormDialog({
     if (open) {
       setName(base?.name || '');
       setDescription(base?.description || '');
+      setDomainId(
+        base?.domain || selectedDomainId || (domains.length > 0 ? domains[0]?.id : '') || ''
+      );
     }
-  }, [open, base]);
+  }, [open, base, selectedDomainId, domains]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validações
     if (!name.trim()) {
       toast.error('Nome é obrigatório');
       return;
@@ -88,24 +93,41 @@ export function BaseConhecimentoFormDialog({
       return;
     }
 
+    if (!description.trim()) {
+      toast.error('Conteúdo é obrigatório');
+      return;
+    }
+
+    if (description.trim().length < 10) {
+      toast.error('Conteúdo deve ter no mínimo 10 caracteres');
+      return;
+    }
+
+    if (!domainId) {
+      toast.error('Selecione um domínio');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const result = isEditing
         ? await updateBaseConhecimentoAction(base!.id, tenantId, {
-            name,
-            description: description.trim() || null,
+            name: name.trim(),
+            description: description.trim(),
+            domain: domainId,
           })
         : await createBaseConhecimentoAction(tenantId, neurocoreId, {
-            name,
-            description: description.trim() || undefined,
+            name: name.trim(),
+            description: description.trim(),
+            domain: domainId,
           });
 
       if (result.success) {
         toast.success(
           isEditing
-            ? 'Base atualizada!'
-            : 'Base de conhecimento criada com sucesso!'
+            ? 'Base atualizada! O vetor será reprocessado.'
+            : 'Base criada! Aguarde o processamento do vetor.'
         );
         onOpenChange(false);
         onSuccess();
@@ -114,6 +136,7 @@ export function BaseConhecimentoFormDialog({
         if (!isEditing) {
           setName('');
           setDescription('');
+          setDomainId(selectedDomainId || (domains.length > 0 ? domains[0]?.id : '') || '');
         }
       } else {
         toast.error(result.error || 'Erro ao salvar base de conhecimento');
@@ -127,26 +150,27 @@ export function BaseConhecimentoFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Base de Conhecimento' : 'Nova Base de Conhecimento'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Atualize as informações da base'
-              : 'Crie uma nova base para organizar synapses relacionadas'}
+              ? 'Atualize as informações da base. O vetor será reprocessado automaticamente.'
+              : 'Crie uma nova base de conhecimento. O conteúdo será vetorizado automaticamente.'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Nome */}
           <div className="space-y-2">
             <Label htmlFor="name">
               Nome <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
-              placeholder="Ex: Políticas de Devolução"
+              placeholder="Ex: Perguntas sobre Planos"
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
@@ -154,35 +178,56 @@ export function BaseConhecimentoFormDialog({
               minLength={3}
             />
             <p className="text-xs text-muted-foreground">
-              Nome temático para organizar synapses relacionadas
+              Título descritivo para identificar esta base
             </p>
           </div>
 
+          {/* Domínio */}
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição (opcional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Descreva o objetivo desta base..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={isLoading}
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="neurocore">NeuroCore Associado</Label>
-            <Select value={neurocoreId} disabled>
-              <SelectTrigger id="neurocore">
-                <SelectValue placeholder={neurocoreName} />
+            <Label htmlFor="domain">
+              Domínio <span className="text-destructive">*</span>
+            </Label>
+            <Select value={domainId} onValueChange={setDomainId} disabled={isLoading}>
+              <SelectTrigger id="domain">
+                <SelectValue placeholder="Selecione um domínio" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={neurocoreId}>{neurocoreName}</SelectItem>
+                {domains.map((domain) => (
+                  <SelectItem key={domain.id} value={domain.id}>
+                    {domain.domain}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Base vinculada ao NeuroCore do seu tenant (não editável)
+              Categoria que agrupa bases relacionadas (ex: FAQ, Políticas)
+            </p>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="space-y-2">
+            <Label htmlFor="description">
+              Conteúdo <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="description"
+              placeholder="Escreva o conteúdo completo da base de conhecimento aqui...
+
+Exemplo:
+Temos os seguintes planos disponíveis:
+- Plano Básico 100MB: R$ 59,90
+- Plano Intermediário 300MB: R$ 89,90
+- Plano Premium 600MB: R$ 129,90
+
+Todos os planos incluem instalação gratuita e WiFi 5GHz."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={isLoading}
+              rows={12}
+              className="resize-y font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Este conteúdo será vetorizado e usado pela IA para responder perguntas
             </p>
           </div>
 
