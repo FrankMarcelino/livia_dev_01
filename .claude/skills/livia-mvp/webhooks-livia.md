@@ -29,6 +29,94 @@ Frontend → API Route → n8n Webhook → Workflow → Callback (opcional)
 
 ## Webhooks LIVIA (MVP WhatsApp)
 
+### 0. Base de Conhecimento - Vetorização (Assíncrono)
+
+**Webhooks n8n (chamados por Server Actions):**
+
+#### Criar Vetor
+```
+POST https://acesse.ligeiratelecom.com.br/webhook/create_base_conhecimento_geral
+```
+
+#### Atualizar Vetor
+```
+PATCH https://acesse.ligeiratelecom.com.br/webhook/update_vetor_base_conhecimento
+```
+
+#### Deletar Vetor
+```
+DELETE https://acesse.ligeiratelecom.com.br/webhook/delete_vetor_base_conhecimento
+```
+
+#### Desabilitar Vetor (Sazonal)
+```
+PATCH https://acesse.ligeiratelecom.com.br/webhook/disable_vetor_base_conhecimento
+```
+
+#### Habilitar/Reativar Vetor (Sazonal)
+```
+PATCH https://acesse.ligeiratelecom.com.br/webhook/enable_vetor_base_conhecimento
+```
+
+**API Route de Callback:**
+```typescript
+// app/api/n8n/base-conhecimento-callback/route.ts
+POST /api/n8n/base-conhecimento-callback
+```
+
+**Payload enviado para N8N:**
+```typescript
+{
+  id_base_conhecimento_geral: string; // UUID da base
+}
+```
+
+**Payload de Callback (N8N → API):**
+```typescript
+{
+  id_base_conhecimento_geral: string; // UUID da base
+  vector_id: string; // UUID do vector criado
+}
+```
+
+**Fluxo Criar/Atualizar:**
+1. Server Action chama webhook N8N (não bloqueia)
+2. N8N busca `description` da base no Supabase
+3. N8N faz chunking do conteúdo
+4. N8N gera embeddings (OpenAI/Azure)
+5. N8N cria/atualiza registro em `base_conhecimentos_vectors`
+6. N8N chama callback `/api/n8n/base-conhecimento-callback`
+7. Callback atualiza `base_conhecimentos`:
+   - `base_conhecimentos_vectors = vector_id`
+   - `is_active = true`
+
+**Fluxo Deletar:**
+1. Server Action chama webhook N8N delete
+2. N8N remove embeddings do vector store
+3. Server Action deleta registro do DB (CASCADE remove refs)
+
+**Fluxo Desabilitar (Sazonal):**
+1. Server Action chama webhook N8N disable
+2. N8N marca embeddings como inativos (não remove)
+3. Server Action atualiza `is_active = false` no DB
+
+**Fluxo Reativar (Sazonal):**
+1. Server Action chama webhook N8N enable
+2. N8N marca embeddings como ativos novamente
+3. Server Action atualiza `is_active = true` no DB
+
+**Exemplo de chamada (via Server Action):**
+```typescript
+// app/actions/base-conhecimento.ts
+import { createBaseConhecimentoVectorWebhook } from '@/lib/utils/n8n-webhooks';
+
+const result = await createBaseConhecimentoVectorWebhook({
+  id_base_conhecimento_geral: 'base-uuid'
+});
+```
+
+---
+
 ### 1. Enviar Mensagem Manual
 
 **Webhook n8n:**
@@ -450,9 +538,19 @@ N8N_RESUME_CONVERSATION_WEBHOOK=/webhook/livia/resume-conversation
 N8N_PAUSE_IA_WEBHOOK=/webhook/livia/pause-ia
 N8N_RESUME_IA_WEBHOOK=/webhook/livia/resume-ia
 
+# n8n Webhooks Base de Conhecimento (URLs completas)
+N8N_CREATE_BASE_VECTOR_URL=https://acesse.ligeiratelecom.com.br/webhook/create_base_conhecimento_geral
+N8N_UPDATE_BASE_VECTOR_URL=https://acesse.ligeiratelecom.com.br/webhook/update_vetor_base_conhecimento
+N8N_DELETE_BASE_VECTOR_URL=https://acesse.ligeiratelecom.com.br/webhook/delete_vetor_base_conhecimento
+N8N_DISABLE_BASE_VECTOR_URL=https://acesse.ligeiratelecom.com.br/webhook/disable_vetor_base_conhecimento
+N8N_ENABLE_BASE_VECTOR_URL=https://acesse.ligeiratelecom.com.br/webhook/enable_vetor_base_conhecimento
+
 # n8n Callback Configuration
 N8N_CALLBACK_SECRET=your-random-secret-key
 N8N_CALLBACK_BASE_URL=https://livia-app.example.com/api/n8n/callback
+
+# Modo Mock (desenvolvimento)
+N8N_MOCK=false # Set true para simular webhooks sem chamar N8N real
 ```
 
 **Webhooks removidos do MVP:**

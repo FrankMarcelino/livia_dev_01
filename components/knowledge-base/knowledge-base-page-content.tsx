@@ -50,6 +50,8 @@ export function KnowledgeBasePageContent({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingBase, setDeletingBase] = useState<BaseConhecimento | null>(null);
 
+  const [togglingBaseId, setTogglingBaseId] = useState<string | null>(null);
+
   const selectedDomain = domains.find((d) => d.id === selectedDomainId);
   const basesInDomain = selectedDomainId ? basesByDomain[selectedDomainId] || [] : [];
 
@@ -87,14 +89,24 @@ export function KnowledgeBasePageContent({
   };
 
   const handleToggleActive = async (baseId: string, isActive: boolean) => {
-    const result = await toggleBaseActiveAction(baseId, tenantId, isActive);
+    setTogglingBaseId(baseId);
 
-    if (result.success) {
-      toast.success(isActive ? 'Base ativada!' : 'Base desativada!');
-      // Recarregar página
-      window.location.reload();
-    } else {
-      toast.error(result.error || 'Erro ao atualizar base');
+    try {
+      const result = await toggleBaseActiveAction(baseId, tenantId, isActive);
+
+      if (result.success) {
+        toast.success(isActive ? 'Base ativada!' : 'Base desativada!');
+        // Recarregar página
+        window.location.reload();
+      } else {
+        console.error('[Toggle] Erro:', result.error);
+        toast.error(result.error || 'Erro ao atualizar base');
+        setTogglingBaseId(null);
+      }
+    } catch (error) {
+      console.error('[Toggle] Exceção:', error);
+      toast.error('Erro inesperado ao atualizar base');
+      setTogglingBaseId(null);
     }
   };
 
@@ -121,6 +133,7 @@ export function KnowledgeBasePageContent({
           onEditBase={handleEditBase}
           onDeleteBase={handleDeleteBase}
           onToggleActive={handleToggleActive}
+          togglingBaseId={togglingBaseId}
         />
       )}
 

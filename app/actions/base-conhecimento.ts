@@ -10,6 +10,9 @@ import {
 import {
   createBaseConhecimentoVectorWebhook,
   updateBaseConhecimentoVectorWebhook,
+  deleteBaseConhecimentoVectorWebhook,
+  disableBaseConhecimentoVectorWebhook,
+  enableBaseConhecimentoVectorWebhook,
 } from '@/lib/utils/n8n-webhooks';
 import type {
   CreateBaseConhecimentoData,
@@ -119,17 +122,32 @@ export async function updateBaseConhecimentoAction(
 /**
  * Deletar base de conhecimento
  *
- * A constraint FK CASCADE vai deletar o vector automaticamente
+ * Fluxo:
+ * 1. Chama N8N para deletar embeddings do vector store
+ * 2. Deleta do DB (constraint FK CASCADE deleta o vector)
  */
 export async function deleteBaseConhecimentoAction(
   baseId: string,
   tenantId: string
 ) {
   try {
+    // 1. Chamar N8N para deletar embeddings do vector store (não bloqueia)
+    const webhookResult = await deleteBaseConhecimentoVectorWebhook({
+      id_base_conhecimento_geral: baseId,
+    });
+
+    if (!webhookResult.success) {
+      console.error('[Action] Erro ao chamar N8N para deletar vetor:', webhookResult.error);
+    }
+
+    // 2. Deletar do DB (CASCADE vai deletar o vector)
     await deleteBaseConhecimento(baseId, tenantId);
     revalidatePath('/knowledge-base');
 
-    return { success: true };
+    return {
+      success: true,
+      webhookCalled: webhookResult.success,
+    };
   } catch (error) {
     console.error('[Action] Erro ao deletar base:', error);
     return {
@@ -145,8 +163,9 @@ export async function deleteBaseConhecimentoAction(
 /**
  * Toggle ativar/desativar base (sazonal)
  *
- * Mantém o vector, só muda is_active
- * Não chama N8N
+ * Fluxo:
+ * - Se desativar (isActive=false): Chama N8N para desabilitar vetor
+ * - Se ativar (isActive=true): Chama N8N para reabilitar vetor
  */
 export async function toggleBaseActiveAction(
   baseId: string,
@@ -154,10 +173,31 @@ export async function toggleBaseActiveAction(
   isActive: boolean
 ) {
   try {
+    // Chamar N8N para habilitar/desabilitar vetor (não bloqueia)
+    const webhookResult = isActive
+      ? await enableBaseConhecimentoVectorWebhook({
+          id_base_conhecimento_geral: baseId,
+        })
+      : await disableBaseConhecimentoVectorWebhook({
+          id_base_conhecimento_geral: baseId,
+        });
+
+    if (!webhookResult.success) {
+      console.error(
+        `[Action] Erro ao chamar N8N para ${isActive ? 'habilitar' : 'desabilitar'} vetor:`,
+        webhookResult.error
+      );
+    }
+
+    // Atualizar DB
     const base = await toggleBaseActive(baseId, tenantId, isActive);
     revalidatePath('/knowledge-base');
 
-    return { success: true, data: base };
+    return {
+      success: true,
+      data: base,
+      webhookCalled: webhookResult.success,
+    };
   } catch (error) {
     console.error('[Action] Erro ao toggle base active:', error);
     return {

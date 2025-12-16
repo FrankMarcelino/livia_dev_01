@@ -20,6 +20,7 @@ interface DomainBasesAccordionProps {
   onEditBase: (base: BaseConhecimento) => void;
   onDeleteBase: (baseId: string) => void;
   onToggleActive: (baseId: string, isActive: boolean) => void;
+  togglingBaseId: string | null;
 }
 
 /**
@@ -38,6 +39,7 @@ export function DomainBasesAccordion({
   onEditBase,
   onDeleteBase,
   onToggleActive,
+  togglingBaseId,
 }: DomainBasesAccordionProps) {
   const [openItems, setOpenItems] = useState<string[]>(
     bases.length > 0 && bases[0] ? [bases[0].id] : []
@@ -74,6 +76,10 @@ export function DomainBasesAccordion({
           const statusInfo = getBaseStatus(base);
           const canEdit = statusInfo.status !== 'processing';
 
+          // Permitir toggle exceto quando está processando (criação inicial)
+          const canToggle = statusInfo.status !== 'processing';
+          const isToggleDisabled = !canToggle || togglingBaseId === base.id;
+
           return (
             <AccordionItem
               key={base.id}
@@ -87,7 +93,15 @@ export function DomainBasesAccordion({
                     <div className="text-left">
                       <h4 className="font-semibold">{base.name}</h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={statusInfo.color as any}>
+                        <Badge
+                          variant={
+                            statusInfo.color as
+                              | 'default'
+                              | 'secondary'
+                              | 'destructive'
+                              | 'outline'
+                          }
+                        >
                           {statusInfo.label}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -105,20 +119,28 @@ export function DomainBasesAccordion({
                     {/* Toggle Ativo/Inativo */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        {base.is_active ? 'Ativo' : 'Inativo'}
+                        {togglingBaseId === base.id
+                          ? 'Processando...'
+                          : base.is_active
+                          ? 'Ativo'
+                          : 'Inativo'}
                       </span>
                       <Switch
                         checked={base.is_active}
                         onCheckedChange={(checked) =>
                           onToggleActive(base.id, checked)
                         }
-                        disabled={!base.base_conhecimentos_vectors}
+                        disabled={isToggleDisabled}
                         title={
-                          !base.base_conhecimentos_vectors
-                            ? 'Aguarde o processamento para ativar'
+                          statusInfo.status === 'processing'
+                            ? 'Aguarde o processamento inicial para ativar'
+                            : togglingBaseId === base.id
+                            ? 'Processando toggle...'
                             : base.is_active
-                            ? 'Desativar base'
-                            : 'Ativar base'
+                            ? 'Desativar base (pausar uso sazonal)'
+                            : !base.base_conhecimentos_vectors
+                            ? 'Ativar base (sem vetor - N8N irá reprocessar)'
+                            : 'Ativar base (reabilitar uso)'
                         }
                       />
                     </div>

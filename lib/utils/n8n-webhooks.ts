@@ -239,3 +239,135 @@ export async function updateBaseConhecimentoVectorWebhook(
     return { success: false, error };
   }
 }
+
+/**
+ * Chama N8N para deletar vetor de base de conhecimento
+ *
+ * DELETE /webhook/delete_vetor_base_conhecimento
+ * Body: { id_base_conhecimento_geral: "uuid" }
+ *
+ * O N8N vai:
+ * 1. Deletar o registro em base_conhecimentos_vectors
+ * 2. Remover os embeddings do vector store
+ */
+export async function deleteBaseConhecimentoVectorWebhook(
+  payload: CreateBaseConhecimentoVectorPayload
+): Promise<N8nWebhookResponse> {
+  // Modo mock: apenas loga e retorna sucesso
+  if (N8N_MOCK) {
+    console.warn('[N8N MOCK] Delete Base Vector:', payload);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const url =
+      process.env.N8N_DELETE_BASE_VECTOR_URL ||
+      'https://acesse.ligeiratelecom.com.br/webhook/delete_vetor_base_conhecimento';
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000), // 30s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[N8N ERROR] Falha ao deletar vetor:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Chama N8N para desabilitar vetor de base de conhecimento
+ *
+ * PATCH /webhook/disable_vetor_base_conhecimento
+ * Body: { id_base_conhecimento_geral: "uuid" }
+ *
+ * O N8N vai:
+ * 1. Marcar os embeddings como inativos no vector store
+ * 2. Não deleta, apenas desabilita para uso sazonal
+ */
+export async function disableBaseConhecimentoVectorWebhook(
+  payload: CreateBaseConhecimentoVectorPayload
+): Promise<N8nWebhookResponse> {
+  // Modo mock: apenas loga e retorna sucesso
+  if (N8N_MOCK) {
+    console.warn('[N8N MOCK] Disable Base Vector:', payload);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const url =
+      process.env.N8N_DISABLE_BASE_VECTOR_URL ||
+      'https://acesse.ligeiratelecom.com.br/webhook/disable_vetor_base_conhecimento';
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000), // 30s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[N8N ERROR] Falha ao desabilitar vetor:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Chama N8N para habilitar/reativar vetor de base de conhecimento
+ *
+ * PATCH /webhook/enable_vetor_base_conhecimento
+ * Body: { id_base_conhecimento_geral: "uuid" }
+ *
+ * O N8N vai:
+ * 1. Marcar os embeddings como ativos no vector store
+ * 2. Reativa a base para uso sazonal
+ */
+export async function enableBaseConhecimentoVectorWebhook(
+  payload: CreateBaseConhecimentoVectorPayload
+): Promise<N8nWebhookResponse> {
+  // Modo mock: apenas loga e retorna sucesso
+  if (N8N_MOCK) {
+    console.warn('[N8N MOCK] Enable Base Vector:', payload);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const url =
+      process.env.N8N_ENABLE_BASE_VECTOR_URL ||
+      'https://acesse.ligeiratelecom.com.br/webhook/enable_vetor_base_conhecimento';
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000), // 30s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[N8N ERROR] Falha ao habilitar vetor:', error);
+    return { success: false, error };
+  }
+}
