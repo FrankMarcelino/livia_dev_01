@@ -66,12 +66,14 @@ export async function getDomainsWithCount(
   const supabase = await createClient();
 
   // Buscar domínios do neurocore específico
-  let { data: domains, error: domainsError } = await supabase
+  const { data: domainsData, error: domainsError } = await supabase
     .from('knowledge_domains')
     .select('*')
     .eq('neurocore_id', neurocoreId)
     .eq('active', true)
     .order('domain', { ascending: true });
+
+  let domains = domainsData;
 
   if (domainsError) {
     console.error('[getDomainsWithCount] Erro ao buscar domínios:', domainsError);
@@ -388,4 +390,36 @@ export async function updateBaseAfterVectorization(
   }
 
   return base as BaseConhecimento;
+}
+
+/**
+ * Buscar bases de conhecimento por nome ou descrição
+ *
+ * Busca case-insensitive em todos os domínios do tenant
+ */
+export async function searchBaseConhecimento(
+  tenantId: string,
+  searchTerm: string
+): Promise<BaseConhecimentoWithDomain[]> {
+  const supabase = await createClient();
+
+  // Buscar por nome ou descrição usando ilike (case-insensitive)
+  const { data, error } = await supabase
+    .from('base_conhecimentos')
+    .select(
+      `
+      *,
+      knowledge_domains(*)
+    `
+    )
+    .eq('tenant_id', tenantId)
+    .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('[searchBaseConhecimento] Erro ao buscar bases:', error);
+    throw new Error(`Failed to search bases: ${error.message}`);
+  }
+
+  return (data || []) as BaseConhecimentoWithDomain[];
 }

@@ -21,6 +21,7 @@ interface DomainBasesAccordionProps {
   onDeleteBase: (baseId: string) => void;
   onToggleActive: (baseId: string, isActive: boolean) => void;
   togglingBaseId: string | null;
+  searchMode?: boolean;
 }
 
 /**
@@ -40,6 +41,7 @@ export function DomainBasesAccordion({
   onDeleteBase,
   onToggleActive,
   togglingBaseId,
+  searchMode = false,
 }: DomainBasesAccordionProps) {
   const [openItems, setOpenItems] = useState<string[]>(
     bases.length > 0 && bases[0] ? [bases[0].id] : []
@@ -49,11 +51,15 @@ export function DomainBasesAccordion({
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
         <p className="text-lg font-medium text-muted-foreground">
-          Nenhuma base de conhecimento em {domainName}
+          {searchMode
+            ? `Nenhum resultado encontrado em ${domainName}`
+            : `Nenhuma base de conhecimento em ${domainName}`}
         </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Clique em &quot;Nova Base&quot; para criar a primeira base deste domínio
-        </p>
+        {!searchMode && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Clique em &quot;Nova Base&quot; para criar a primeira base deste domínio
+          </p>
+        )}
       </div>
     );
   }

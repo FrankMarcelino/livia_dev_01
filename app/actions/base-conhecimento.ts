@@ -6,6 +6,7 @@ import {
   updateBaseConhecimento,
   deleteBaseConhecimento,
   toggleBaseActive,
+  searchBaseConhecimento,
 } from '@/lib/queries/knowledge-base';
 import {
   createBaseConhecimentoVectorWebhook,
@@ -206,6 +207,43 @@ export async function toggleBaseActiveAction(
         error instanceof Error
           ? error.message
           : 'Erro ao ativar/desativar base de conhecimento',
+    };
+  }
+}
+
+/**
+ * Buscar bases de conhecimento por nome ou descrição
+ */
+export async function searchBaseConhecimentoAction(
+  tenantId: string,
+  searchTerm: string
+) {
+  try {
+    // Validar termo de busca
+    const trimmedTerm = searchTerm.trim();
+    
+    if (trimmedTerm.length < 2) {
+      return {
+        success: false,
+        error: 'Digite pelo menos 2 caracteres para buscar',
+      };
+    }
+
+    // Buscar no banco
+    const results = await searchBaseConhecimento(tenantId, trimmedTerm);
+
+    return {
+      success: true,
+      data: results,
+    };
+  } catch (error) {
+    console.error('[Action] Erro ao buscar bases:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Erro ao buscar bases de conhecimento',
     };
   }
 }
