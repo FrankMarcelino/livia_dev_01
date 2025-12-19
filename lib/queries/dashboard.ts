@@ -253,6 +253,7 @@ function calculateTopTags(
 
   const topTags = Array.from(tagTotals.entries())
     .map(([tagName, count]) => ({
+      tagId: tagName, // Using tagName as temporary ID
       tagName,
       count,
       percentage: totalConversations > 0 ? (count / totalConversations) * 100 : 0,

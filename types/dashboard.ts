@@ -385,3 +385,120 @@ export interface ReasonsChartProps extends BaseChartProps {
   title: string;
   type: 'pause' | 'closure';
 }
+
+// ============================================================================
+// TAGS TYPES
+// ============================================================================
+
+/**
+ * Tags KPIs - metrics specific to tags analysis
+ */
+export interface TagsKPIs {
+  totalActiveTags: number;
+  conversationsWithTags: number;
+  conversationsWithoutTags: number;
+  categorizationRate: number; // 0-100
+}
+
+/**
+ * Top tag data with counts and percentage
+ */
+export interface TopTagData {
+  tagId: string;
+  tagName: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Tag performance metrics
+ */
+export interface TagPerformanceData {
+  tagId: string;
+  tagName: string;
+  totalConversations: number;
+  avgMessages: number;
+  avgResponseTime: number | null;
+  aiActivePercent: number;
+  closedPercent: number;
+}
+
+/**
+ * Tags distribution for donut chart
+ */
+export interface TagDistributionData {
+  tagName: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Unused tag data
+ */
+export interface UnusedTagData {
+  tagId: string;
+  tagName: string;
+  createdAt: string;
+}
+
+/**
+ * Conversations by tag over time
+ */
+export interface ConversationsByTagData {
+  date: string;
+  tagName: string;
+  count: number;
+}
+
+/**
+ * Complete Tags Data structure
+ */
+export interface TagsData {
+  kpis: TagsKPIs;
+  topTags: TopTagData[];
+  tagPerformance: TagPerformanceData[];
+  tagsDistribution: TagDistributionData[];
+  conversationsByTag: ConversationsByTagData[];
+  unusedTags: UnusedTagData[];
+}
+
+/**
+ * Tags API Response
+ */
+export interface TagsResponse {
+  data: TagsData | null;
+  error: string | null;
+  loading: boolean;
+}
+
+/**
+ * Tags Component Props
+ */
+export interface TagsContainerProps {
+  tenantId: string;
+}
+
+export interface TagsKPICardsProps {
+  kpis: TagsKPIs;
+  loading?: boolean;
+}
+
+export interface TopTagsChartProps extends BaseChartProps {
+  data: TopTagData[];
+}
+
+export interface TagPerformanceTableProps extends BaseChartProps {
+  data: TagPerformanceData[];
+}
+
+export interface TagsDistributionChartProps extends BaseChartProps {
+  data: TagDistributionData[];
+}
+
+export interface UnusedTagsAlertProps extends BaseChartProps {
+  data: UnusedTagData[];
+}
+
+export interface ConversationsByTagChartProps extends BaseChartProps {
+  data: ConversationsByTagData[];
+}
