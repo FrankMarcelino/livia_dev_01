@@ -259,13 +259,13 @@ export function getChartColor(index: number): string {
     'hsl(var(--chart-5))',
   ];
 
-  return colors[index % colors.length];
+  return colors[index % colors.length] || 'hsl(var(--chart-1))';
 }
 
 /**
  * Get color for tag (if tag has specific color in DB)
  */
-export function getTagColor(tagName: string, index: number): string {
+export function getTagColor(_tagName: string, index: number): string {
   // TODO: Fetch tag colors from database if needed
   // For now, use chart color palette
   return getChartColor(index);
@@ -344,10 +344,10 @@ export function calculateMedian(values: number[]): number {
   const mid = Math.floor(sorted.length / 2);
 
   if (sorted.length % 2 === 0) {
-    return (sorted[mid - 1] + sorted[mid]) / 2;
+    return ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
   }
 
-  return sorted[mid];
+  return sorted[mid] ?? 0;
 }
 
 /**
@@ -363,10 +363,10 @@ export function calculatePercentile(values: number[], percentile: number): numbe
   const weight = index - lower;
 
   if (lower === upper) {
-    return sorted[lower];
+    return sorted[lower] ?? 0;
   }
 
-  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  return (sorted[lower] ?? 0) * (1 - weight) + (sorted[upper] ?? 0) * weight;
 }
 
 // ============================================================================

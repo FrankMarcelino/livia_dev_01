@@ -1753,6 +1753,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_dashboard_data: {
+        Args: {
+          p_tenant_id: string
+          p_days_ago?: number
+          p_channel_id?: string | null
+        }
+        Returns: Json
+      }
       get_user_tenant_id: { Args: never; Returns: string }
       increment_quick_reply_usage: {
         Args: { reply_id: string }

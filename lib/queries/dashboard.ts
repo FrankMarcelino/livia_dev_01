@@ -110,7 +110,7 @@ export async function getDashboardData({
     }
 
     // Parse and transform response
-    const rawData = data as RawDashboardResponse;
+    const rawData = data as unknown as RawDashboardResponse;
 
     // Transform conversationsByTag from long to wide format
     const conversationsByTag = transformTagsToWideFormat(rawData.conversationsByTag);
@@ -179,8 +179,8 @@ export async function getChannelsForDashboard(
  */
 function transformTagsToWideFormat(
   tags: Array<{ date: string; tag: string; count: number }>
-) {
-  const grouped = new Map<string, Record<string, number>>();
+): Array<{ date: string; [tagName: string]: string | number }> {
+  const grouped = new Map<string, { date: string; [tagName: string]: string | number }>();
 
   for (const item of tags) {
     if (!grouped.has(item.date)) {
