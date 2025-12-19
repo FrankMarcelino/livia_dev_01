@@ -280,7 +280,7 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
     updated_at: new Date().toISOString(),
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return {
     ...(agentData as any),
     template_name: null, // TODO: Implementar lookup do template

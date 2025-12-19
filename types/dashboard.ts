@@ -299,3 +299,89 @@ export interface DateRange {
   end: Date;
   label: string; // e.g., "Last 7 days", "Today"
 }
+
+// ============================================================================
+// FUNIL (FUNNEL) TYPES
+// ============================================================================
+
+/**
+ * Funil KPIs - metrics specific to funnel analysis
+ */
+export interface FunnelKPIs {
+  conversationsOpen: number;
+  conversationsPaused: number;
+  conversationsClosed: number;
+  conversionRate: number; // 0-100
+  avgTimeToPauseSeconds: number;
+  avgTimeToCloseSeconds: number;
+}
+
+/**
+ * Status evolution over time - for stacked area chart
+ */
+export interface StatusEvolutionData {
+  date: string; // ISO date
+  open: number;
+  paused: number;
+  closed: number;
+}
+
+/**
+ * Reason data (pause/closure reasons)
+ */
+export interface ReasonData {
+  reason: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Complete Funil Data structure
+ */
+export interface FunnelData {
+  kpis: FunnelKPIs;
+  statusEvolution: StatusEvolutionData[];
+  pauseReasons: ReasonData[];
+  closureReasons: ReasonData[];
+  reactivationRate: number;
+}
+
+/**
+ * Funil API Response
+ */
+export interface FunnelResponse {
+  data: FunnelData | null;
+  error: string | null;
+  loading: boolean;
+}
+
+/**
+ * Funil Component Props
+ */
+export interface FunnelContainerProps {
+  tenantId: string;
+}
+
+export interface FunnelKPICardsProps {
+  kpis: FunnelKPIs;
+  loading?: boolean;
+}
+
+export interface StatusFunnelVisualizationProps extends BaseChartProps {
+  data: FunnelKPIs;
+}
+
+export interface StatusEvolutionChartProps extends BaseChartProps {
+  data: StatusEvolutionData[];
+}
+
+export interface TimeByStageChartProps extends BaseChartProps {
+  avgTimeToPause: number;
+  avgTimeToClose: number;
+}
+
+export interface ReasonsChartProps extends BaseChartProps {
+  data: ReasonData[];
+  title: string;
+  type: 'pause' | 'closure';
+}

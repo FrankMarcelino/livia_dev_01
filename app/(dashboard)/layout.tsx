@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout';
 import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-collapse-wrapper';
+import { QueryProvider } from '@/providers/query-provider';
 
 /**
  * Layout do Dashboard (rotas autenticadas)
@@ -43,19 +44,21 @@ export default async function DashboardLayout({
   const tenantName = user?.tenants?.name;
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar
-        userName={user?.full_name || 'Usuário'}
-        tenantName={tenantName}
-        avatarUrl={user?.avatar_url}
-      />
-      <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden pl-4 md:pl-6">
-        <SidebarAutoCollapseWrapper>
-          <div className="flex-1 overflow-y-auto">
-            {children}
-          </div>
-        </SidebarAutoCollapseWrapper>
-      </SidebarInset>
-    </SidebarProvider>
+    <QueryProvider>
+      <SidebarProvider defaultOpen={true}>
+        <AppSidebar
+          userName={user?.full_name || 'Usuário'}
+          tenantName={tenantName}
+          avatarUrl={user?.avatar_url}
+        />
+        <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden pl-4 md:pl-6">
+          <SidebarAutoCollapseWrapper>
+            <div className="flex-1 overflow-y-auto">
+              {children}
+            </div>
+          </SidebarAutoCollapseWrapper>
+        </SidebarInset>
+      </SidebarProvider>
+    </QueryProvider>
   );
 }

@@ -8,6 +8,7 @@ import type {
   DashboardData,
   DashboardKPIs,
   TimeFilter,
+  ResponseTimeDistribution,
 } from '@/types/dashboard';
 
 // ============================================================================
@@ -119,7 +120,7 @@ export async function getDashboardData({
     const aiVsHuman = calculateAIvsHuman(rawData);
     const channelPerformance = transformChannelPerformance(rawData.byChannel);
     const topTags = calculateTopTags(rawData.conversationsByTag);
-    const responseTimeDistribution = [] as any[]; // TODO: Implement if needed
+    const responseTimeDistribution: ResponseTimeDistribution[] = []; // TODO: Implement if needed
 
     return {
       kpis: rawData.kpis,

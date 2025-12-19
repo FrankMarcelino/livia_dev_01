@@ -1,12 +1,12 @@
 /**
- * Dashboard Data Hook
- * Manages dashboard data fetching, caching, and state with TanStack Query
+ * Funil (Funnel) Data Hook
+ * Manages funil data fetching, caching, and state with TanStack Query
  */
 
 'use client';
 
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import type { DashboardData, TimeFilter } from '@/types/dashboard';
+import type { FunnelData, TimeFilter } from '@/types/dashboard';
 
 // ============================================================================
 // HELPERS
@@ -28,15 +28,15 @@ function getTimeFilterDays(filter: TimeFilter): number {
 // TYPES
 // ============================================================================
 
-interface UseDashboardDataOptions {
+interface UseFunilDataOptions {
   tenantId: string;
   timeFilter: TimeFilter;
   channelId?: string | null;
   enabled?: boolean;
 }
 
-interface DashboardDataResponse {
-  data: DashboardData | null;
+interface FunilDataResponse {
+  data: FunnelData | null;
   error: Error | null;
 }
 
@@ -44,11 +44,11 @@ interface DashboardDataResponse {
 // FETCH FUNCTION
 // ============================================================================
 
-async function fetchDashboardData(
+async function fetchFunilData(
   tenantId: string,
   timeFilter: TimeFilter,
   channelId: string | null = null
-): Promise<DashboardData> {
+): Promise<FunnelData> {
   const daysAgo = getTimeFilterDays(timeFilter);
 
   // Build query params
@@ -62,7 +62,7 @@ async function fetchDashboardData(
   }
 
   // Call API route
-  const response = await fetch(`/api/dashboard?${params.toString()}`, {
+  const response = await fetch(`/api/funil?${params.toString()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -71,13 +71,13 @@ async function fetchDashboardData(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'Failed to fetch dashboard data');
+    throw new Error(error.error || 'Failed to fetch funil data');
   }
 
-  const result: DashboardDataResponse = await response.json();
+  const result: FunilDataResponse = await response.json();
 
   if (result.error) {
-    throw new Error(result.error.message || 'Failed to fetch dashboard data');
+    throw new Error(result.error.message || 'Failed to fetch funil data');
   }
 
   if (!result.data) {
@@ -92,26 +92,26 @@ async function fetchDashboardData(
 // ============================================================================
 
 /**
- * Hook to fetch and cache dashboard data
+ * Hook to fetch and cache funil data
  *
  * @example
  * ```tsx
- * const { data, isLoading, error, refetch } = useDashboardData({
+ * const { data, isLoading, error, refetch } = useFunilData({
  *   tenantId: 'abc-123',
  *   timeFilter: '30days',
  *   channelId: null,
  * });
  * ```
  */
-export function useDashboardData({
+export function useFunilData({
   tenantId,
   timeFilter,
   channelId = null,
   enabled = true,
-}: UseDashboardDataOptions): UseQueryResult<DashboardData, Error> {
+}: UseFunilDataOptions): UseQueryResult<FunnelData, Error> {
   return useQuery({
-    queryKey: ['dashboard', tenantId, timeFilter, channelId],
-    queryFn: () => fetchDashboardData(tenantId, timeFilter, channelId),
+    queryKey: ['funil-data', tenantId, timeFilter, channelId],
+    queryFn: () => fetchFunilData(tenantId, timeFilter, channelId),
     enabled: enabled && Boolean(tenantId),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes (previously cacheTime)
@@ -121,6 +121,3 @@ export function useDashboardData({
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
-
-// Note: Query key factory and prefetch helpers removed
-// These are client-side only hooks that don't need server-side utilities

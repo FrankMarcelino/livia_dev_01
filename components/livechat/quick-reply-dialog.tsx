@@ -75,7 +75,7 @@ export function QuickReplyDialog({
       setTitle('');
       setContent('');
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
   }, [quickReply, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {

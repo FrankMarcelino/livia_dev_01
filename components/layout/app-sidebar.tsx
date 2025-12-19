@@ -104,7 +104,14 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive = pathname.startsWith(item.url);
+                // Check if current path matches this item or any of its subitems
+                const baseUrl = item.url.split('?')[0] ?? item.url;
+                const isActive = item.items
+                  ? item.items.some(sub => {
+                      const subBaseUrl = sub.url.split('?')[0] ?? sub.url;
+                      return pathname.startsWith(subBaseUrl);
+                    })
+                  : pathname.startsWith(baseUrl);
 
                 return (
                   <SidebarMenuItem key={item.url}>
@@ -130,7 +137,7 @@ export function AppSidebar({
                         </span>
                       </Link>
                     </SidebarMenuButton>
-                    
+
                     {/* Render Submenu if active and has items */}
                     {item.items && isActive && (
                       <SidebarMenuSub>
@@ -138,14 +145,11 @@ export function AppSidebar({
                           // Simple check for query param match if present
                           const subQuery = subItem.url.split('?')[1];
                           const subCategory = new URLSearchParams(subQuery || '').get('category');
-                          const currentCategory = searchParams.get('category'); // We need to import useSearchParams
-                          
-                          // Active if paths match AND (if category is present, it matches context)
-                          // Fallback: if no category in URL but we are on the page, maybe highlight first?
-                          // The user logic in page.tsx defaults to 'main'.
-                          // So if currentCategory is null and subCategory is 'main', it's active.
-                          
-                          const isSubActive = subCategory 
+                          const currentCategory = searchParams.get('category');
+
+                          // Check if it's a path-based submenu (like /relatorios/principal)
+                          // or query-based submenu (like /meus-agentes?category=main)
+                          const isSubActive = subCategory
                             ? (currentCategory === subCategory || (!currentCategory && subCategory === 'main'))
                             : pathname === subItem.url;
 

@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Brain, Kanban, Bot } from 'lucide-react';
+import { MessageSquare, BookOpen, Brain, Kanban, Bot, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -66,6 +66,25 @@ export const navItems: NavItem[] = [
       {
         title: 'Guard Rails',
         url: '/meus-agentes?category=guard-rails',
+      },
+    ],
+  },
+  {
+    title: 'Relatórios',
+    url: '/relatorios/principal',
+    icon: BarChart3,
+    items: [
+      {
+        title: 'Principal',
+        url: '/relatorios/principal',
+      },
+      {
+        title: 'Funil',
+        url: '/relatorios/funil',
+      },
+      {
+        title: 'Tags',
+        url: '/relatorios/tags',
       },
     ],
   },

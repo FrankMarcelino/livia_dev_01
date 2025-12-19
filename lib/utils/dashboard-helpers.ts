@@ -376,7 +376,7 @@ export function calculatePercentile(values: number[], percentile: number): numbe
 /**
  * Check if value is valid number
  */
-export function isValidNumber(value: any): boolean {
+export function isValidNumber(value: unknown): boolean {
   return typeof value === 'number' && !isNaN(value) && isFinite(value);
 }
 

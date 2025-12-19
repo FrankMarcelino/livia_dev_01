@@ -1,24 +1,24 @@
 /**
- * Dashboard API Route
- * Handles dashboard data requests with dynamic filtering
+ * Funil (Funnel) API Route
+ * Handles funnel data requests with dynamic filtering
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getDashboardData } from '@/lib/queries/dashboard';
-import type { DashboardData } from '@/types/dashboard';
+import { getFunilData } from '@/lib/queries/funil';
+import type { FunnelData } from '@/types/dashboard';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface DashboardAPIResponse {
-  data: DashboardData | null;
+interface FunilAPIResponse {
+  data: FunnelData | null;
   error: string | null;
 }
 
 // ============================================================================
-// GET /api/dashboard
+// GET /api/funil
 // ============================================================================
 
 export async function GET(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json<DashboardAPIResponse>(
+      return NextResponse.json<FunilAPIResponse>(
         { data: null, error: 'Unauthorized' },
         { status: 401 }
       );
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (userError || !userData?.tenant_id) {
-      return NextResponse.json<DashboardAPIResponse>(
+      return NextResponse.json<FunilAPIResponse>(
         { data: null, error: 'User tenant not found' },
         { status: 404 }
       );
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Validate tenant_id matches user's tenant (security check)
     const requestedTenantId = searchParams.get('tenantId');
     if (requestedTenantId && requestedTenantId !== userTenantId) {
-      return NextResponse.json<DashboardAPIResponse>(
+      return NextResponse.json<FunilAPIResponse>(
         { data: null, error: 'Forbidden: Tenant mismatch' },
         { status: 403 }
       );
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     // Validate daysAgo
     if (isNaN(daysAgo) || daysAgo < 1 || daysAgo > 365) {
-      return NextResponse.json<DashboardAPIResponse>(
+      return NextResponse.json<FunilAPIResponse>(
         { data: null, error: 'Invalid daysAgo parameter (must be 1-365)' },
         { status: 400 }
       );
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     // ========================================
     // 4. FETCH DATA
     // ========================================
-    const data = await getDashboardData({
+    const data = await getFunilData({
       tenantId: userTenantId,
       daysAgo,
       channelId,
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // ========================================
     // 5. RETURN SUCCESS
     // ========================================
-    return NextResponse.json<DashboardAPIResponse>(
+    return NextResponse.json<FunilAPIResponse>(
       { data, error: null },
       {
         status: 200,
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error: unknown) {
-    console.error('Dashboard API error:', error);
+    console.error('Funil API error:', error);
 
     // Determine error type and status code
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       ? errorMessage
       : 'Internal server error. Please try again later.';
 
-    return NextResponse.json<DashboardAPIResponse>(
+    return NextResponse.json<FunilAPIResponse>(
       { data: null, error: responseMessage },
       { status: statusCode }
     );

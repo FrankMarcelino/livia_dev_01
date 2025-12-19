@@ -57,7 +57,7 @@ export default async function KnowledgeBasePage() {
 
   let domains;
   let allDomains;
-  let basesByDomain: Record<string, Awaited<ReturnType<typeof getBasesByDomain>>> = {};
+  const basesByDomain: Record<string, Awaited<ReturnType<typeof getBasesByDomain>>> = {};
   let error = null;
 
   try {
