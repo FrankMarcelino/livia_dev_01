@@ -69,7 +69,18 @@ export function TimeByStageChart({
                 borderRadius: '6px',
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: number) => [formatDuration(value).display, 'Tempo']}
+              formatter={(value) => {
+                if (value === undefined || value === null) return ['0s', 'Tempo'];
+                let numValue: number;
+                if (typeof value === 'string') {
+                  numValue = parseFloat(value);
+                } else if (typeof value === 'number') {
+                  numValue = value;
+                } else {
+                  return ['0s', 'Tempo'];
+                }
+                return [formatDuration(numValue).display, 'Tempo'];
+              }}
             />
             <Bar dataKey="seconds" radius={[0, 4, 4, 0]}>
               {data.map((entry, index) => (

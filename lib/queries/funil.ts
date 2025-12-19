@@ -53,6 +53,7 @@ export async function getFunilData({
 
   try {
     // Call Postgres function via RPC
+    // @ts-expect-error - Function will be created by running sql/dashboard/03_function_funil.sql
     const { data, error } = await supabase.rpc('get_funil_data', {
       p_tenant_id: tenantId,
       p_days_ago: daysAgo,

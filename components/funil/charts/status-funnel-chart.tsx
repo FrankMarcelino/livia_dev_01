@@ -40,7 +40,6 @@ export function StatusFunnelChart({ data }: StatusFunnelChartProps) {
       <CardContent>
         <div className="space-y-4">
           {stages.map((stage, index) => {
-            const width = `${stage.percentage}%`;
             const maxWidth = 100 - (index * 10); // Decrease width for funnel effect
             
             return (

@@ -80,8 +80,9 @@ export function ReasonsChart({ data, title, type }: ReasonsChartProps) {
                 borderRadius: '6px',
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: number, name: string, props: any) => {
-                const percentage = props.payload.percentage;
+              formatter={(value, _name, props) => {
+                if (value === undefined) return ['0', 'Quantidade'];
+                const percentage = props.payload?.percentage ?? 0;
                 return [
                   `${value} (${formatPercentage(percentage)})`,
                   'Quantidade',
