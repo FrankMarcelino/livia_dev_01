@@ -19,6 +19,8 @@ interface GetDashboardDataParams {
   tenantId: string;
   daysAgo?: number;
   channelId?: string | null;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface RawDashboardResponse {
@@ -90,15 +92,32 @@ export async function getDashboardData({
   tenantId,
   daysAgo = 30,
   channelId = null,
+  startDate,
+  endDate,
 }: GetDashboardDataParams): Promise<DashboardData> {
   const supabase = await createClient();
 
   try {
     // Call Postgres function via RPC
-    const { data, error } = await supabase.rpc('get_dashboard_data', {
+    const rpcParams: Record<string, unknown> = {
       p_tenant_id: tenantId,
-      p_days_ago: daysAgo,
       p_channel_id: channelId,
+    };
+
+    // Use custom date range if provided, otherwise use daysAgo
+    if (startDate && endDate) {
+      rpcParams.p_start_date = startDate;
+      rpcParams.p_end_date = endDate;
+    } else {
+      rpcParams.p_days_ago = daysAgo;
+    }
+
+    const { data, error } = await supabase.rpc('get_dashboard_data', rpcParams as {
+      p_tenant_id: string;
+      p_channel_id: string | null;
+      p_days_ago?: number;
+      p_start_date?: string;
+      p_end_date?: string;
     });
 
     if (error) {
@@ -111,31 +130,121 @@ export async function getDashboardData({
     }
 
     // Parse and transform response
-    const rawData = data as unknown as RawDashboardResponse;
+    const rawData = data as unknown as RawDashboardResponse | any;
+
+    // Transform old structure to new structure if needed
+    let transformedData: RawDashboardResponse;
+    if (rawData.summary && !rawData.kpis) {
+      // Old structure detected - transform it
+      const summary = rawData.summary;
+      const funnel = rawData.funnel;
+      const dailyTimeline = rawData.daily_timeline || [];
+      const channelsDist = rawData.channels_distribution || [];
+      const hourlyDist = rawData.hourly_distribution || [];
+      
+      transformedData = {
+        kpis: {
+          totalConversations: summary.total_conversations || 0,
+          totalMessages: 0, // Not available in old structure
+          avgMessagesPerConversation: 0, // Not available in old structure
+          activeConversations: (funnel?.new?.total || 0) + (funnel?.finalized?.total || 0),
+          conversationsOpen: funnel?.new?.total || 0,
+          conversationsPaused: 0, // Not available in old structure
+          conversationsClosed: funnel?.finalized?.total || 0,
+          conversationsWithAi: funnel?.new?.with_ia || 0,
+          conversationsHumanOnly: funnel?.new?.without_ia || 0,
+          aiPercentage: funnel?.new?.total ? ((funnel.new.with_ia || 0) / funnel.new.total * 100) : 0,
+          totalFeedbacks: 0,
+          positiveFeedbacks: 0,
+          negativeFeedbacks: 0,
+          satisfactionRate: 0,
+          avgFirstResponseTimeSeconds: null,
+          avgResolutionTimeSeconds: summary.avg_duration_seconds || null,
+          totalTokens: 0,
+          totalInputTokens: 0,
+          totalOutputTokens: 0,
+          estimatedCostUsd: 0,
+          peakDay: null,
+        },
+        dailyConversations: dailyTimeline.map((item: any) => ({
+          date: item.date,
+          total: item.conversation_count || 0,
+          avgMessages: 0,
+          withAI: 0,
+          humanOnly: 0,
+        })),
+        conversationsByTag: [], // Not available in old structure
+        heatmap: hourlyDist.map((item: any) => ({
+          dayOfWeek: 0, // Not available in old structure
+          hour: item.hour,
+          count: item.conversation_count || 0,
+        })),
+        funnel: {
+          open: funnel?.new?.total || 0,
+          paused: 0,
+          closed: funnel?.finalized?.total || 0,
+        },
+        byChannel: channelsDist.map((item: any) => ({
+          channel: item.channel_name || '',
+          total: item.conversation_count || 0,
+          avgMessages: 0,
+          satisfaction: null,
+        })),
+        satisfactionOverTime: [],
+        costOverTime: [],
+      };
+    } else {
+      // New structure - use as is
+      transformedData = rawData as RawDashboardResponse;
+    }
 
     // Transform conversationsByTag from long to wide format
-    const conversationsByTag = transformTagsToWideFormat(rawData.conversationsByTag);
+    const conversationsByTag = transformTagsToWideFormat(transformedData.conversationsByTag || []);
 
     // Calculate additional metrics not in DB
-    const aiVsHuman = calculateAIvsHuman(rawData);
-    const channelPerformance = transformChannelPerformance(rawData.byChannel);
-    const topTags = calculateTopTags(rawData.conversationsByTag);
+    const aiVsHuman = calculateAIvsHuman(transformedData);
+    const channelPerformance = transformChannelPerformance(transformedData.byChannel);
+    const topTags = calculateTopTags(transformedData.conversationsByTag || []);
     const responseTimeDistribution: ResponseTimeDistribution[] = []; // TODO: Implement if needed
 
-    return {
-      kpis: rawData.kpis,
-      dailyConversations: rawData.dailyConversations,
+    const result = {
+      kpis: transformedData.kpis || {
+        totalConversations: 0,
+        totalMessages: 0,
+        avgMessagesPerConversation: 0,
+        activeConversations: 0,
+        conversationsOpen: 0,
+        conversationsPaused: 0,
+        conversationsClosed: 0,
+        conversationsWithAi: 0,
+        conversationsHumanOnly: 0,
+        aiPercentage: 0,
+        totalFeedbacks: 0,
+        positiveFeedbacks: 0,
+        negativeFeedbacks: 0,
+        satisfactionRate: 0,
+        avgFirstResponseTimeSeconds: null,
+        avgResolutionTimeSeconds: null,
+        totalTokens: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        estimatedCostUsd: 0,
+        peakDay: null,
+      },
+      dailyConversations: transformedData.dailyConversations || [],
       conversationsByTag,
-      heatmap: rawData.heatmap,
-      funnel: rawData.funnel,
-      byChannel: rawData.byChannel,
-      satisfactionOverTime: rawData.satisfactionOverTime,
-      costOverTime: rawData.costOverTime,
+      heatmap: transformedData.heatmap || [],
+      funnel: transformedData.funnel || { open: 0, paused: 0, closed: 0 },
+      byChannel: transformedData.byChannel || [],
+      satisfactionOverTime: transformedData.satisfactionOverTime || [],
+      costOverTime: transformedData.costOverTime || [],
       aiVsHuman,
       channelPerformance,
       topTags,
       responseTimeDistribution,
     };
+
+    return result;
   } catch (error) {
     console.error('getDashboardData error:', error);
     throw error;
@@ -198,18 +307,18 @@ function transformTagsToWideFormat(
  * Calculate AI vs Human metrics
  */
 function calculateAIvsHuman(data: RawDashboardResponse) {
-  const { kpis } = data;
+  const { kpis } = data || {};
 
   return [
     {
       type: 'AI' as const,
-      volume: kpis.conversationsWithAi || 0,
+      volume: kpis?.conversationsWithAi || 0,
       avgResponseTime: null, // TODO: Calculate from messages if needed
       satisfaction: null, // TODO: Calculate from feedbacks filtered by AI
     },
     {
       type: 'Human' as const,
-      volume: kpis.conversationsHumanOnly || 0,
+      volume: kpis?.conversationsHumanOnly || 0,
       avgResponseTime: null,
       satisfaction: null,
     },
@@ -222,6 +331,9 @@ function calculateAIvsHuman(data: RawDashboardResponse) {
 function transformChannelPerformance(
   channels: RawDashboardResponse['byChannel']
 ) {
+  if (!channels || !Array.isArray(channels)) {
+    return [];
+  }
   return channels.map((ch) => ({
     channelId: '', // Not available from current query
     channelName: ch.channel || 'Sem canal',

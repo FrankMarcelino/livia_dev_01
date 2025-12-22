@@ -143,3 +143,4 @@ npm run build
 ---
 
 **✨ Todos os erros resolvidos! Build limpo e pronto para deploy!**
+

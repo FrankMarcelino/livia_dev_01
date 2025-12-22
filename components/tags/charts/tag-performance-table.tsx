@@ -74,3 +74,4 @@ export function TagPerformanceTable({ data }: TagPerformanceTableProps) {
     </Card>
   );
 }
+

@@ -32,12 +32,14 @@ interface UseDashboardDataOptions {
   tenantId: string;
   timeFilter: TimeFilter;
   channelId?: string | null;
+  customStartDate?: Date;
+  customEndDate?: Date;
   enabled?: boolean;
 }
 
 interface DashboardDataResponse {
   data: DashboardData | null;
-  error: Error | null;
+  error: string | null;
 }
 
 // ============================================================================
@@ -47,19 +49,34 @@ interface DashboardDataResponse {
 async function fetchDashboardData(
   tenantId: string,
   timeFilter: TimeFilter,
-  channelId: string | null = null
+  channelId: string | null = null,
+  customStartDate?: Date,
+  customEndDate?: Date
 ): Promise<DashboardData> {
-  const daysAgo = getTimeFilterDays(timeFilter);
-
   // Build query params
   const params = new URLSearchParams({
     tenantId,
-    daysAgo: daysAgo.toString(),
   });
+
+  // For custom date range, send dates instead of daysAgo
+  if (timeFilter === 'custom' && customStartDate && customEndDate) {
+    params.append('startDate', customStartDate.toISOString());
+    params.append('endDate', customEndDate.toISOString());
+    console.log('📅 Fetching custom date range:', {
+      startDate: customStartDate.toISOString(),
+      endDate: customEndDate.toISOString(),
+    });
+  } else {
+    const daysAgo = getTimeFilterDays(timeFilter);
+    params.append('daysAgo', daysAgo.toString());
+    console.log('📅 Fetching daysAgo:', daysAgo);
+  }
 
   if (channelId) {
     params.append('channelId', channelId);
   }
+
+  console.log('🔍 API URL:', `/api/dashboard?${params.toString()}`);
 
   // Call API route
   const response = await fetch(`/api/dashboard?${params.toString()}`, {
@@ -71,18 +88,27 @@ async function fetchDashboardData(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    console.error('❌ API Error:', error);
     throw new Error(error.error || 'Failed to fetch dashboard data');
   }
 
   const result: DashboardDataResponse = await response.json();
 
   if (result.error) {
-    throw new Error(result.error.message || 'Failed to fetch dashboard data');
+    console.error('❌ Data Error:', result.error);
+    throw new Error(result.error || 'Failed to fetch dashboard data');
   }
 
   if (!result.data) {
+    console.error('❌ No data returned');
     throw new Error('No data returned from API');
   }
+
+  console.log('✅ Data fetched successfully:', {
+    totalConversations: result.data.kpis?.totalConversations,
+    dailyDataPoints: result.data.dailyConversations?.length,
+    hasKpis: !!result.data.kpis,
+  });
 
   return result.data;
 }
@@ -107,11 +133,13 @@ export function useDashboardData({
   tenantId,
   timeFilter,
   channelId = null,
+  customStartDate,
+  customEndDate,
   enabled = true,
 }: UseDashboardDataOptions): UseQueryResult<DashboardData, Error> {
   return useQuery({
-    queryKey: ['dashboard', tenantId, timeFilter, channelId],
-    queryFn: () => fetchDashboardData(tenantId, timeFilter, channelId),
+    queryKey: ['dashboard', tenantId, timeFilter, channelId, customStartDate?.toISOString(), customEndDate?.toISOString()],
+    queryFn: () => fetchDashboardData(tenantId, timeFilter, channelId, customStartDate, customEndDate),
     enabled: enabled && Boolean(tenantId),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes (previously cacheTime)

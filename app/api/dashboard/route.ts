@@ -71,15 +71,49 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const daysAgo = parseInt(searchParams.get('daysAgo') || '30', 10);
     const channelId = searchParams.get('channelId') || null;
 
-    // Validate daysAgo
-    if (isNaN(daysAgo) || daysAgo < 1 || daysAgo > 365) {
-      return NextResponse.json<DashboardAPIResponse>(
-        { data: null, error: 'Invalid daysAgo parameter (must be 1-365)' },
-        { status: 400 }
-      );
+    // Check if custom date range is provided
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    let daysAgo: number | undefined;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+
+    if (startDateParam && endDateParam) {
+      // Custom date range mode
+      startDate = startDateParam;
+      endDate = endDateParam;
+
+      // Validate dates
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return NextResponse.json<DashboardAPIResponse>(
+          { data: null, error: 'Invalid date format' },
+          { status: 400 }
+        );
+      }
+
+      if (start > end) {
+        return NextResponse.json<DashboardAPIResponse>(
+          { data: null, error: 'Start date must be before end date' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // daysAgo mode (default)
+      daysAgo = parseInt(searchParams.get('daysAgo') || '30', 10);
+
+      // Validate daysAgo
+      if (isNaN(daysAgo) || daysAgo < 1 || daysAgo > 365) {
+        return NextResponse.json<DashboardAPIResponse>(
+          { data: null, error: 'Invalid daysAgo parameter (must be 1-365)' },
+          { status: 400 }
+        );
+      }
     }
 
     // ========================================
@@ -89,6 +123,8 @@ export async function GET(request: NextRequest) {
       tenantId: userTenantId,
       daysAgo,
       channelId,
+      startDate,
+      endDate,
     });
 
     // ========================================

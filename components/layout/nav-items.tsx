@@ -79,8 +79,8 @@ export const navItems: NavItem[] = [
         url: '/relatorios/principal',
       },
       {
-        title: 'Funil',
-        url: '/relatorios/funil',
+        title: 'Conversas',
+        url: '/relatorios/conversas',
       },
       {
         title: 'Tags',

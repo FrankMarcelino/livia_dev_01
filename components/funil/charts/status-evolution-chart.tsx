@@ -116,3 +116,4 @@ export function StatusEvolutionChart({ data }: StatusEvolutionChartProps) {
     </Card>
   );
 }
+

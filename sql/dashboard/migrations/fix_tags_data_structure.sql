@@ -1,11 +1,23 @@
--- Tags Data Function
--- Created: 2025-12-19
--- Purpose: Fetch tags metrics for categorization analysis
+-- Migration: Fix get_tags_data function structure
+-- Created: 2025-12-20
+-- Purpose: Update get_tags_data to accept date range parameters and use correct column names (tag_name instead of name)
+--          that matches what the TypeScript code expects
 
+-- ================================================================
+-- Drop existing functions to avoid overloading
+-- ================================================================
+DROP FUNCTION IF EXISTS get_tags_data(uuid, integer, uuid);
+DROP FUNCTION IF EXISTS get_tags_data(uuid, integer, uuid, timestamp, timestamp);
+
+-- ================================================================
+-- Recreate get_tags_data with correct structure
+-- ================================================================
 CREATE OR REPLACE FUNCTION get_tags_data(
   p_tenant_id UUID,
   p_days_ago INTEGER DEFAULT 30,
-  p_channel_id UUID DEFAULT NULL
+  p_channel_id UUID DEFAULT NULL,
+  p_start_date TIMESTAMP DEFAULT NULL,
+  p_end_date TIMESTAMP DEFAULT NULL
 )
 RETURNS JSON AS $$
 DECLARE
@@ -14,8 +26,13 @@ DECLARE
   v_result JSON;
 BEGIN
   -- Calculate date range
-  v_end_date := CURRENT_TIMESTAMP;
-  v_start_date := v_end_date - (p_days_ago || ' days')::INTERVAL;
+  IF p_start_date IS NOT NULL AND p_end_date IS NOT NULL THEN
+    v_start_date := p_start_date;
+    v_end_date := p_end_date;
+  ELSE
+    v_end_date := CURRENT_TIMESTAMP;
+    v_start_date := v_end_date - (p_days_ago || ' days')::INTERVAL;
+  END IF;
 
   WITH
 
@@ -103,11 +120,14 @@ BEGIN
       )::INTEGER AS "conversationsWithoutTags",
       
       -- Categorization rate
-      ROUND(
-        (COUNT(DISTINCT ec.id) FILTER (
-          WHERE EXISTS (SELECT 1 FROM conversation_tags ct WHERE ct.conversation_id = ec.id)
-        )::DECIMAL / NULLIF(COUNT(DISTINCT ec.id), 0)) * 100,
-        1
+      COALESCE(
+        ROUND(
+          (COUNT(DISTINCT ec.id) FILTER (
+            WHERE EXISTS (SELECT 1 FROM conversation_tags ct WHERE ct.conversation_id = ec.id)
+          )::DECIMAL / NULLIF(COUNT(DISTINCT ec.id), 0)) * 100,
+          1
+        ),
+        0
       ) AS "categorizationRate"
       
     FROM enriched_conversations ec
@@ -300,5 +320,9 @@ EXCEPTION WHEN OTHERS THEN
     'unusedTags', '[]'::json
   );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION get_tags_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_tags_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO service_role;
 

@@ -99,3 +99,4 @@ function getConversionColor(rate: number | null): string {
   if (rate >= 50) return 'text-yellow-600 dark:text-yellow-400';
   return 'text-red-600 dark:text-red-400';
 }
+

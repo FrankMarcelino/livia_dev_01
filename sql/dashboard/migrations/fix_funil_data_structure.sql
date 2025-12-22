@@ -1,7 +1,17 @@
--- Funil Data Function
--- Created: 2025-12-19
--- Purpose: Fetch funnel metrics for conversion analysis (Open → Paused → Closed)
+-- Migration: Fix get_funil_data function structure
+-- Created: 2025-12-20
+-- Purpose: Update get_funil_data to accept date range parameters and return correct structure
+--          that matches what the TypeScript code expects
 
+-- ================================================================
+-- Drop existing functions to avoid overloading
+-- ================================================================
+DROP FUNCTION IF EXISTS get_funil_data(uuid, integer, uuid);
+DROP FUNCTION IF EXISTS get_funil_data(uuid, integer, uuid, timestamp, timestamp);
+
+-- ================================================================
+-- Recreate get_funil_data with correct structure
+-- ================================================================
 CREATE OR REPLACE FUNCTION get_funil_data(
   p_tenant_id UUID,
   p_days_ago INTEGER DEFAULT 30,
@@ -55,20 +65,29 @@ BEGIN
       COUNT(*) FILTER (WHERE status = 'closed')::INTEGER AS "conversationsClosed",
       
       -- Conversion rate (open to closed)
-      ROUND(
-        (COUNT(*) FILTER (WHERE status = 'closed')::DECIMAL / NULLIF(COUNT(*), 0)) * 100,
-        1
+      COALESCE(
+        ROUND(
+          (COUNT(*) FILTER (WHERE status = 'closed')::DECIMAL / NULLIF(COUNT(*), 0)) * 100,
+          1
+        ),
+        0
       ) AS "conversionRate",
       
       -- Average time to pause (in seconds)
-      ROUND(
-        AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FILTER (WHERE status = 'paused')
-      )::INTEGER AS "avgTimeToPauseSeconds",
+      COALESCE(
+        ROUND(
+          AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FILTER (WHERE status = 'paused')
+        )::INTEGER,
+        0
+      ) AS "avgTimeToPauseSeconds",
       
       -- Average time to close (in seconds)
-      ROUND(
-        AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FILTER (WHERE status = 'closed')
-      )::INTEGER AS "avgTimeToCloseSeconds"
+      COALESCE(
+        ROUND(
+          AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FILTER (WHERE status = 'closed')
+        )::INTEGER,
+        0
+      ) AS "avgTimeToCloseSeconds"
       
     FROM base_conversations
   ),
@@ -106,13 +125,16 @@ BEGIN
   -- Note: Replace with actual data when reason field is available
   -- ================================================================
   pause_reasons AS (
-    SELECT json_agg(
-      json_build_object(
-        'reason', reason,
-        'count', count,
-        'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
-      )
-      ORDER BY count DESC
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'reason', reason,
+          'count', count,
+          'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
+        )
+        ORDER BY count DESC
+      ),
+      '[]'::json
     ) AS data
     FROM (
       SELECT
@@ -154,13 +176,16 @@ BEGIN
   -- Note: Replace with actual data when reason field is available
   -- ================================================================
   closure_reasons AS (
-    SELECT json_agg(
-      json_build_object(
-        'reason', reason,
-        'count', count,
-        'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
-      )
-      ORDER BY count DESC
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'reason', reason,
+          'count', count,
+          'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
+        )
+        ORDER BY count DESC
+      ),
+      '[]'::json
     ) AS data
     FROM (
       SELECT
@@ -244,6 +269,9 @@ EXCEPTION WHEN OTHERS THEN
     'reactivationRate', 0
   );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION get_funil_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_funil_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO service_role;
 

@@ -1,7 +1,19 @@
--- Dashboard Data Function
--- Created: 2025-12-19
--- Updated: 2025-12-20 - Added custom date range support
--- Purpose: Fetch all dashboard metrics in a single optimized query
+-- Migration: Fix get_dashboard_data function structure
+-- Created: 2025-12-20
+-- Purpose: Replace get_dashboard_data with correct structure that matches TypeScript expectations
+--          The current function returns {summary, funnel, channels_distribution, ...}
+--          but TypeScript expects {kpis, dailyConversations, conversationsByTag, ...}
+
+-- ================================================================
+-- Drop existing functions to avoid overloading
+-- ================================================================
+DROP FUNCTION IF EXISTS get_dashboard_data(uuid, integer, uuid);
+DROP FUNCTION IF EXISTS get_dashboard_data(uuid, integer, uuid, timestamp, timestamp);
+
+-- ================================================================
+-- Recreate get_dashboard_data with CORRECT structure
+-- ================================================================
+-- (Copy entire function from 02_function_get_dashboard_data.sql)
 
 CREATE OR REPLACE FUNCTION get_dashboard_data(
   p_tenant_id UUID,
@@ -18,7 +30,6 @@ DECLARE
   v_result JSON;
 BEGIN
   -- Calculate date range
-  -- If custom date range is provided, use it; otherwise use days_ago
   IF p_start_date IS NOT NULL AND p_end_date IS NOT NULL THEN
     v_start_date := p_start_date;
     v_end_date := p_end_date;
@@ -44,7 +55,6 @@ BEGIN
       c.updated_at,
       c.last_message_at,
       ch.identification_number AS channel_name,
-      -- Calculate duration (created → updated)
       EXTRACT(EPOCH FROM (c.updated_at - c.created_at))::INTEGER AS duration_seconds
     FROM conversations c
     LEFT JOIN channels ch ON ch.id = c.channel_id
@@ -64,7 +74,6 @@ BEGIN
       COUNT(*) FILTER (WHERE m.sender_type = 'ai') AS ai_messages,
       COUNT(*) FILTER (WHERE m.sender_type = 'attendant') AS human_messages,
       COUNT(*) FILTER (WHERE m.sender_type = 'customer') AS customer_messages,
-      -- First response time (first AI or attendant message)
       MIN(m.timestamp) FILTER (WHERE m.sender_type IN ('ai', 'attendant')) AS first_response_timestamp
     FROM messages m
     WHERE EXISTS (
@@ -127,7 +136,6 @@ BEGIN
       COALESCE(ua.total_tokens, 0) AS total_tokens,
       COALESCE(ua.total_input_tokens, 0) AS input_tokens,
       COALESCE(ua.total_output_tokens, 0) AS output_tokens,
-      -- First response time in seconds
       CASE
         WHEN ma.first_response_timestamp IS NOT NULL THEN
           EXTRACT(EPOCH FROM (ma.first_response_timestamp - bc.created_at))::INTEGER
@@ -144,26 +152,19 @@ BEGIN
   -- ================================================================
   kpis AS (
     SELECT
-      -- Volume metrics
       COUNT(*)::INTEGER AS total_conversations,
       SUM(total_messages)::BIGINT AS total_messages,
       ROUND(AVG(total_messages), 1) AS avg_messages_per_conversation,
       COUNT(*) FILTER (WHERE status = 'open')::INTEGER AS active_conversations,
-
-      -- Status breakdown
       COUNT(*) FILTER (WHERE status = 'open')::INTEGER AS conversations_open,
       COUNT(*) FILTER (WHERE status = 'paused')::INTEGER AS conversations_paused,
       COUNT(*) FILTER (WHERE status = 'closed')::INTEGER AS conversations_closed,
-
-      -- AI vs Human
       COUNT(*) FILTER (WHERE ia_active = true)::INTEGER AS conversations_with_ai,
       COUNT(*) FILTER (WHERE ia_active = false OR ia_active IS NULL)::INTEGER AS conversations_human_only,
       ROUND(
         COUNT(*) FILTER (WHERE ia_active = true)::NUMERIC / NULLIF(COUNT(*), 0) * 100,
         1
       ) AS ai_percentage,
-
-      -- Quality metrics
       SUM(total_feedbacks)::BIGINT AS total_feedbacks,
       SUM(positive_feedbacks)::BIGINT AS positive_feedbacks,
       SUM(negative_feedbacks)::BIGINT AS negative_feedbacks,
@@ -171,16 +172,11 @@ BEGIN
         SUM(positive_feedbacks)::NUMERIC / NULLIF(SUM(total_feedbacks), 0) * 100,
         1
       ) AS satisfaction_rate,
-
-      -- Efficiency metrics
       ROUND(AVG(first_response_time_seconds))::INTEGER AS avg_first_response_time_seconds,
       ROUND(AVG(duration_seconds) FILTER (WHERE status = 'closed'))::INTEGER AS avg_resolution_time_seconds,
-
-      -- Cost metrics
       SUM(total_tokens)::BIGINT AS total_tokens,
       SUM(input_tokens)::BIGINT AS total_input_tokens,
       SUM(output_tokens)::BIGINT AS total_output_tokens,
-      -- Pricing: Claude Sonnet 4.5 - $3/1M input, $15/1M output
       ROUND(
         (SUM(input_tokens)::NUMERIC * 3.0 / 1000000.0) +
         (SUM(output_tokens)::NUMERIC * 15.0 / 1000000.0),
@@ -189,7 +185,6 @@ BEGIN
     FROM enriched_conversations
   ),
 
-  -- Peak day calculation
   peak_day AS (
     SELECT
       DATE(created_at AT TIME ZONE v_time_zone) AS date,
@@ -416,29 +411,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- ================================================================
--- COMMENTS & METADATA
--- ================================================================
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION get_dashboard_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_dashboard_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP) TO service_role;
 
-COMMENT ON FUNCTION get_dashboard_data(UUID, INTEGER, UUID) IS
-  'Fetches comprehensive dashboard metrics for LIVIA MVP. Returns all KPIs, charts data, and analytics in a single optimized query.';
-
--- ================================================================
--- USAGE EXAMPLE
--- ================================================================
-
-/*
--- Get dashboard data for last 30 days
-SELECT get_dashboard_data(
-  '123e4567-e89b-12d3-a456-426614174000'::UUID, -- tenant_id
-  30,                                              -- days_ago
-  NULL                                             -- channel_id (optional)
-);
-
--- Get dashboard data for last 7 days, specific channel
-SELECT get_dashboard_data(
-  '123e4567-e89b-12d3-a456-426614174000'::UUID,
-  7,
-  'abc12345-e89b-12d3-a456-426614174000'::UUID
-);
-*/

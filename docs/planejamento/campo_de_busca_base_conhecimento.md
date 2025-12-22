@@ -148,3 +148,4 @@ Ajustes:
 4. Todas as ações (editar, deletar, toggle) funcionam normalmente nos resultados
 5. Limpe a busca para voltar à visualização por domínio
 
+

@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Tags,
   CheckSquare,
   XSquare,
   TrendingUp,
@@ -19,13 +18,6 @@ interface TagsKPICardsProps {
 
 export function TagsKPICards({ kpis }: TagsKPICardsProps) {
   const cards = [
-    {
-      title: 'Tags Ativas',
-      value: formatCompactNumber(kpis.totalActiveTags),
-      icon: Tags,
-      description: 'Total de tags criadas',
-      color: 'text-blue-600 dark:text-blue-400',
-    },
     {
       title: 'Conversas com Tag',
       value: formatCompactNumber(kpis.conversationsWithTags),
@@ -50,7 +42,7 @@ export function TagsKPICards({ kpis }: TagsKPICardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card, index) => {
         const Icon = card.icon;
         return (
@@ -84,3 +76,4 @@ function getCategorizationColor(rate: number | null): string {
   if (rate >= 60) return 'text-yellow-600 dark:text-yellow-400';
   return 'text-red-600 dark:text-red-400';
 }
+

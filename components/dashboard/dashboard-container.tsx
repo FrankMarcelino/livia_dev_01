@@ -6,11 +6,7 @@ import type { DashboardData, TimeFilter } from '@/types/dashboard';
 import { DashboardHeader } from './dashboard-header';
 import { KPICards } from './kpi-cards';
 import { ConversationsChart } from './charts/conversations-chart';
-import { TagsChart } from './charts/tags-chart';
 import { HeatmapChart } from './charts/heatmap-chart';
-import { ChannelDistribution } from './charts/channel-distribution';
-import { AIvsHumanChart } from './charts/ai-vs-human-chart';
-import { CostAnalysisChart } from './charts/cost-analysis-chart';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface DashboardContainerProps {
@@ -23,11 +19,29 @@ export function DashboardContainer({
 }: DashboardContainerProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('30days');
   const [channelId, setChannelId] = useState<string | null>(null);
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+
+  const handleCustomDateChange = (startDate: Date | undefined, endDate: Date | undefined) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+  };
 
   const { data, isLoading, isRefetching, refetch } = useDashboardData({
     tenantId,
     timeFilter,
     channelId,
+    customStartDate,
+    customEndDate,
+  });
+
+  // Debug log
+  console.log('📊 Dashboard state:', {
+    timeFilter,
+    customStartDate: customStartDate?.toISOString(),
+    customEndDate: customEndDate?.toISOString(),
+    hasData: !!data,
+    isLoading,
   });
 
   if (isLoading && !data) {
@@ -51,30 +65,21 @@ export function DashboardContainer({
         onChannelChange={setChannelId}
         onRefresh={() => refetch()}
         isRefreshing={isRefetching}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        onCustomDateChange={handleCustomDateChange}
       />
 
       <KPICards kpis={data.kpis} />
 
-      {/* Row 1: Conversas e Tags */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Conversas ao Longo do Tempo - Largura Total */}
+      <div className="grid grid-cols-1 gap-6">
         <ConversationsChart data={data.dailyConversations} />
-        <TagsChart data={data.conversationsByTag} />
       </div>
 
-      {/* Row 2: Canal e AI vs Humano */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChannelDistribution data={data.byChannel} />
-        <AIvsHumanChart data={data.aiVsHuman} />
-      </div>
-
-      {/* Row 3: Heatmap */}
+      {/* Heatmap - Largura Total */}
       <div className="grid grid-cols-1 gap-6">
         <HeatmapChart data={data.heatmap} />
-      </div>
-
-      {/* Row 4: Análise de Custos */}
-      <div className="grid grid-cols-1 gap-6">
-        <CostAnalysisChart data={data.costOverTime} />
       </div>
     </div>
   );
@@ -93,31 +98,19 @@ function DashboardLoadingSkeleton() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+      {/* KPI Cards - 3 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-32" />
         ))}
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Skeleton className="h-96" />
-        <Skeleton className="h-96" />
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Skeleton className="h-96" />
-        <Skeleton className="h-96" />
-      </div>
-
-      {/* Charts Row 3 */}
+      {/* Conversas ao Longo do Tempo */}
       <div className="grid grid-cols-1 gap-6">
         <Skeleton className="h-96" />
       </div>
 
-      {/* Charts Row 4 */}
+      {/* Heatmap */}
       <div className="grid grid-cols-1 gap-6">
         <Skeleton className="h-96" />
       </div>

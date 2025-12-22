@@ -32,6 +32,8 @@ interface UseTagsDataOptions {
   tenantId: string;
   timeFilter: TimeFilter;
   channelId?: string | null;
+  customStartDate?: Date;
+  customEndDate?: Date;
   enabled?: boolean;
 }
 
@@ -47,15 +49,23 @@ interface TagsDataResponse {
 async function fetchTagsData(
   tenantId: string,
   timeFilter: TimeFilter,
-  channelId: string | null = null
+  channelId: string | null = null,
+  customStartDate?: Date,
+  customEndDate?: Date
 ): Promise<TagsData> {
-  const daysAgo = getTimeFilterDays(timeFilter);
-
   // Build query params
   const params = new URLSearchParams({
     tenantId,
-    daysAgo: daysAgo.toString(),
   });
+
+  // For custom date range, send dates instead of daysAgo
+  if (timeFilter === 'custom' && customStartDate && customEndDate) {
+    params.append('startDate', customStartDate.toISOString());
+    params.append('endDate', customEndDate.toISOString());
+  } else {
+    const daysAgo = getTimeFilterDays(timeFilter);
+    params.append('daysAgo', daysAgo.toString());
+  }
 
   if (channelId) {
     params.append('channelId', channelId);
@@ -107,11 +117,13 @@ export function useTagsData({
   tenantId,
   timeFilter,
   channelId = null,
+  customStartDate,
+  customEndDate,
   enabled = true,
 }: UseTagsDataOptions): UseQueryResult<TagsData, Error> {
   return useQuery({
-    queryKey: ['tags-data', tenantId, timeFilter, channelId],
-    queryFn: () => fetchTagsData(tenantId, timeFilter, channelId),
+    queryKey: ['tags-data', tenantId, timeFilter, channelId, customStartDate?.toISOString(), customEndDate?.toISOString()],
+    queryFn: () => fetchTagsData(tenantId, timeFilter, channelId, customStartDate, customEndDate),
     enabled: enabled && Boolean(tenantId),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes (previously cacheTime)
@@ -121,3 +133,4 @@ export function useTagsData({
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
+

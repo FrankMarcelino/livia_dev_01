@@ -1,13 +1,23 @@
--- Funil Data Function
--- Created: 2025-12-19
--- Purpose: Fetch funnel metrics for conversion analysis (Open → Paused → Closed)
+-- Migration: Add Custom Date Range Support to get_funil_data
+-- Created: 2025-12-20
+-- Purpose: Update function to accept p_start_date and p_end_date parameters
+--
+-- INSTRUCTIONS:
+-- 1. Backup current function: pg_dump or copy SQL to backup file
+-- 2. Execute this migration in Supabase SQL Editor
+-- 3. Test with both old (days_ago) and new (date range) calls
+-- 4. Monitor performance with large date ranges
+
+-- ================================================================
+-- UPDATED FUNCTION: get_funil_data
+-- ================================================================
 
 CREATE OR REPLACE FUNCTION get_funil_data(
   p_tenant_id UUID,
   p_days_ago INTEGER DEFAULT 30,
   p_channel_id UUID DEFAULT NULL,
-  p_start_date TIMESTAMP DEFAULT NULL,
-  p_end_date TIMESTAMP DEFAULT NULL
+  p_start_date TIMESTAMP DEFAULT NULL,  -- ✨ NEW: Custom start date
+  p_end_date TIMESTAMP DEFAULT NULL     -- ✨ NEW: Custom end date
 )
 RETURNS JSON AS $$
 DECLARE
@@ -15,7 +25,10 @@ DECLARE
   v_end_date TIMESTAMP;
   v_result JSON;
 BEGIN
-  -- Calculate date range
+  -- ================================================================
+  -- UPDATED: Calculate date range with custom date support
+  -- If custom date range is provided, use it; otherwise use days_ago
+  -- ================================================================
   IF p_start_date IS NOT NULL AND p_end_date IS NOT NULL THEN
     v_start_date := p_start_date;
     v_end_date := p_end_date;
@@ -28,6 +41,7 @@ BEGIN
 
   -- ================================================================
   -- BASE DATA: Conversations
+  -- (No changes needed - already uses v_start_date and v_end_date)
   -- ================================================================
   base_conversations AS (
     SELECT
@@ -46,6 +60,7 @@ BEGIN
 
   -- ================================================================
   -- KPIs: Funnel metrics
+  -- (No changes needed)
   -- ================================================================
   funnel_kpis AS (
     SELECT
@@ -75,6 +90,7 @@ BEGIN
 
   -- ================================================================
   -- STATUS EVOLUTION: Time series of status over time
+  -- (No changes needed)
   -- ================================================================
   status_evolution AS (
     SELECT COALESCE(
@@ -104,6 +120,7 @@ BEGIN
   -- ================================================================
   -- PAUSE REASONS: Mock data for MVP
   -- Note: Replace with actual data when reason field is available
+  -- (No changes needed)
   -- ================================================================
   pause_reasons AS (
     SELECT json_agg(
@@ -152,6 +169,7 @@ BEGIN
   -- ================================================================
   -- CLOSURE REASONS: Mock data for MVP
   -- Note: Replace with actual data when reason field is available
+  -- (No changes needed)
   -- ================================================================
   closure_reasons AS (
     SELECT json_agg(
@@ -200,6 +218,7 @@ BEGIN
   -- ================================================================
   -- REACTIVATION RATE: Conversations reopened after pause
   -- Note: This is a simplified calculation for MVP
+  -- (No changes needed)
   -- ================================================================
   reactivation_rate AS (
     SELECT COALESCE(
@@ -215,6 +234,7 @@ BEGIN
 
   -- ================================================================
   -- FINAL RESULT: Combine all sections
+  -- (No changes needed)
   -- ================================================================
   SELECT json_build_object(
     'kpis', (SELECT row_to_json(funnel_kpis.*) FROM funnel_kpis),
@@ -246,4 +266,72 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ================================================================
+-- MIGRATION COMPLETED
+-- ================================================================
+-- 
+-- To test this function, replace 'your-tenant-id' with your actual tenant UUID:
+-- 
+-- Test 1: Old behavior (days_ago) - should still work
+-- SELECT get_funil_data(
+--   'your-tenant-id'::UUID,
+--   30,
+--   NULL
+-- );
+-- 
+-- Test 2: New behavior (custom date range)
+-- SELECT get_funil_data(
+--   'your-tenant-id'::UUID,
+--   30,
+--   NULL,
+--   '2024-01-01 00:00:00'::TIMESTAMP,
+--   '2024-01-31 23:59:59'::TIMESTAMP
+-- );
+-- 
+-- Test 3: Performance check with EXPLAIN ANALYZE
+-- EXPLAIN ANALYZE
+-- SELECT get_funil_data(
+--   'your-tenant-id'::UUID,
+--   30,
+--   NULL,
+--   '2024-01-01 00:00:00'::TIMESTAMP,
+--   '2024-03-31 23:59:59'::TIMESTAMP
+-- );
+
+-- ================================================================
+-- ROLLBACK (if needed)
+-- ================================================================
+
+-- To rollback, restore from backup or use original function SQL
+-- DROP FUNCTION get_funil_data(UUID, INTEGER, UUID, TIMESTAMP, TIMESTAMP);
+-- Then execute original function SQL
+
+-- ================================================================
+-- NOTES
+-- ================================================================
+
+-- CHANGES SUMMARY:
+-- 1. Added p_start_date and p_end_date parameters (DEFAULT NULL for backwards compatibility)
+-- 2. Updated date range calculation logic with IF condition
+-- 3. All CTEs remain unchanged (already used v_start_date and v_end_date)
+-- 4. No schema changes needed
+-- 5. Fully backwards compatible (old calls still work)
+
+-- BACKWARDS COMPATIBILITY:
+-- ✅ Old calls without date params → uses days_ago (unchanged behavior)
+-- ✅ New calls with date params → uses custom date range (new behavior)
+
+-- PERFORMANCE CONSIDERATIONS:
+-- - Monitor query performance with large date ranges (90+ days)
+-- - Consider adding indexes if needed:
+--   CREATE INDEX idx_conversations_tenant_created ON conversations(tenant_id, created_at);
+--   CREATE INDEX idx_conversations_channel_created ON conversations(channel_id, created_at);
+
+-- VALIDATION CHECKLIST:
+-- [ ] Function executes without errors
+-- [ ] Old calls (days_ago only) return expected data
+-- [ ] New calls (with date range) return expected data
+-- [ ] KPIs are correct for both modes
+-- [ ] Performance is acceptable (< 5s for 90 days)
+-- [ ] No errors in application logs
 

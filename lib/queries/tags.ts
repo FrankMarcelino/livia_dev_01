@@ -14,6 +14,8 @@ interface GetTagsDataParams {
   tenantId: string;
   daysAgo?: number;
   channelId?: string | null;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface RawTagsResponse {
@@ -61,17 +63,28 @@ export async function getTagsData({
   tenantId,
   daysAgo = 30,
   channelId = null,
+  startDate,
+  endDate,
 }: GetTagsDataParams): Promise<TagsData> {
   const supabase = await createClient();
 
   try {
     // Call Postgres function via RPC
-    // @ts-expect-error - Function will be created by running sql/dashboard/04_function_tags.sql
-    const { data, error } = await supabase.rpc('get_tags_data', {
+    const rpcParams: Record<string, unknown> = {
       p_tenant_id: tenantId,
-      p_days_ago: daysAgo,
       p_channel_id: channelId,
-    });
+    };
+
+    // Use custom date range if provided, otherwise use daysAgo
+    if (startDate && endDate) {
+      rpcParams.p_start_date = startDate;
+      rpcParams.p_end_date = endDate;
+    } else {
+      rpcParams.p_days_ago = daysAgo;
+    }
+
+    // @ts-expect-error - Function will be created by running sql/dashboard/04_function_tags.sql
+    const { data, error } = await supabase.rpc('get_tags_data', rpcParams as any);
 
     if (error) {
       console.error('Error fetching tags data:', error);
@@ -85,8 +98,16 @@ export async function getTagsData({
     // Parse and return response
     const rawData = data as unknown as RawTagsResponse;
 
+    // Provide default KPIs if missing
+    const defaultKPIs: TagsKPIs = {
+      totalActiveTags: 0,
+      conversationsWithTags: 0,
+      conversationsWithoutTags: 0,
+      categorizationRate: 0,
+    };
+
     return {
-      kpis: rawData.kpis,
+      kpis: rawData.kpis || defaultKPIs,
       topTags: rawData.topTags || [],
       tagPerformance: rawData.tagPerformance || [],
       tagsDistribution: rawData.tagsDistribution || [],
@@ -98,3 +119,5 @@ export async function getTagsData({
     throw error;
   }
 }
+
+

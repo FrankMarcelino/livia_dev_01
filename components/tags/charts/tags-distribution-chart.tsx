@@ -71,3 +71,4 @@ export function TagsDistributionChart({ data }: TagsDistributionChartProps) {
     </Card>
   );
 }
+

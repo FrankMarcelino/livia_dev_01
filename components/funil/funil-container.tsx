@@ -19,11 +19,20 @@ interface FunilContainerProps {
 export function FunilContainer({ tenantId }: FunilContainerProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('30days');
   const [channelId, setChannelId] = useState<string | null>(null);
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+
+  const handleCustomDateChange = (startDate: Date | undefined, endDate: Date | undefined) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+  };
 
   const { data, isLoading, isRefetching, refetch } = useFunilData({
     tenantId,
     timeFilter,
     channelId,
+    customStartDate,
+    customEndDate,
   });
 
   if (isLoading && !data) {
@@ -38,6 +47,16 @@ export function FunilContainer({ tenantId }: FunilContainerProps) {
     );
   }
 
+  // Provide default KPIs if missing (defensive programming)
+  const kpis = data.kpis || {
+    conversationsOpen: 0,
+    conversationsPaused: 0,
+    conversationsClosed: 0,
+    conversionRate: 0,
+    avgTimeToPauseSeconds: 0,
+    avgTimeToCloseSeconds: 0,
+  };
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <DashboardHeader
@@ -47,31 +66,34 @@ export function FunilContainer({ tenantId }: FunilContainerProps) {
         onChannelChange={setChannelId}
         onRefresh={() => refetch()}
         isRefreshing={isRefetching}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        onCustomDateChange={handleCustomDateChange}
       />
 
-      <FunilKPICards kpis={data.kpis} />
+      <FunilKPICards kpis={kpis} />
 
       {/* Row 1: Funil Visual e Evolução */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <StatusFunnelChart data={data.kpis} />
-        <StatusEvolutionChart data={data.statusEvolution} />
+        <StatusFunnelChart data={kpis} />
+        <StatusEvolutionChart data={data.statusEvolution || []} />
       </div>
 
       {/* Row 2: Tempo por Etapa */}
       <TimeByStageChart
-        avgTimeToPause={data.kpis.avgTimeToPauseSeconds}
-        avgTimeToClose={data.kpis.avgTimeToCloseSeconds}
+        avgTimeToPause={kpis.avgTimeToPauseSeconds}
+        avgTimeToClose={kpis.avgTimeToCloseSeconds}
       />
 
       {/* Row 3: Motivos de Pausa e Fechamento */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ReasonsChart
-          data={data.pauseReasons}
+          data={data.pauseReasons || []}
           title="Top Motivos de Pausa"
           type="pause"
         />
         <ReasonsChart
-          data={data.closureReasons}
+          data={data.closureReasons || []}
           title="Top Motivos de Fechamento"
           type="closure"
         />
@@ -88,7 +110,7 @@ export function FunilContainer({ tenantId }: FunilContainerProps) {
               </p>
             </div>
             <div className="text-4xl font-bold text-primary">
-              {data.reactivationRate.toFixed(1)}%
+              {(data.reactivationRate || 0).toFixed(1)}%
             </div>
           </div>
         </CardContent>
@@ -128,3 +150,5 @@ function FunilLoadingSkeleton() {
     </div>
   );
 }
+
+

@@ -178,3 +178,4 @@ npm run start
 ---
 
 **✨ Pronto para usar! Qualquer dúvida, consultar `FUNIL_IMPLEMENTATION_SUMMARY.md`**
+
