@@ -9,6 +9,10 @@ import {
   formatRelativeTime,
   getConversationLastTimestamp,
 } from '@/lib/utils/contact-list';
+import {
+  getContactDisplayName,
+  getContactInitials,
+} from '@/lib/utils/contact-helpers';
 import type { ConversationWithContact } from '@/types/livechat';
 import { TagBadge } from './tag-badge';
 
@@ -30,12 +34,9 @@ export function ContactItem({
   const lastTimestamp = getConversationLastTimestamp(conversation);
   const timeDisplay = formatRelativeTime(lastTimestamp);
 
-  const initials = contact.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  // Usar função utilitária para obter nome de exibição e iniciais com fallback
+  const displayName = getContactDisplayName(contact.name, contact.phone);
+  const initials = getContactInitials(contact.name, contact.phone);
 
   const statusColors = {
     open: 'bg-green-600',
@@ -65,7 +66,7 @@ export function ContactItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="font-medium truncate">{contact.name}</span>
+              <span className="font-medium truncate">{displayName}</span>
               {category && <TagBadge tag={category} size="sm" />}
             </div>
             {timeDisplay && (

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Pause, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Conversation, Tag } from '@/types/database-helpers';
+import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import { ConversationSummaryModal } from './conversation-summary-modal';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 import { CategorySelect } from './category-select';
@@ -13,6 +14,7 @@ import { StatusSelect } from './status-select';
 
 interface ConversationHeaderProps {
   contactName: string;
+  contactPhone?: string | null;
   conversation: Conversation;
   tenantId: string;
   currentCategory?: Tag | null;
@@ -21,6 +23,7 @@ interface ConversationHeaderProps {
 
 export function ConversationHeader({
   contactName,
+  contactPhone,
   conversation,
   tenantId,
   currentCategory,
@@ -28,6 +31,9 @@ export function ConversationHeader({
 }: ConversationHeaderProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPauseIADialog, setShowPauseIADialog] = useState(false);
+  
+  // Usar função utilitária para obter nome de exibição com fallback
+  const displayName = getContactDisplayName(contactName, contactPhone || null);
 
   const handlePauseIAClick = () => {
     setShowPauseIADialog(true);
@@ -69,7 +75,7 @@ export function ConversationHeader({
     <div className="p-4 border-b">
       {/* Linha 1: Nome do contato + Botões de Ação */}
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold">{contactName}</h2>
+        <h2 className="text-lg font-semibold">{displayName}</h2>
 
         <div className="flex  gap-2 items-end">
         <Button

@@ -141,3 +141,6 @@ day_range_middle: "rounded-none",    // Sem bordas (bloco contínuo)
 **Data**: 20/12/2025  
 **Versão**: 1.0.1
 
+
+
+

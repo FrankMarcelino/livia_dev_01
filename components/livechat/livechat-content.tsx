@@ -85,6 +85,7 @@ export function LivechatContent({
             initialMessages={messages}
             tenantId={tenantId}
             contactName={selectedConversation.contact.name}
+            contactPhone={selectedConversation.contact.phone}
             currentCategory={selectedConversation.category}
             categories={categories}
           />

@@ -421,3 +421,6 @@ Proprietary - LIVIA Project
 **Versão**: 1.0.0  
 **Status**: ✅ Frontend Completo | ⚠️ Backend Parcial
 
+
+
+

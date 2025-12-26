@@ -77,3 +77,6 @@ function getCategorizationColor(rate: number | null): string {
   return 'text-red-600 dark:text-red-400';
 }
 
+
+
+

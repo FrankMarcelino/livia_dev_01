@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Bot, User } from 'lucide-react';
 import { formatRelativeTime, formatMessagePreview } from '@/lib/utils/contact-list';
+import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import type { CRMConversationCardProps } from '@/types/crm';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,12 @@ export function CRMConversationCard({ conversation }: CRMConversationCardProps) 
 
   const status = statusConfig[conversation.status] || statusConfig.open;
 
+  // Usar função utilitária para obter nome de exibição com fallback
+  const displayName = getContactDisplayName(
+    conversation.contact.name,
+    conversation.contact.phone
+  );
+
   const handleClick = () => {
     router.push(`/livechat?conversation=${conversation.id}`);
   };
@@ -57,7 +64,7 @@ export function CRMConversationCard({ conversation }: CRMConversationCardProps) 
     >
       {/* Nome do contato */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-medium truncate">{conversation.contact.name}</h4>
+        <h4 className="text-sm font-medium truncate">{displayName}</h4>
       </div>
 
       {/* Preview da mensagem */}

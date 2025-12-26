@@ -144,3 +144,6 @@ A versão atual do Calendar é a **mais recente do shadcn/ui** (dezembro 2024), 
 **Status**: ✅ Totalmente funcional e atualizado  
 **Próximo passo**: Testar e confirmar funcionamento
 
+
+
+

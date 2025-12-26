@@ -374,3 +374,6 @@ SELECT proname FROM pg_proc WHERE proname = 'get_funil_data';
 **Data:** 2025-12-19
 **Autor:** Claude Code Assistant
 
+
+
+

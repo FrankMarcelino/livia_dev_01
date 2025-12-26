@@ -8,6 +8,7 @@ import { ContactItem } from './contact-item';
 import { TagBadge } from './tag-badge';
 import { Search } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
+import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import type { ConversationWithContact } from '@/types/livechat';
 import type { ConversationStatus, Tag } from '@/types/database-helpers';
 
@@ -37,7 +38,11 @@ export function ContactList({
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
-    const matchesSearch = conversation.contact.name
+    const displayName = getContactDisplayName(
+      conversation.contact.name,
+      conversation.contact.phone
+    );
+    const matchesSearch = displayName
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 

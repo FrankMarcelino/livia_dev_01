@@ -18,6 +18,7 @@ interface ConversationViewProps {
   initialMessages: MessageWithSender[];
   tenantId: string;
   contactName: string;
+  contactPhone?: string | null;
   currentCategory?: Tag | null;
   categories: Tag[];
 }
@@ -27,6 +28,7 @@ export function ConversationView({
   initialMessages,
   tenantId,
   contactName,
+  contactPhone,
   currentCategory,
   categories,
 }: ConversationViewProps) {
@@ -70,6 +72,7 @@ export function ConversationView({
     <div className="flex flex-col h-full">
       <ConversationHeader
         contactName={contactName}
+        contactPhone={contactPhone}
         conversation={conversation}
         tenantId={tenantId}
         currentCategory={currentCategory}
