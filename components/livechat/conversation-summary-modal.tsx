@@ -91,7 +91,16 @@ export function ConversationSummaryModal({
           return;
         }
 
-        setData(contact.customer_data_extracted as ExtractedData);
+        // Se os dados estão dentro de uma chave 'json', extrair
+        let extractedData: any = contact.customer_data_extracted;
+        
+        if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData)) {
+          if ('json' in extractedData && typeof extractedData.json === 'object' && extractedData.json !== null) {
+            extractedData = extractedData.json;
+          }
+        }
+
+        setData(extractedData as ExtractedData);
       } else {
         setData(null);
       }
@@ -144,9 +153,12 @@ export function ConversationSummaryModal({
         textContent += '\n';
       }
 
-      // Fases
+      // Seções dinâmicas (excluindo metadados e memoria_conversacional que já foram processados)
       const sortedKeys = getSortedKeys(data)
-        .filter(key => key !== 'metadados' && key !== 'memoria_conversacional');
+        .filter(key => 
+          key.toLowerCase() !== 'metadados' && 
+          key.toLowerCase() !== 'memoria_conversacional'
+        );
 
       sortedKeys.forEach(key => {
         const content = data[key];
@@ -319,20 +331,96 @@ export function ConversationSummaryModal({
     }
   };
 
-  // Sort keys to ensure specific order if needed, otherwise alphabetical or specific priority
-  const getSortedKeys = (obj: ExtractedData) => {
-    const priority = ['metadados', 'fase_1', 'fase_2', 'fase_3', 'fase_4', 'memoria_conversacional'];
-    return Object.keys(obj).sort((a, b) => {
-      // Ensure both keys are strings
-      if (typeof a !== 'string' || typeof b !== 'string') return 0;
+  /**
+   * Detecta se uma chave é uma fase (dinamicamente)
+   * Aceita padrões como: fase_1, fase_2, fase_abc, "Fase 1 Recepcao", "Fase 2 Vendas", etc.
+   */
+  const isPhaseKey = (key: string): boolean => {
+    const lowerKey = key.toLowerCase();
+    // Aceita qualquer chave que comece com "fase" seguido de espaço, underscore, hífen ou número
+    return /^fase[\s_\-]/.test(lowerKey) || /^fase\d/.test(lowerKey);
+  };
 
-      const indexA = priority.findIndex(p => a.startsWith(p));
-      const indexB = priority.findIndex(p => b.startsWith(p));
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return a.localeCompare(b);
+  /**
+   * Extrai número da fase para ordenação (se existir)
+   * Ex: "fase_1" -> 1, "fase_2" -> 2, "Fase 1 Recepcao" -> 1, "Fase 2 Vendas" -> 2
+   */
+  const extractPhaseNumber = (key: string): number | null => {
+    // Procura por padrões: "fase 1", "fase_1", "fase-1", "Fase 1 Recepcao", "Fase 2 Vendas", etc.
+    // Aceita espaço, underscore ou hífen após "fase", seguido de um ou mais dígitos
+    const match = key.match(/fase[\s_\-]+(\d+)/i);
+    if (match && match[1]) {
+      const num = parseInt(match[1], 10);
+      return isNaN(num) ? null : num;
+    }
+    // Também tenta padrão sem separador: "fase1", "Fase1", etc.
+    const matchNoSeparator = key.match(/fase(\d+)/i);
+    if (matchNoSeparator && matchNoSeparator[1]) {
+      const num = parseInt(matchNoSeparator[1], 10);
+      return isNaN(num) ? null : num;
+    }
+    return null;
+  };
+
+  /**
+   * Ordena chaves dinamicamente baseado no conteúdo do JSONB
+   * Ordem: metadados -> fases (ordenadas por número) -> outras seções (ordem original) -> memoria_conversacional
+   */
+  const getSortedKeys = (obj: ExtractedData): string[] => {
+    const keys = Object.keys(obj);
+    
+    // Seções especiais conhecidas (sempre primeiro e último)
+    const specialSections = {
+      first: ['metadados'],
+      last: ['memoria_conversacional'],
+    };
+
+    // Separar chaves em categorias
+    const metadataKeys: string[] = [];
+    const phaseKeys: Array<{ key: string; num: number | null; originalIndex: number }> = [];
+    const otherKeys: Array<{ key: string; originalIndex: number }> = [];
+    const memoryKeys: string[] = [];
+
+    keys.forEach((key, index) => {
+      if (specialSections.first.includes(key.toLowerCase())) {
+        metadataKeys.push(key);
+      } else if (specialSections.last.includes(key.toLowerCase())) {
+        memoryKeys.push(key);
+      } else if (isPhaseKey(key)) {
+        const phaseNum = extractPhaseNumber(key);
+        phaseKeys.push({ key, num: phaseNum, originalIndex: index });
+      } else {
+        otherKeys.push({ key, originalIndex: index });
+      }
     });
+
+    // Ordenar apenas fases por número (ordem numérica crescente: 1, 2, 3...)
+    phaseKeys.sort((a, b) => {
+      // Se ambas têm número, ordenar numericamente (1, 2, 3...)
+      if (a.num !== null && b.num !== null) {
+        return a.num - b.num;
+      }
+      // Fases com número vêm antes das sem número
+      if (a.num !== null && b.num === null) {
+        return -1;
+      }
+      if (a.num === null && b.num !== null) {
+        return 1;
+      }
+      // Se nenhuma tem número, manter ordem original
+      return a.originalIndex - b.originalIndex;
+    });
+
+    // Manter outras seções na ordem original (não ordenar alfabeticamente)
+    otherKeys.sort((a, b) => a.originalIndex - b.originalIndex);
+
+    // Combinar na ordem correta
+    return [
+      ...metadataKeys,
+      ...phaseKeys.map(p => p.key),
+      ...otherKeys.map(o => o.key),
+      ...memoryKeys,
+    ];
   };
 
   // Prevent hydration errors by not rendering until mounted
@@ -394,10 +482,17 @@ export function ConversationSummaryModal({
                 </div>
               )}
 
-              {/* Fases e Outros */}
-              {getSortedKeys(data)
-                .filter(key => key !== 'metadados' && key !== 'memoria_conversacional')
-                .map(key => {
+              {/* Seções dinâmicas (fases e outras) - ordenadas dinamicamente */}
+              {(() => {
+                const sortedKeys = getSortedKeys(data);
+                // Filtrar metadados e memoria_conversacional (já renderizados separadamente)
+                const filteredKeys = sortedKeys.filter(key => 
+                  key.toLowerCase() !== 'metadados' && 
+                  key.toLowerCase() !== 'memoria_conversacional'
+                );
+                
+                
+                return filteredKeys.map(key => {
                   const section = renderSection(key, data[key]);
                   if (!section) return null;
                   return (
@@ -405,7 +500,8 @@ export function ConversationSummaryModal({
                       {section}
                     </div>
                   );
-                })}
+                });
+              })()}
 
               {/* Memória Conversacional */}
               {data.memoria_conversacional && (
