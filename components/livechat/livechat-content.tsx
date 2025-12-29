@@ -16,7 +16,7 @@ interface LivechatContentProps {
   selectedConversation: ConversationWithContact | null;
   conversation: Conversation | null;
   messages: MessageWithSender[] | null;
-  categories: Tag[];
+  allTags: Tag[]; // Todas as tags do tenant
 }
 
 export function LivechatContent({
@@ -26,7 +26,7 @@ export function LivechatContent({
   selectedConversation,
   conversation,
   messages,
-  categories,
+  allTags,
 }: LivechatContentProps) {
   const router = useRouter();
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export function LivechatContent({
             selectedConversationId={selectedConversationId}
             tenantId={tenantId}
             onConversationClick={handleConversationClick}
-            categories={categories}
+            allTags={allTags}
           />
         </div>
       </aside>
@@ -86,8 +86,8 @@ export function LivechatContent({
             tenantId={tenantId}
             contactName={selectedConversation.contact.name}
             contactPhone={selectedConversation.contact.phone}
-            currentCategory={selectedConversation.category}
-            categories={categories}
+            allTags={allTags}
+            conversationTags={selectedConversation.conversation_tags}
           />
         ) : (
           <div className="flex h-full items-center justify-center">

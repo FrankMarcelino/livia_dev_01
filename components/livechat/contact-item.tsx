@@ -27,7 +27,7 @@ export function ContactItem({
   isSelected = false,
   onClick,
 }: ContactItemProps) {
-  const { contact, lastMessage, status, ia_active, category } = conversation;
+  const { contact, lastMessage, status, ia_active, category, conversation_tags } = conversation;
 
   // Usar utilities para formatação (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
@@ -37,6 +37,12 @@ export function ContactItem({
   // Usar função utilitária para obter nome de exibição e iniciais com fallback
   const displayName = getContactDisplayName(contact.name, contact.phone);
   const initials = getContactInitials(contact.name, contact.phone);
+
+  // Extrair tags da conversa (excluindo categorias antigas)
+  const tags = conversation_tags?.map(ct => ct.tag).filter(tag => !tag.is_category) || [];
+  const maxVisibleTags = 2;
+  const visibleTags = tags.slice(0, maxVisibleTags);
+  const remainingTagsCount = Math.max(0, tags.length - maxVisibleTags);
 
   const statusColors = {
     open: 'bg-green-600',
@@ -79,6 +85,20 @@ export function ContactItem({
           <p className="text-sm text-muted-foreground truncate mb-2">
             {messagePreview}
           </p>
+
+          {/* Tags da conversa */}
+          {tags.length > 0 && (
+            <div className="flex items-center gap-1 mb-2 flex-wrap">
+              {visibleTags.map((tag) => (
+                <TagBadge key={tag.id} tag={tag} size="sm" />
+              ))}
+              {remainingTagsCount > 0 && (
+                <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                  +{remainingTagsCount}
+                </Badge>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <Badge

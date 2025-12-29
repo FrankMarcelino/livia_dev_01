@@ -145,7 +145,7 @@ export function useRealtimeConversations(
               ...data,
               contact: dataAny.contacts, // Supabase retorna como objeto aninhado
               lastMessage: null,
-              conversation_tags: tags,
+              conversation_tags: tags as any,
               category,
             };
 
@@ -263,7 +263,7 @@ export function useRealtimeConversations(
             const updated = [...prev];
             updated[index] = {
               ...existing,
-              conversation_tags: tags,
+              conversation_tags: tags as any,
               category,
             };
             return updated;

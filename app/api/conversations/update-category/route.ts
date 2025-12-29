@@ -6,12 +6,16 @@
  *
  * Fluxo:
  * 1. Validar auth + tenant
- * 2. Remover categoria antiga (se existir)
- * 3. Adicionar nova categoria (se fornecida)
- * 4. Retornar sucesso
+ * 2. Validar conversa
+ * 3. Buscar neurocore_id do tenant
+ * 4. Validar categoria (se fornecida) - tags são associadas ao neurocore
+ * 5. Remover categoria antiga (se existir)
+ * 6. Adicionar nova categoria (se fornecida)
+ * 7. Retornar sucesso
  *
  * Categoria = Tag com is_category=true
  * Uma conversa pode ter apenas UMA categoria (mas pode ter múltiplas tags regulares)
+ * Tags são associadas ao neurocore (não ao tenant)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -53,13 +57,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Conversa não encontrada' }, { status: 404 });
     }
 
-    // 4. Se categoryId fornecido, validar que é uma categoria válida
+    // 4. Buscar neurocore_id do tenant
+    const { data: tenantData, error: tenantDataError } = await supabase
+      .from('tenants')
+      .select('neurocore_id')
+      .eq('id', tenantId)
+      .single();
+
+    if (tenantDataError || !tenantData?.neurocore_id) {
+      console.error('[update-category] Tenant neurocore not found:', tenantDataError);
+      return NextResponse.json({ error: 'Neurocore não encontrado' }, { status: 404 });
+    }
+
+    const neurocoreId = tenantData.neurocore_id;
+
+    // 5. Se categoryId fornecido, validar que é uma categoria válida
     if (categoryId) {
       const { data: tag, error: tagError } = await supabase
         .from('tags')
         .select('id, is_category, active')
         .eq('id', categoryId)
-        .eq('id_tenant', tenantId)
+        .eq('id_neurocore', neurocoreId)
         .single();
 
       if (tagError || !tag) {
@@ -79,7 +97,7 @@ export async function POST(request: NextRequest) {
     const validationTime = Date.now() - startTime;
     console.error(`[update-category] ✅ Validation took ${validationTime}ms`);
 
-    // 5. Remover todas as categorias antigas da conversa
+    // 6. Remover todas as categorias antigas da conversa
     // (mantém tags regulares, remove apenas is_category=true)
     const { data: oldCategories, error: fetchOldError } = await supabase
       .from('conversation_tags')
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Adicionar nova categoria (se fornecida)
+    // 7. Adicionar nova categoria (se fornecida)
     if (categoryId) {
       const { error: insertError } = await supabase
         .from('conversation_tags')

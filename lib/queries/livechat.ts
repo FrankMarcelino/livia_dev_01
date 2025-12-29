@@ -164,12 +164,16 @@ export async function getConversationsWithContact(
         status
       ),
       conversation_tags(
+        id,
+        tag_id,
         tag:tags(
           id,
           tag_name,
+          tag_type,
           color,
           is_category,
-          order_index
+          order_index,
+          id_neurocore
         )
       )
     `)
@@ -297,12 +301,22 @@ export async function getConversation(
     .from('conversations')
     .select(`
       *,
-      messages(*)
+      conversation_tags(
+        id,
+        tag_id,
+        tag:tags(
+          id,
+          tag_name,
+          tag_type,
+          color,
+          is_category,
+          order_index,
+          id_neurocore
+        )
+      )
     `)
     .eq('id', conversationId)
     .eq('tenant_id', tenantId)
-    .limit(1, { foreignTable: 'messages' })
-    .order('timestamp', { ascending: false, foreignTable: 'messages' })
     .single();
 
   if (error) {
@@ -312,10 +326,12 @@ export async function getConversation(
 
   if (!data) return null;
 
+  // Nota: lastMessage não é populado aqui pois a página sempre chama getMessages() depois
+  // Para melhor performance, buscamos apenas os dados da conversa + tags
   const conversation = data as any;
   return {
     ...conversation,
-    lastMessage: conversation.messages?.[0] || null,
+    lastMessage: null,
   } as ConversationWithLastMessage;
 }
 
@@ -361,19 +377,41 @@ export async function getContact(contactId: string, tenantId: string) {
 }
 
 /**
- * Busca categorias (tags com is_category=true) do tenant
- * @param tenantId - ID do tenant
+ * Busca categorias (tags com is_category=true) do neurocore
+ * @param neurocoreId - ID do neurocore
  * @returns Lista de categorias ordenadas por order_index
+ * @deprecated Use getAllTags() instead for better tag type support
  */
-export async function getCategories(tenantId: string) {
+export async function getCategories(neurocoreId: string) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('tags')
     .select('*')
-    .eq('id_tenant', tenantId)
+    .eq('id_neurocore', neurocoreId)
     .eq('is_category', true)
     .eq('active', true)
+    .order('order_index', { ascending: true });
+
+  if (error) throw error;
+
+  return data || [];
+}
+
+/**
+ * Busca TODAS as tags ativas do neurocore (intenção, checkout, falha)
+ * @param neurocoreId - ID do neurocore
+ * @returns Lista de todas as tags ordenadas por tipo e order_index
+ */
+export async function getAllTags(neurocoreId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .eq('id_neurocore', neurocoreId)
+    .eq('active', true)
+    .order('tag_type', { ascending: true })
     .order('order_index', { ascending: true });
 
   if (error) throw error;

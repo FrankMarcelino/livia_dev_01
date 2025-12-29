@@ -4,7 +4,7 @@ import {
   getConversationsWithContact,
   getConversation,
   getMessages,
-  getCategories,
+  getAllTags,
 } from '@/lib/queries/livechat';
 import { LivechatContent } from '@/components/livechat/livechat-content';
 
@@ -40,13 +40,32 @@ export default async function LivechatPage({
     );
   }
 
+  // Buscar neurocore_id do tenant (tags são associadas ao neurocore)
+  const { data: tenantData } = await supabase
+    .from('tenants')
+    .select('neurocore_id')
+    .eq('id', tenantId)
+    .single();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const neurocoreId = (tenantData as any)?.neurocore_id;
+  if (!neurocoreId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">
+          Erro: Tenant sem neurocore associado
+        </p>
+      </div>
+    );
+  }
+
   // Buscar TODAS conversas (incluindo encerradas) para permitir filtro client-side
   const conversations = await getConversationsWithContact(tenantId, {
     includeClosedConversations: true,
   });
 
-  // Buscar categorias disponíveis
-  const categories = await getCategories(tenantId);
+  // Buscar TODAS as tags disponíveis do neurocore (intenção, checkout, falha)
+  const allTags = await getAllTags(neurocoreId);
 
   const resolvedParams = await searchParams;
   const selectedConversationId = resolvedParams.conversation;
@@ -74,7 +93,7 @@ export default async function LivechatPage({
       selectedConversation={selectedConversation || null}
       conversation={conversation}
       messages={messages}
-      categories={categories}
+      allTags={allTags}
     />
   );
 }

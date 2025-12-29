@@ -132,6 +132,8 @@ export const mockConversation: ConversationWithContact = {
   external_id: null,
   overall_feedback_text: null,
   overall_feedback_type: null,
+  consecutive_reactivations: 0,
+  total_reactivations: 0,
   contact: mockContact,
   lastMessage: mockMessage2,
 };
@@ -153,6 +155,8 @@ export const mockConversation2: ConversationWithContact = {
   external_id: null,
   overall_feedback_text: null,
   overall_feedback_type: null,
+  consecutive_reactivations: 0,
+  total_reactivations: 0,
   contact: mockContact2,
   lastMessage: mockMessage3,
 };
@@ -174,6 +178,8 @@ export const mockConversation3: ConversationWithContact = {
   external_id: null,
   overall_feedback_text: null,
   overall_feedback_type: null,
+  consecutive_reactivations: 0,
+  total_reactivations: 0,
   contact: mockContact,
   lastMessage: null,
 };

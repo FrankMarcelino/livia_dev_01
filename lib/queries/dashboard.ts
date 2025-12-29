@@ -114,7 +114,7 @@ export async function getDashboardData({
 
     const { data, error } = await supabase.rpc('get_dashboard_data', rpcParams as {
       p_tenant_id: string;
-      p_channel_id: string | null;
+      p_channel_id?: string;
       p_days_ago?: number;
       p_start_date?: string;
       p_end_date?: string;

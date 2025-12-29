@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ContactItem } from './contact-item';
-import { TagBadge } from './tag-badge';
+import { TagSelector } from '@/components/tags/tag-selector';
 import { Search } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import { getContactDisplayName } from '@/lib/utils/contact-helpers';
@@ -17,7 +17,7 @@ interface ContactListProps {
   selectedConversationId?: string;
   tenantId: string;
   onConversationClick?: (conversationId: string) => void;
-  categories: Tag[];
+  allTags: Tag[];
 }
 
 export function ContactList({
@@ -25,7 +25,7 @@ export function ContactList({
   selectedConversationId,
   tenantId,
   onConversationClick,
-  categories,
+  allTags,
 }: ContactListProps) {
   // ✅ Hook simplificado - trabalha direto com conversas (sem transformações)
   const { conversations } = useRealtimeConversations(tenantId, initialConversations);
@@ -34,7 +34,7 @@ export function ContactList({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] =
     useState<ConversationStatus | 'all'>('open');
-  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
@@ -49,10 +49,15 @@ export function ContactList({
     const matchesStatus =
       statusFilter === 'all' || conversation.status === statusFilter;
 
-    const matchesCategory =
-      categoryFilter === 'all' || conversation.category?.id === categoryFilter;
+    // Filtro de tags: se nenhuma tag selecionada, mostra todas
+    // Se há tags selecionadas, mostra apenas conversas que têm PELO MENOS UMA das tags
+    const matchesTags =
+      selectedTagIds.size === 0 ||
+      (conversation.conversation_tags?.some((ct) =>
+        selectedTagIds.has(ct.tag.id)
+      ) ?? false);
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus && matchesTags;
   });
 
   // Contadores de status
@@ -62,6 +67,22 @@ export function ContactList({
     paused: conversations.filter((c) => c.status === 'paused').length,
     closed: conversations.filter((c) => c.status === 'closed').length,
   };
+
+  // Handler para toggle de tags (modo filtro)
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
+      }
+      return next;
+    });
+  };
+
+  // Converter selectedTagIds para array de Tags para o TagSelector
+  const selectedTags = allTags.filter((tag) => selectedTagIds.has(tag.id));
 
   return (
     <div className="flex flex-col h-full">
@@ -107,33 +128,19 @@ export function ContactList({
           </Badge>
         </div>
 
-        {categories.length > 0 && (
-          <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-xs text-muted-foreground">Categorias:</span>
-            <Badge
-              variant={categoryFilter === 'all' ? 'default' : 'outline'}
-              className="cursor-pointer"
-              onClick={() => setCategoryFilter('all')}
-            >
-              Todas
-            </Badge>
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="cursor-pointer"
-                onClick={() => setCategoryFilter(category.id)}
-              >
-                <TagBadge
-                  tag={category}
-                  size="sm"
-                  className={
-                    categoryFilter === category.id
-                      ? 'ring-2 ring-offset-1 ring-primary'
-                      : 'opacity-70 hover:opacity-100'
-                  }
-                />
-              </div>
-            ))}
+        {/* Filtro de tags */}
+        {allTags.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-foreground mb-2 block">
+              Filtrar por Tags:
+            </span>
+            <TagSelector
+              mode="filter"
+              selectedTags={selectedTags}
+              availableTags={allTags}
+              onTagToggle={handleTagToggle}
+              placeholder="Filtrar por tags"
+            />
           </div>
         )}
       </div>

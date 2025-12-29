@@ -15,21 +15,24 @@ const CATEGORIES = [
     color: '#3B82F6', // Azul
     order_index: 1,
     prompt_to_ai: 'Esta conversa é sobre atendimento presencial. Priorize informações sobre horários de atendimento, localização e procedimentos presenciais.',
-    is_category: true
+    is_category: true,
+    tag_type: 'description' // Tag de intenção (objetivo da conversa)
   },
   {
     tag_name: 'Teoria + Estágio',
     color: '#A855F7', // Roxa
     order_index: 2,
     prompt_to_ai: 'Esta conversa combina aspectos teóricos e práticos de estágio. Forneça informações equilibradas entre teoria e aplicação prática.',
-    is_category: true
+    is_category: true,
+    tag_type: 'description' // Tag de intenção
   },
   {
     tag_name: 'Teoria',
     color: '#EAB308', // Amarela
     order_index: 3,
     prompt_to_ai: 'Esta conversa é focada em aspectos teóricos. Priorize explicações conceituais e fundamentação teórica.',
-    is_category: true
+    is_category: true,
+    tag_type: 'description' // Tag de intenção
   }
 ];
 
@@ -37,11 +40,11 @@ async function seedCategories() {
   console.log('🏷️  Criando categorias do Livechat...\n');
 
   try {
-    // 1. Buscar o primeiro tenant ativo
+    // 1. Buscar o primeiro tenant ativo e seu neurocore
     console.log('🔍 Buscando tenant...');
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
-      .select('id, name')
+      .select('id, name, neurocore_id')
       .eq('is_active', true)
       .limit(1)
       .single();
@@ -51,14 +54,20 @@ async function seedCategories() {
       throw tenantError;
     }
 
-    console.log(`✅ Tenant encontrado: ${tenant.name} (${tenant.id})\n`);
+    if (!tenant.neurocore_id) {
+      console.error('❌ Erro: Tenant não possui neurocore_id associado');
+      throw new Error('Tenant sem neurocore_id');
+    }
 
-    // 2. Verificar se as categorias já existem
+    console.log(`✅ Tenant encontrado: ${tenant.name} (${tenant.id})`);
+    console.log(`   Neurocore ID: ${tenant.neurocore_id}\n`);
+
+    // 2. Verificar se as categorias já existem (por neurocore)
     console.log('🔍 Verificando categorias existentes...');
     const { data: existingCategories, error: checkError } = await supabase
       .from('tags')
       .select('tag_name, id')
-      .eq('id_tenant', tenant.id)
+      .eq('id_neurocore', tenant.neurocore_id)
       .eq('is_category', true);
 
     if (checkError) {
@@ -82,7 +91,7 @@ async function seedCategories() {
     for (const category of CATEGORIES) {
       const categoryData = {
         ...category,
-        id_tenant: tenant.id,
+        id_neurocore: tenant.neurocore_id,
         active: true
       };
 

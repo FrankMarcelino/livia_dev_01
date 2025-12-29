@@ -70,7 +70,6 @@ export async function getFunilData({
       rpcParams.p_days_ago = daysAgo;
     }
 
-    // @ts-expect-error - Function will be created by running sql/dashboard/03_function_funil.sql
     const { data, error } = await supabase.rpc('get_funil_data', rpcParams as any);
 
     if (error) {

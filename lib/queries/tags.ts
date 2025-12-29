@@ -83,7 +83,6 @@ export async function getTagsData({
       rpcParams.p_days_ago = daysAgo;
     }
 
-    // @ts-expect-error - Function will be created by running sql/dashboard/04_function_tags.sql
     const { data, error } = await supabase.rpc('get_tags_data', rpcParams as any);
 
     if (error) {

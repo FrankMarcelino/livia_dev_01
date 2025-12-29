@@ -19,8 +19,8 @@ interface ConversationViewProps {
   tenantId: string;
   contactName: string;
   contactPhone?: string | null;
-  currentCategory?: Tag | null;
-  categories: Tag[];
+  allTags: Tag[]; // Todas as tags do tenant
+  conversationTags?: Array<{ tag: Tag }>; // Tags atuais da conversa
 }
 
 export function ConversationView({
@@ -29,8 +29,8 @@ export function ConversationView({
   tenantId,
   contactName,
   contactPhone,
-  currentCategory,
-  categories,
+  allTags,
+  conversationTags,
 }: ConversationViewProps) {
   const { messages } = useRealtimeMessages(
     initialConversation.id,
@@ -75,8 +75,8 @@ export function ConversationView({
         contactPhone={contactPhone}
         conversation={conversation}
         tenantId={tenantId}
-        currentCategory={currentCategory}
-        categories={categories}
+        allTags={allTags}
+        conversationTags={conversationTags}
       />
 
       <div className="flex-1 relative overflow-hidden">

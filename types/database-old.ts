@@ -374,26 +374,119 @@ export type Database = {
           },
         ]
       }
-      ai_models: {
+      base_conhecimento_isp_cobertura: {
         Row: {
-          input_usd_per_1m: number
+          bairro: string | null
+          base_conhecimentos_isp_cobertura_vectors: string | null
+          cep_fim: string | null
+          cep_inicio: string | null
+          cidade: string | null
+          created_at: string
+          estado: string | null
+          id: string
           is_active: boolean
-          model: string
-          output_usd_per_1m: number
+          logradouro: string | null
+          numero_fim: string | null
+          numero_inicio: string | null
+          observacoes: string | null
+          tenant_id: string
+          tipo_cobertura: Database["public"]["Enums"]["address_type"]
         }
         Insert: {
-          input_usd_per_1m: number
+          bairro?: string | null
+          base_conhecimentos_isp_cobertura_vectors?: string | null
+          cep_fim?: string | null
+          cep_inicio?: string | null
+          cidade?: string | null
+          created_at?: string
+          estado?: string | null
+          id?: string
           is_active?: boolean
-          model: string
-          output_usd_per_1m: number
+          logradouro?: string | null
+          numero_fim?: string | null
+          numero_inicio?: string | null
+          observacoes?: string | null
+          tenant_id: string
+          tipo_cobertura: Database["public"]["Enums"]["address_type"]
         }
         Update: {
-          input_usd_per_1m?: number
+          bairro?: string | null
+          base_conhecimentos_isp_cobertura_vectors?: string | null
+          cep_fim?: string | null
+          cep_inicio?: string | null
+          cidade?: string | null
+          created_at?: string
+          estado?: string | null
+          id?: string
           is_active?: boolean
-          model?: string
-          output_usd_per_1m?: number
+          logradouro?: string | null
+          numero_fim?: string | null
+          numero_inicio?: string | null
+          observacoes?: string | null
+          tenant_id?: string
+          tipo_cobertura?: Database["public"]["Enums"]["address_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "base_conhecimento_isp_cobertu_base_conhecimentos_isp_cober_fkey"
+            columns: ["base_conhecimentos_isp_cobertura_vectors"]
+            isOneToOne: false
+            referencedRelation: "base_conhecimento_isp_cobertura_vectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_conhecimento_isp_cobertura_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      base_conhecimento_isp_cobertura_vectors: {
+        Row: {
+          base_conhecimento_isp_cobertura_id: string | null
+          content: string | null
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          base_conhecimento_isp_cobertura_id?: string | null
+          content?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          base_conhecimento_isp_cobertura_id?: string | null
+          content?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cobertura_origem"
+            columns: ["base_conhecimento_isp_cobertura_id"]
+            isOneToOne: false
+            referencedRelation: "base_conhecimento_isp_cobertura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tenant"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       base_conhecimentos: {
         Row: {
@@ -504,6 +597,38 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_domains: {
+        Row: {
+          id: string
+          created_at: string
+          domain: string
+          neurocore_id: string
+          active: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          domain: string
+          neurocore_id: string
+          active?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          domain?: string
+          neurocore_id?: string
+          active?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_domains_neurocore_id_fkey"
+            columns: ["neurocore_id"]
+            isOneToOne: false
+            referencedRelation: "neurocores"
             referencedColumns: ["id"]
           },
         ]
@@ -898,7 +1023,6 @@ export type Database = {
         Row: {
           channel_id: string | null
           closure_notes: string | null
-          consecutive_reactivations: number
           contact_id: string
           conversation_closure_reason_id: string | null
           conversation_pause_reason_id: string | null
@@ -914,13 +1038,11 @@ export type Database = {
           pause_notes: string | null
           status: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id: string
-          total_reactivations: number
           updated_at: string
         }
         Insert: {
           channel_id?: string | null
           closure_notes?: string | null
-          consecutive_reactivations?: number
           contact_id: string
           conversation_closure_reason_id?: string | null
           conversation_pause_reason_id?: string | null
@@ -936,13 +1058,11 @@ export type Database = {
           pause_notes?: string | null
           status: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id: string
-          total_reactivations?: number
           updated_at?: string
         }
         Update: {
           channel_id?: string | null
           closure_notes?: string | null
-          consecutive_reactivations?: number
           contact_id?: string
           conversation_closure_reason_id?: string | null
           conversation_pause_reason_id?: string | null
@@ -958,7 +1078,6 @@ export type Database = {
           pause_notes?: string | null
           status?: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id?: string
-          total_reactivations?: number
           updated_at?: string
         }
         Relationships: [
@@ -1096,38 +1215,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      knowledge_domains: {
-        Row: {
-          active: boolean
-          created_at: string
-          domain: string
-          id: string
-          neurocore_id: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          domain: string
-          id?: string
-          neurocore_id: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          domain?: string
-          id?: string
-          neurocore_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "knowledge_domains_neurocore_id_fkey"
-            columns: ["neurocore_id"]
-            isOneToOne: false
-            referencedRelation: "neurocores"
             referencedColumns: ["id"]
           },
         ]
@@ -1438,100 +1525,41 @@ export type Database = {
       tags: {
         Row: {
           active: boolean | null
-          change_conversation_status:
-            | Database["public"]["Enums"]["conversation_status_enum"]
-            | null
           color: string
           created_at: string
           id: string
-          id_neurocore: string | null
+          id_tenant: string
           is_category: boolean | null
           order_index: number
           prompt_to_ai: string | null
           tag_name: string
-          tag_type: Database["public"]["Enums"]["tag_type"] | null
         }
         Insert: {
           active?: boolean | null
-          change_conversation_status?:
-            | Database["public"]["Enums"]["conversation_status_enum"]
-            | null
           color?: string
           created_at?: string
           id?: string
-          id_neurocore?: string | null
+          id_tenant: string
           is_category?: boolean | null
           order_index?: number
           prompt_to_ai?: string | null
           tag_name: string
-          tag_type?: Database["public"]["Enums"]["tag_type"] | null
         }
         Update: {
           active?: boolean | null
-          change_conversation_status?:
-            | Database["public"]["Enums"]["conversation_status_enum"]
-            | null
           color?: string
           created_at?: string
           id?: string
-          id_neurocore?: string | null
+          id_tenant?: string
           is_category?: boolean | null
           order_index?: number
           prompt_to_ai?: string | null
           tag_name?: string
-          tag_type?: Database["public"]["Enums"]["tag_type"] | null
         }
         Relationships: [
           {
-            foreignKeyName: "tags_id_neurocore_fkey"
-            columns: ["id_neurocore"]
-            isOneToOne: false
-            referencedRelation: "neurocores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tenant_reactivation_rules: {
-        Row: {
-          action_parameter: string | null
-          action_type: Database["public"]["Enums"]["reactivation_action_type"]
-          created_at: string
-          end_time: string | null
-          id: string
-          sequence: number
-          start_time: string | null
-          tenant_id: string
-          updated_at: string
-          wait_time_minutes: number
-        }
-        Insert: {
-          action_parameter?: string | null
-          action_type: Database["public"]["Enums"]["reactivation_action_type"]
-          created_at?: string
-          end_time?: string | null
-          id?: string
-          sequence?: number
-          start_time?: string | null
-          tenant_id: string
-          updated_at?: string
-          wait_time_minutes: number
-        }
-        Update: {
-          action_parameter?: string | null
-          action_type?: Database["public"]["Enums"]["reactivation_action_type"]
-          created_at?: string
-          end_time?: string | null
-          id?: string
-          sequence?: number
-          start_time?: string | null
-          tenant_id?: string
-          updated_at?: string
-          wait_time_minutes?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tenant_reactivation_rules_tenant_id_fkey"
-            columns: ["tenant_id"]
+            foreignKeyName: "tags_id_tenant_fkey"
+            columns: ["id_tenant"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
@@ -1662,36 +1690,7 @@ export type Database = {
           usage_type?: Database["public"]["Enums"]["usage_types"] | null
           workflow_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "usages_id_agent_fkey"
-            columns: ["id_agent"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "usages_id_contact_fkey"
-            columns: ["id_contact"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "usages_id_conversation_fkey"
-            columns: ["id_conversation"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "usages_id_tenant_fkey"
-            columns: ["id_tenant"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {
@@ -1756,31 +1755,9 @@ export type Database = {
     Functions: {
       get_dashboard_data: {
         Args: {
-          p_channel_id?: string
-          p_days_ago?: number
-          p_end_date?: string
-          p_start_date?: string
           p_tenant_id: string
-        }
-        Returns: Json
-      }
-      get_funil_data: {
-        Args: {
-          p_channel_id?: string
           p_days_ago?: number
-          p_end_date?: string
-          p_start_date?: string
-          p_tenant_id: string
-        }
-        Returns: Json
-      }
-      get_tags_data: {
-        Args: {
-          p_channel_id?: string
-          p_days_ago?: number
-          p_end_date?: string
-          p_start_date?: string
-          p_tenant_id: string
+          p_channel_id?: string | null
         }
         Returns: Json
       }
@@ -1834,14 +1811,8 @@ export type Database = {
       feedback_type_enum: "like" | "dislike"
       message_sender_type_enum: "customer" | "attendant" | "ai"
       message_status: "pending" | "sent" | "failed" | "read"
-      reactivation_action_type:
-        | "transfer_to_human"
-        | "send_message"
-        | "send_audio"
-        | "close_conversation"
       reason_type_enum: "pause" | "closure"
       synapse_status_enum: "draft" | "indexing" | "publishing" | "error"
-      tag_type: "description" | "success" | "fail"
       usage_types:
         | "text"
         | "audio_send"
@@ -1849,10 +1820,6 @@ export type Database = {
         | "file_extract_data"
         | "image_extract_data"
         | "analisys"
-        | "guard_rails"
-        | "intention"
-        | "parser_out"
-        | "aux_tools"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2007,15 +1974,8 @@ export const Constants = {
       feedback_type_enum: ["like", "dislike"],
       message_sender_type_enum: ["customer", "attendant", "ai"],
       message_status: ["pending", "sent", "failed", "read"],
-      reactivation_action_type: [
-        "transfer_to_human",
-        "send_message",
-        "send_audio",
-        "close_conversation",
-      ],
       reason_type_enum: ["pause", "closure"],
       synapse_status_enum: ["draft", "indexing", "publishing", "error"],
-      tag_type: ["description", "success", "fail"],
       usage_types: [
         "text",
         "audio_send",
@@ -2023,10 +1983,6 @@ export const Constants = {
         "file_extract_data",
         "image_extract_data",
         "analisys",
-        "guard_rails",
-        "intention",
-        "parser_out",
-        "aux_tools",
       ],
     },
   },

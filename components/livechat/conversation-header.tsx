@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pause, MessageSquare, FileText } from 'lucide-react';
@@ -9,7 +9,7 @@ import type { Conversation, Tag } from '@/types/database-helpers';
 import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import { ConversationSummaryModal } from './conversation-summary-modal';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
-import { CategorySelect } from './category-select';
+import { TagSelector } from '@/components/tags/tag-selector';
 import { StatusSelect } from './status-select';
 
 interface ConversationHeaderProps {
@@ -17,8 +17,8 @@ interface ConversationHeaderProps {
   contactPhone?: string | null;
   conversation: Conversation;
   tenantId: string;
-  currentCategory?: Tag | null;
-  categories?: Tag[];
+  allTags: Tag[]; // Todas as tags do tenant
+  conversationTags?: Array<{ tag: Tag }>; // Tags atuais da conversa
 }
 
 export function ConversationHeader({
@@ -26,14 +26,19 @@ export function ConversationHeader({
   contactPhone,
   conversation,
   tenantId,
-  currentCategory,
-  categories = [],
+  allTags,
+  conversationTags = [],
 }: ConversationHeaderProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPauseIADialog, setShowPauseIADialog] = useState(false);
-  
+
   // Usar função utilitária para obter nome de exibição com fallback
   const displayName = getContactDisplayName(contactName, contactPhone || null);
+
+  // Extrair tags atuais (todas as tags da conversa)
+  const selectedTags = useMemo(() => {
+    return conversationTags.map(ct => ct.tag);
+  }, [conversationTags]);
 
   const handlePauseIAClick = () => {
     setShowPauseIADialog(true);
@@ -106,20 +111,23 @@ export function ConversationHeader({
         </div>
       </div>
 
-      {/* Linha 2: Categoria • Canal • Status • IA */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {categories.length > 0 && (
-          <>
-            <CategorySelect
-              conversationId={conversation.id}
-              tenantId={tenantId}
-              currentCategory={currentCategory}
-              categories={categories}
-            />
-            <span>•</span>
-          </>
-        )}
+      {/* Linha 2: Tags */}
+      {allTags.length > 0 && (
+        <div className="mt-3">
+          <TagSelector
+            mode="assign"
+            selectedTags={selectedTags}
+            availableTags={allTags}
+            onTagToggle={() => {}} // No-op: handled internally by mode="assign"
+            conversationId={conversation.id}
+            tenantId={tenantId}
+            placeholder="Adicionar tags"
+          />
+        </div>
+      )}
 
+      {/* Linha 3: Canal • Status • IA */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3">
         <div className="flex items-center gap-1">
           <MessageSquare className="h-3.5 w-3.5" />
           <span>WhatsApp</span>
