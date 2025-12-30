@@ -61,11 +61,24 @@ export function TopTagsChart({ data }: TopTagsChartProps) {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px',
+                backgroundColor: '#ffffff',
+                border: '2px solid hsl(var(--border))',
+                borderRadius: '8px',
+                padding: '14px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+                opacity: 1,
               }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              labelStyle={{
+                color: '#000000',
+                fontWeight: 700,
+                marginBottom: '8px',
+                fontSize: '14px',
+              }}
+              itemStyle={{
+                padding: '4px 0',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
               formatter={(value, _name, props) => {
                 const percentage = props.payload?.percentage ?? 0;
                 return [`${value} (${formatPercentage(percentage)})`, 'Conversas'];
@@ -82,6 +95,8 @@ export function TopTagsChart({ data }: TopTagsChartProps) {
     </Card>
   );
 }
+
+
 
 
 

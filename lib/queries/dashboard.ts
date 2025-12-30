@@ -130,18 +130,18 @@ export async function getDashboardData({
     }
 
     // Parse and transform response
-    const rawData = data as unknown as RawDashboardResponse | any;
+    const rawData = data as unknown as Record<string, unknown>;
 
     // Transform old structure to new structure if needed
     let transformedData: RawDashboardResponse;
     if (rawData.summary && !rawData.kpis) {
       // Old structure detected - transform it
-      const summary = rawData.summary;
-      const funnel = rawData.funnel;
-      const dailyTimeline = rawData.daily_timeline || [];
-      const channelsDist = rawData.channels_distribution || [];
-      const hourlyDist = rawData.hourly_distribution || [];
-      
+      const summary = rawData.summary as { total_conversations?: number; avg_duration_seconds?: number | null };
+      const funnel = rawData.funnel as { new?: { total?: number; with_ia?: number; without_ia?: number }; finalized?: { total?: number } } | undefined;
+      const dailyTimeline = (rawData.daily_timeline as Array<{ date: string; conversation_count: number }>) || [];
+      const channelsDist = (rawData.channels_distribution as Array<{ channel_name: string; conversation_count: number }>) || [];
+      const hourlyDist = (rawData.hourly_distribution as Array<{ hour: number; conversation_count: number }>) || [];
+
       transformedData = {
         kpis: {
           totalConversations: summary.total_conversations || 0,
@@ -153,7 +153,7 @@ export async function getDashboardData({
           conversationsClosed: funnel?.finalized?.total || 0,
           conversationsWithAi: funnel?.new?.with_ia || 0,
           conversationsHumanOnly: funnel?.new?.without_ia || 0,
-          aiPercentage: funnel?.new?.total ? ((funnel.new.with_ia || 0) / funnel.new.total * 100) : 0,
+          aiPercentage: funnel?.new?.total ? ((funnel?.new?.with_ia || 0) / funnel.new.total * 100) : 0,
           totalFeedbacks: 0,
           positiveFeedbacks: 0,
           negativeFeedbacks: 0,
@@ -166,7 +166,7 @@ export async function getDashboardData({
           estimatedCostUsd: 0,
           peakDay: null,
         },
-        dailyConversations: dailyTimeline.map((item: any) => ({
+        dailyConversations: (dailyTimeline as Array<{ date: string; conversation_count: number }>).map((item) => ({
           date: item.date,
           total: item.conversation_count || 0,
           avgMessages: 0,
@@ -174,17 +174,17 @@ export async function getDashboardData({
           humanOnly: 0,
         })),
         conversationsByTag: [], // Not available in old structure
-        heatmap: hourlyDist.map((item: any) => ({
+        heatmap: (hourlyDist as Array<{ hour: number; conversation_count: number }>).map((item) => ({
           dayOfWeek: 0, // Not available in old structure
           hour: item.hour,
           count: item.conversation_count || 0,
         })),
         funnel: {
-          open: funnel?.new?.total || 0,
+          open: (funnel as { new?: { total?: number } })?.new?.total || 0,
           paused: 0,
-          closed: funnel?.finalized?.total || 0,
+          closed: (funnel as { finalized?: { total?: number } })?.finalized?.total || 0,
         },
-        byChannel: channelsDist.map((item: any) => ({
+        byChannel: (channelsDist as Array<{ channel_name: string; conversation_count: number }>).map((item) => ({
           channel: item.channel_name || '',
           total: item.conversation_count || 0,
           avgMessages: 0,
@@ -195,7 +195,7 @@ export async function getDashboardData({
       };
     } else {
       // New structure - use as is
-      transformedData = rawData as RawDashboardResponse;
+      transformedData = rawData as unknown as RawDashboardResponse;
     }
 
     // Transform conversationsByTag from long to wide format

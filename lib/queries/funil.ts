@@ -70,7 +70,7 @@ export async function getFunilData({
       rpcParams.p_days_ago = daysAgo;
     }
 
-    const { data, error } = await supabase.rpc('get_funil_data', rpcParams as any);
+    const { data, error } = await supabase.rpc('get_funil_data', rpcParams as unknown as never);
 
     if (error) {
       console.error('Error fetching funil data:', error);

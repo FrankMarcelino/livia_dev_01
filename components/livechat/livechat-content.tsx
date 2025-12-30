@@ -43,6 +43,7 @@ export function LivechatContent({
   // Resetar loading quando a conversa correta for carregada
   useEffect(() => {
     if (loadingConversationId && conversation?.id === loadingConversationId) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setLoadingConversationId(null);
     }
   }, [conversation?.id, loadingConversationId]);

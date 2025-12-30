@@ -16,7 +16,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { ConversationWithContact } from '@/types/livechat';
+import type { ConversationWithContact, ConversationTagWithTag } from '@/types/livechat';
 import type { Conversation, Message } from '@/types/database-helpers';
 
 export function useRealtimeConversations(
@@ -136,18 +136,18 @@ export function useRealtimeConversations(
             }
 
             // Criar nova conversa com estrutura correta
-            const dataAny = data as any;
-            const tags = dataAny.conversation_tags || [];
-            const category = tags
-              .map((ct: any) => ct.tag)
-              .filter((tag: any) => tag && tag.is_category)
-              .sort((a: any, b: any) => a.order_index - b.order_index)[0] || null;
+            const dataAny = data as unknown as Record<string, unknown>;
+            const tags = (dataAny.conversation_tags || []) as unknown as ConversationTagWithTag[];
+            const category = (tags
+              .map((ct) => ct.tag)
+              .filter((tag) => tag && tag.is_category)
+              .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0))[0] || null) as ConversationWithContact['category'];
 
             const newConv: ConversationWithContact = {
               ...data,
-              contact: dataAny.contacts, // Supabase retorna como objeto aninhado
+              contact: dataAny.contacts as unknown as ConversationWithContact['contact'], // Supabase retorna como objeto aninhado
               lastMessage: null,
-              conversation_tags: tags as any,
+              conversation_tags: tags,
               category,
             };
 
@@ -215,8 +215,8 @@ export function useRealtimeConversations(
           // Buscar conversation_id do payload
           const conversationId =
             payload.eventType === 'DELETE'
-              ? (payload.old as any)?.conversation_id
-              : (payload.new as any)?.conversation_id;
+              ? (payload.old as { conversation_id?: string })?.conversation_id
+              : (payload.new as { conversation_id?: string })?.conversation_id;
 
           if (!conversationId) return;
 
@@ -258,16 +258,16 @@ export function useRealtimeConversations(
             if (!existing) return prev; // Safety check
 
             // Calcular categoria
-            const tags = tagsData || [];
-            const category = tags
-              .map((ct: any) => ct.tag)
-              .filter((tag: any) => tag && tag.is_category)
-              .sort((a: any, b: any) => a.order_index - b.order_index)[0] || null;
+            const tags = (tagsData || []) as unknown as ConversationTagWithTag[];
+            const category = (tags
+              .map((ct) => ct.tag)
+              .filter((tag) => tag && tag.is_category)
+              .sort((a, b) => (a?.order_index || 0) - (b?.order_index || 0))[0] || null) as ConversationWithContact['category'];
 
             const updated = [...prev];
             updated[index] = {
               ...existing,
-              conversation_tags: tags as any,
+              conversation_tags: tags,
               category,
             };
             return updated;

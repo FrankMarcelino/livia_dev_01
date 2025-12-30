@@ -62,21 +62,14 @@ async function fetchDashboardData(
   if (timeFilter === 'custom' && customStartDate && customEndDate) {
     params.append('startDate', customStartDate.toISOString());
     params.append('endDate', customEndDate.toISOString());
-    console.log('📅 Fetching custom date range:', {
-      startDate: customStartDate.toISOString(),
-      endDate: customEndDate.toISOString(),
-    });
   } else {
     const daysAgo = getTimeFilterDays(timeFilter);
     params.append('daysAgo', daysAgo.toString());
-    console.log('📅 Fetching daysAgo:', daysAgo);
   }
 
   if (channelId) {
     params.append('channelId', channelId);
   }
-
-  console.log('🔍 API URL:', `/api/dashboard?${params.toString()}`);
 
   // Call API route
   const response = await fetch(`/api/dashboard?${params.toString()}`, {
@@ -103,12 +96,6 @@ async function fetchDashboardData(
     console.error('❌ No data returned');
     throw new Error('No data returned from API');
   }
-
-  console.log('✅ Data fetched successfully:', {
-    totalConversations: result.data.kpis?.totalConversations,
-    dailyDataPoints: result.data.dailyConversations?.length,
-    hasKpis: !!result.data.kpis,
-  });
 
   return result.data;
 }

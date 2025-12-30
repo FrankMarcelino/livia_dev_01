@@ -141,7 +141,7 @@ export function QuickReplyItem({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a quick reply "{quickReply.title}"?
+              Tem certeza que deseja excluir a quick reply &quot;{quickReply.title}&quot;?
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -97,7 +97,7 @@ export function RulesSectionV2({ form }: RulesSectionProps) {
           <div className="space-y-3">
             {fields.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                Nenhuma regra configurada. Clique em "Adicionar Regra" para começar.
+                Nenhuma regra configurada. Clique em &quot;Adicionar Regra&quot; para começar.
               </p>
             )}
 

@@ -49,6 +49,7 @@ export function ConversationView({
   // Detecta mudança de conversa
   useEffect(() => {
     if (initialConversation.id !== currentConvId) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setIsLoadingTransition(true);
       setCurrentConvId(initialConversation.id);
       loadingStartTimeRef.current = Date.now();

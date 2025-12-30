@@ -33,8 +33,6 @@ interface UpdateTagPayload {
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-
   try {
     // 1. Parse payload
     const body: UpdateTagPayload = await request.json();
@@ -109,9 +107,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const validationTime = Date.now() - startTime;
-    console.log(`[update-tag] ✅ Validation took ${validationTime}ms`);
-
     // 6a. Se tagIdToRemove especificado, remover essa tag específica
     if (tagIdToRemove) {
       const { error: deleteSpecificError } = await supabase
@@ -125,12 +120,8 @@ export async function POST(request: NextRequest) {
         throw deleteSpecificError;
       }
 
-      console.log(`[update-tag] 🗑️ Removed specific tag ${tagIdToRemove}`);
-      
       // Se só está removendo (sem adicionar nova), retornar aqui
       if (!tagId) {
-        const totalTime = Date.now() - startTime;
-        console.log(`[update-tag] ⏱️ Total time: ${totalTime}ms`);
         
         return NextResponse.json({
           success: true,
@@ -168,8 +159,6 @@ export async function POST(request: NextRequest) {
           console.error('[update-tag] Error deleting old tags:', deleteError);
           throw deleteError;
         }
-
-        console.log(`[update-tag] 🗑️ Removed ${oldTagIds.length} old tag(s) of type '${tagType}'`);
       }
     }
 
@@ -189,12 +178,7 @@ export async function POST(request: NextRequest) {
           throw insertError;
         }
       }
-
-      console.log(`[update-tag] ✅ Added tag ${tagId} (type: ${tagType})`);
     }
-
-    const totalTime = Date.now() - startTime;
-    console.log(`[update-tag] ⏱️ Total time: ${totalTime}ms`);
 
     return NextResponse.json({
       success: true,

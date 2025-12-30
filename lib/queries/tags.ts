@@ -83,7 +83,7 @@ export async function getTagsData({
       rpcParams.p_days_ago = daysAgo;
     }
 
-    const { data, error } = await supabase.rpc('get_tags_data', rpcParams as any);
+    const { data, error } = await supabase.rpc('get_tags_data', rpcParams as unknown as never);
 
     if (error) {
       console.error('Error fetching tags data:', error);

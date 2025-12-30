@@ -25,6 +25,16 @@ export function HeatmapChart({ data }: HeatmapChartProps) {
     maxValue = Math.max(maxValue, item.count);
   });
 
+  // Encontrar os 10 maiores valores para mostrar números
+  const top10Values = [...data]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+    .map(item => ({ day: item.dayOfWeek, hour: item.hour, count: item.count }));
+
+  const shouldShowNumber = (day: number, hour: number) => {
+    return top10Values.some(item => item.day === day && item.hour === hour);
+  };
+
   // Dias da semana (0 = Domingo, 6 = Sábado)
   const days = [0, 1, 2, 3, 4, 5, 6];
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -65,6 +75,7 @@ export function HeatmapChart({ data }: HeatmapChartProps) {
                 {hours.map((hour) => {
                   const count = heatmapMatrix[day]?.[hour] || 0;
                   const intensity = calculateHeatmapIntensity(count, maxValue);
+                  const showNum = shouldShowNumber(day, hour);
 
                   return (
                     <div
@@ -75,8 +86,17 @@ export function HeatmapChart({ data }: HeatmapChartProps) {
                       }}
                       title={`${getDayName(day) || 'Dia'}, ${hour}:00 - ${count} conversas`}
                     >
-                      {/* Tooltip on hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Número permanente para os 10 maiores */}
+                      {showNum && count > 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                            {count}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Tooltip on hover para todos */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
                         <span className="text-xs font-bold text-white drop-shadow-lg">
                           {count}
                         </span>

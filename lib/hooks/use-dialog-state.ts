@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 /**
  * Resultado retornado pelo hook useDialogState
  */
-export interface UseDialogStateResult<T = any> {
+export interface UseDialogStateResult<T = unknown> {
   /** Indica se o dialog está aberto */
   isOpen: boolean;
   /** Dados associados ao dialog (ex: item sendo editado) */
@@ -40,7 +40,7 @@ export interface UseDialogStateResult<T = any> {
  * {editDialog.data && <SynapseEditForm synapse={editDialog.data} />}
  * ```
  */
-export function useDialogState<T = any>(
+export function useDialogState<T = unknown>(
   initialOpen = false,
   initialData: T | null = null
 ): UseDialogStateResult<T> {

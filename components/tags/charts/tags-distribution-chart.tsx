@@ -39,15 +39,17 @@ export function TagsDistributionChart({ data }: TagsDistributionChartProps) {
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               data={data as any}
               dataKey="count"
               nameKey="tagName"
               cx="50%"
               cy="50%"
               outerRadius={80}
-              label={(props: any) => 
-                `${props.tagName}: ${formatPercentage(props.percentage)}`
-              }
+              label={(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                props: any
+              ) => `${props.tagName}: ${formatPercentage(props.percentage)}`}
             >
               {data.map((_entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -55,9 +57,23 @@ export function TagsDistributionChart({ data }: TagsDistributionChartProps) {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px',
+                backgroundColor: '#ffffff',
+                border: '2px solid hsl(var(--border))',
+                borderRadius: '8px',
+                padding: '14px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+                opacity: 1,
+              }}
+              labelStyle={{
+                color: '#000000',
+                fontWeight: 700,
+                marginBottom: '8px',
+                fontSize: '14px',
+              }}
+              itemStyle={{
+                padding: '4px 0',
+                fontSize: '13px',
+                fontWeight: 600,
               }}
               formatter={(value, name, props) => {
                 const percentage = props.payload?.percentage ?? 0;
@@ -71,6 +87,8 @@ export function TagsDistributionChart({ data }: TagsDistributionChartProps) {
     </Card>
   );
 }
+
+
 
 
 

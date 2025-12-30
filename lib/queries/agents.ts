@@ -11,14 +11,8 @@ import type { AgentWithPrompt } from '@/types/agents';
 export async function getAgentsByTenant(tenantId: string) {
   const supabase = await createClient();
 
-  console.log('[getAgentsByTenant] Fetching agents for tenant:', tenantId);
-
-  // DEBUG: Verificar se a autenticação está funcionando
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  console.log('[getAgentsByTenant] 🔐 Auth Debug:');
-  console.log('  - User ID:', user?.id);
-  console.log('  - User Email:', user?.email);
-  console.log('  - Auth Error:', userError);
+  // Verificar se a autenticação está funcionando
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     console.error('[getAgentsByTenant] ❌ PROBLEMA: Usuário não autenticado! RLS não vai funcionar!');
@@ -35,8 +29,6 @@ export async function getAgentsByTenant(tenantId: string) {
     console.error('[getAgentsByTenant] Error fetching tenant:', tenantError);
     throw tenantError;
   }
-
-  console.log('[getAgentsByTenant] Tenant neurocore_id:', tenantData.neurocore_id);
 
   // Buscar agents - a RLS policy automaticamente filtra pelos agents do neurocore do tenant
   // NOTA: Não precisamos filtrar manualmente, a policy "Tenants can view agents from their neurocore" faz isso
@@ -58,28 +50,15 @@ export async function getAgentsByTenant(tenantId: string) {
     throw agentsError;
   }
 
-  console.log('[getAgentsByTenant] Agents fetched (raw):', agentsData?.length || 0);
-
   if (!agentsData || agentsData.length === 0) {
     return [];
   }
 
   // ⚠️ FILTRO MANUAL: Como a RLS não está funcionando, filtrar manualmente
   // TODO: REMOVER quando RLS estiver funcionando corretamente
-  console.log('[getAgentsByTenant] ⚠️ APLICANDO FILTRO MANUAL (RLS não está funcionando)');
-  console.log('Meu neurocore_id:', tenantData.neurocore_id);
-
   const agentsFiltered = agentsData.filter(agent => {
-    const pertence = agent.id_neurocore === tenantData.neurocore_id;
-    console.log(
-      pertence ? '✓ MANTIDO' : '✗ REMOVIDO',
-      'Agent:', agent.name,
-      '| id_neurocore:', agent.id_neurocore
-    );
-    return pertence;
+    return agent.id_neurocore === tenantData.neurocore_id;
   });
-
-  console.log('[getAgentsByTenant] Agents após filtro manual:', agentsFiltered.length);
 
   if (agentsFiltered.length === 0) {
     return [];
@@ -87,8 +66,6 @@ export async function getAgentsByTenant(tenantId: string) {
 
   // Buscar os prompts do tenant para esses agents
   const agentIds = agentsFiltered.map(a => a.id);
-
-  console.log('[getAgentsByTenant] Fetching prompts for', agentIds.length, 'agents');
 
   const { data: promptsData, error: promptsError } = await supabase
     .from('agent_prompts')
@@ -100,8 +77,6 @@ export async function getAgentsByTenant(tenantId: string) {
     console.error('[getAgentsByTenant] Error fetching agent prompts:', promptsError);
     // Não lançar erro - apenas retornar agents sem prompts
   }
-
-  console.log('[getAgentsByTenant] Found', promptsData?.length || 0, 'prompts for tenant');
 
   // Mapear prompts por agent_id
   const promptsMap = new Map();
@@ -155,22 +130,6 @@ export async function getAgentsByTenant(tenantId: string) {
       updated_at: new Date().toISOString(),
     };
 
-    console.log('[getAgentsByTenant] Agent prompt for', agent.name, ':', {
-      // JSONB fields
-      limitations: prompt.limitations,
-      instructions: prompt.instructions,
-      guide_line: prompt.guide_line,
-      rules: prompt.rules,
-      others_instructions: prompt.others_instructions,
-      // Personality fields
-      name: prompt.name,
-      age: prompt.age,
-      gender: prompt.gender,
-      objective: prompt.objective,
-      comunication: prompt.comunication,
-      personality: prompt.personality,
-    });
-
     return {
       ...agent,
       template_name: null, // TODO: Implementar lookup do template quando necessário
@@ -178,8 +137,6 @@ export async function getAgentsByTenant(tenantId: string) {
       is_customized: checkIfCustomized(prompt),
     };
   }) as AgentWithPrompt[];
-
-  console.log('[getAgentsByTenant] Returning', result.length, 'agents with prompts');
 
   return result;
 }
@@ -280,9 +237,9 @@ export async function getAgentWithPrompt(agentId: string, tenantId: string) {
     updated_at: new Date().toISOString(),
   };
 
-   
+
   return {
-    ...(agentData as any),
+    ...(agentData as unknown as Record<string, unknown>),
     template_name: null, // TODO: Implementar lookup do template
     prompt,
     is_customized: checkIfCustomized(prompt),

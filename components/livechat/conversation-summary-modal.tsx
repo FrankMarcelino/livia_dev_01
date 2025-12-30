@@ -14,17 +14,21 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 // Safe wrapper to ensure we never render objects directly
-const SafeValue = ({ value }: { value: any }) => {
+const SafeValue = ({ value }: { value: unknown }) => {
   if (value === null || value === undefined) {
     return <>-</>;
   }
 
   if (typeof value === 'object') {
-    try {
-      return <>{JSON.stringify(value)}</>;
-    } catch {
-      return <>[Object]</>;
-    }
+    // Move JSON logic outside try/catch for React compatibility
+    const jsonString = (() => {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return '[Object]';
+      }
+    })();
+    return <>{jsonString}</>;
   }
 
   return <>{String(value)}</>;
@@ -45,7 +49,7 @@ interface ExtractedData {
     resumo_acumulado?: string;
     pendencias_abertas?: string[];
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function ConversationSummaryModal({
@@ -69,6 +73,7 @@ export function ConversationSummaryModal({
     if (isOpen && contactId && isMounted) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, contactId, isMounted]);
 
   const fetchData = async () => {
@@ -92,11 +97,12 @@ export function ConversationSummaryModal({
         }
 
         // Se os dados estão dentro de uma chave 'json', extrair
-        let extractedData: any = contact.customer_data_extracted;
-        
+        let extractedData: unknown = contact.customer_data_extracted;
+
         if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData)) {
-          if ('json' in extractedData && typeof extractedData.json === 'object' && extractedData.json !== null) {
-            extractedData = extractedData.json;
+          const objData = extractedData as Record<string, unknown>;
+          if ('json' in objData && typeof objData.json === 'object' && objData.json !== null) {
+            extractedData = objData.json;
           }
         }
 
@@ -112,7 +118,7 @@ export function ConversationSummaryModal({
     }
   };
 
-  const formatValueForCopy = (value: any, indent = 0): string => {
+  const formatValueForCopy = (value: unknown, indent = 0): string => {
     const indentation = '  '.repeat(indent);
 
     if (value === null || value === undefined) return '-';
@@ -215,7 +221,7 @@ export function ConversationSummaryModal({
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  const renderValue = (value: any): React.ReactNode => {
+  const renderValue = (value: unknown): React.ReactNode => {
     try {
       // Handle null/undefined
       if (value === null || value === undefined) return '-';
@@ -272,9 +278,11 @@ export function ConversationSummaryModal({
     }
   };
 
-  const renderSection = (title: string, content: any) => {
+  const renderSection = (title: string, content: unknown) => {
     try {
       if (!content || typeof content !== 'object') return null;
+
+      const contentObj = content as Record<string, unknown>;
 
       return (
         <div className="mb-6 last:mb-0">
@@ -282,7 +290,7 @@ export function ConversationSummaryModal({
             {formatKey(title)}
           </h3>
           <div className="bg-muted/30 rounded-lg p-3 space-y-2 border">
-            {Object.entries(content).map(([key, value]) => {
+            {Object.entries(contentObj).map(([key, value]) => {
               if (key === 'fase_concluida') return null; // Skip this internal flag if desired, or show it
 
               try {
@@ -308,11 +316,11 @@ export function ConversationSummaryModal({
             {/* Special handling for 'fase_concluida' to show it prominently if needed,
                 or just let it be rendered in the loop above.
                 Let's add a visual indicator for completion if present. */}
-            {content.fase_concluida !== undefined && (
+            {contentObj.fase_concluida !== undefined && (
               <div className="mt-2 pt-2 border-t flex justify-between items-center">
                 <span className="text-xs font-medium uppercase">Status da Fase</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${content.fase_concluida ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                  {content.fase_concluida ? 'Concluída' : 'Em Andamento'}
+                <span className={`text-xs px-2 py-0.5 rounded-full ${contentObj.fase_concluida ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                  {contentObj.fase_concluida ? 'Concluída' : 'Em Andamento'}
                 </span>
               </div>
             )}

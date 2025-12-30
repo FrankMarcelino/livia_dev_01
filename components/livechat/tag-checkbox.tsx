@@ -50,6 +50,11 @@ export function TagCheckbox({
   const [isLoading, setIsLoading] = useState(false);
   const [isChecked, setIsChecked] = useState(!!currentTag);
 
+  // Sincronizar com props quando tag mudar (realtime)
+  useEffect(() => {
+    setIsChecked(!!currentTag);
+  }, [currentTag]);
+
   // Filtrar tags do tipo específico
   const tagsOfType = availableTags.filter(tag => tag.tag_type === tagType);
 
@@ -65,11 +70,6 @@ export function TagCheckbox({
   if (!defaultTag) {
     return null;
   }
-
-  // Sincronizar com props quando tag mudar (realtime)
-  useEffect(() => {
-    setIsChecked(!!currentTag);
-  }, [currentTag]);
 
   const handleToggle = async (checked: boolean) => {
     if (isLoading) return;

@@ -9,10 +9,16 @@ interface CacheEntry {
   total: number;
 }
 
+interface FetchResult {
+  data: QuickReply[];
+  total: number;
+  hasMore: boolean;
+}
+
 const quickRepliesCache = new Map<string, CacheEntry>();
 
 // Controle de requisições em andamento (deduplicação)
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<FetchResult>>();
 
 // Tempo de cache (3 minutos - reduzido para busca atualizar mais rápido)
 const CACHE_TTL = 3 * 60 * 1000;

@@ -53,16 +53,31 @@ export function ConversationsChart({ data }: ConversationsChartProps) {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px',
+                backgroundColor: '#ffffff',
+                border: '2px solid hsl(var(--border))',
+                borderRadius: '8px',
+                padding: '14px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+                opacity: 1,
+              }}
+              labelStyle={{
+                color: '#000000',
+                fontWeight: 700,
+                marginBottom: '8px',
+                fontSize: '14px',
+              }}
+              itemStyle={{
+                color: '#333333',
+                padding: '4px 0',
+                fontSize: '13px',
+                fontWeight: 500,
               }}
             />
             <Legend />
             <Bar
               yAxisId="left"
               dataKey="total"
-              fill="hsl(var(--primary))"
+              fill="hsl(217, 91%, 60%)"
               name="Total de Conversas"
               radius={[4, 4, 0, 0]}
             />
@@ -70,10 +85,11 @@ export function ConversationsChart({ data }: ConversationsChartProps) {
               yAxisId="right"
               type="monotone"
               dataKey="avgMessages"
-              stroke="hsl(var(--chart-2))"
+              stroke="hsl(142, 76%, 36%)"
               name="Média de Mensagens"
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              strokeWidth={3}
+              dot={{ r: 5, fill: 'hsl(142, 76%, 36%)', stroke: '#fff', strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
             />
           </ComposedChart>
         </ResponsiveContainer>

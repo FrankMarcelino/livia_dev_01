@@ -66,6 +66,7 @@ export function QuickReplyDialog({
   // Preencher formulário ao editar
   useEffect(() => {
     if (quickReply) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setEmoji(quickReply.emoji || '');
       setTitle(quickReply.title);
       setContent(quickReply.content);

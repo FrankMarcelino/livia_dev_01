@@ -246,28 +246,24 @@ export async function getAgentPromptIntentionAction(agentId: string) {
     const adminSupabase = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let { data, error } = await (adminSupabase as any)
+    let { data } = await (adminSupabase as any)
       .from('agent_prompts_intention')
       .select('prompt')
       .eq('id_agent', agentId)
       .eq('id_tenant', userData.tenant_id)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching tenant intention prompt:', error);
-    }
-
     // 2. Se não encontrar, buscar prompt padrão (id_tenant is null) usando ADMIN CLIENT
     if (!data) {
-        const adminSupabase = createAdminClient();
+        const adminSupabase2 = createAdminClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const globalResult = await (adminSupabase as any)
+        const globalResult = await (adminSupabase2 as any)
             .from('agent_prompts_intention')
             .select('prompt')
             .eq('id_agent', agentId)
             .is('id_tenant', null)
             .maybeSingle();
-            
+
         if (globalResult.data) {
             data = globalResult.data;
         }

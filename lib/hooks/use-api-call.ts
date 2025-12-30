@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 /**
  * Opções configuráveis para o hook useApiCall
  */
-export interface UseApiCallOptions<T = any> {
+export interface UseApiCallOptions<T = unknown> {
   /** Callback executado em caso de sucesso */
   onSuccess?: (data: T) => void;
   /** Callback executado em caso de erro */
@@ -22,9 +22,9 @@ export interface UseApiCallOptions<T = any> {
 /**
  * Resultado retornado pelo hook useApiCall
  */
-export interface UseApiCallResult<T = any> {
+export interface UseApiCallResult<T = unknown> {
   /** Função para executar a chamada API */
-  execute: (body?: any) => Promise<T | null>;
+  execute: (body?: unknown) => Promise<T | null>;
   /** Indica se a requisição está em andamento */
   isLoading: boolean;
   /** Erro da última requisição (ou null se sucesso) */
@@ -49,7 +49,7 @@ export interface UseApiCallResult<T = any> {
  * await execute({ conversationId, tenantId });
  * ```
  */
-export function useApiCall<T = any>(
+export function useApiCall<T = unknown>(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'POST',
   options?: UseApiCallOptions<T>
@@ -62,7 +62,7 @@ export function useApiCall<T = any>(
   }, []);
 
   const execute = useCallback(
-    async (body?: any): Promise<T | null> => {
+    async (body?: unknown): Promise<T | null> => {
       setIsLoading(true);
       setError(null);
 

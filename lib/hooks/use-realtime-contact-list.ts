@@ -81,7 +81,7 @@ export function useRealtimeContactList(
               const newConversation = {
                 ...payload.new,
                 lastMessage: null,
-              } as any;
+              } as Conversation;
 
               const existingContactIndex = prev.findIndex(c => c.id === contactData.id);
 
@@ -120,7 +120,7 @@ export function useRealtimeContactList(
                 ...contact,
                 activeConversations: contact.activeConversations?.map((conv) =>
                   conv.id === payload.new.id
-                    ? ({ ...conv, ...payload.new } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+                    ? ({ ...conv, ...payload.new, lastMessage: conv.lastMessage })
                     : conv
                 ),
               };
@@ -166,7 +166,7 @@ export function useRealtimeContactList(
             const newConversation = {
               ...payload.new,
               lastMessage: null,
-            } as any;
+            } as Conversation;
 
             // Verificar se o contato já existe na lista
             const existingContactIndex = prev.findIndex(c => c.id === contactData.id);

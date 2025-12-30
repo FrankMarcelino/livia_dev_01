@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "scripts/**",
+    // Generated database types from Supabase CLI:
+    "types/database.ts",
+    "types/database-old.ts",
   ]),
   // Custom strict rules for LIVIA MVP
   {

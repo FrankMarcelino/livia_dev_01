@@ -36,7 +36,6 @@ import { createClient } from '@/lib/supabase/server';
  * @returns Resultado da operação com sucesso ou erro
  */
 export async function toggleAIPause(userId: string, tenantId: string, isPaused: boolean) {
-  const startTime = Date.now();
   const supabase = await createClient();
 
   try {
@@ -75,10 +74,6 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
       return { error: 'Usuário não autorizado para este tenant' };
     }
 
-    console.log(
-      `[toggleAIPause] ${isPaused ? 'PAUSING' : 'RESUMING'} IA for user ${userId.slice(0, 8)}, tenant ${tenantId.slice(0, 8)}`
-    );
-
     // 4. Atualiza configuração do tenant
     // ia_active é o INVERSO de isPaused
     // isPaused=true -> ia_active=false
@@ -92,9 +87,6 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
       console.error('[toggleAIPause] Error updating tenant:', tenantUpdateError);
       return { error: 'Erro ao atualizar configuração do tenant' };
     }
-
-    const tenantUpdateTime = Date.now() - startTime;
-    console.log(`[toggleAIPause] ✅ Tenant updated in ${tenantUpdateTime}ms`);
 
     // 5. Atualiza conversas do tenant (comportamento diferente para pausar/retomar)
     let count = 0;
@@ -121,9 +113,6 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
       // RETOMAR IA: NÃO atualiza conversas existentes
       // Conversas com status='paused' permanecem aguardando atendimento manual
       // IA funcionará apenas para NOVAS conversas
-      console.log(
-        '[toggleAIPause] ℹ️ RESUMING IA: Existing paused conversations will remain paused. IA will work only for NEW conversations.'
-      );
       count = 0; // Nenhuma conversa afetada
     }
 
@@ -141,11 +130,6 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
 
       return { error: 'Erro ao atualizar conversas' };
     }
-
-    const totalTime = Date.now() - startTime;
-    console.log(
-      `[toggleAIPause] ✅ ${isPaused ? 'PAUSED' : 'RESUMED'} successfully in ${totalTime}ms. Affected conversations: ${count || 0}`
-    );
 
     return {
       success: true,

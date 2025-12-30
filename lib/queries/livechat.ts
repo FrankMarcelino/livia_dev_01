@@ -204,7 +204,8 @@ export async function getConversationsWithContact(
     query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
   }
 
-  let { data: conversationsData, error: conversationsError } = await query;
+  let { data: conversationsData } = await query;
+  const { error: conversationsError } = await query;
 
   if (conversationsError) throw conversationsError;
   if (!conversationsData || conversationsData.length === 0) return [];
@@ -212,14 +213,15 @@ export async function getConversationsWithContact(
   // ===== Filtrar por categoria (se especificado) =====
   // Nota: Filtro aplicado aqui porque Supabase não suporta filtros em relacionamentos aninhados facilmente
   if (filters?.categoryId) {
-    conversationsData = conversationsData.filter((conv: any) => {
-      const tags = conv.conversation_tags || [];
-      return tags.some((ct: any) => ct.tag?.id === filters.categoryId && ct.tag?.is_category);
+    conversationsData = conversationsData.filter((conv: unknown) => {
+      const convData = conv as { conversation_tags?: Array<{ tag?: { id: string; is_category?: boolean } }> };
+      const tags = convData.conversation_tags || [];
+      return tags.some((ct) => ct.tag?.id === filters.categoryId && ct.tag?.is_category);
     });
   }
 
   // ===== PASSO 2: Buscar última mensagem de cada conversa =====
-  const conversationIds = conversationsData.map((conv: any) => conv.id);
+  const conversationIds = conversationsData.map((conv: { id: string }) => conv.id);
 
   const { data: messagesData, error: messagesError } = await supabase
     .from('messages')

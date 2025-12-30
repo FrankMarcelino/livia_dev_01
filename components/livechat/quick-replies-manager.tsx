@@ -98,7 +98,7 @@ export function QuickRepliesManager({
             <div className="text-center py-8 text-muted-foreground">
               <p>Nenhuma quick reply cadastrada.</p>
               <p className="text-sm mt-2">
-                Clique em "Nova" para criar sua primeira mensagem rápida.
+                Clique em &quot;Nova&quot; para criar sua primeira mensagem rápida.
               </p>
             </div>
           ) : (

@@ -35,15 +35,6 @@ export function DashboardContainer({
     customEndDate,
   });
 
-  // Debug log
-  console.log('📊 Dashboard state:', {
-    timeFilter,
-    customStartDate: customStartDate?.toISOString(),
-    customEndDate: customEndDate?.toISOString(),
-    hasData: !!data,
-    isLoading,
-  });
-
   if (isLoading && !data) {
     return <DashboardLoadingSkeleton />;
   }

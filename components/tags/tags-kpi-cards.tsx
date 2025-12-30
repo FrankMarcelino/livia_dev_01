@@ -82,3 +82,5 @@ function getCategorizationColor(rate: number | null): string {
 
 
 
+
+

@@ -97,7 +97,7 @@ export function OthersInstructionsSectionV2({ form }: OthersInstructionsSectionP
           <div className="space-y-3">
             {fields.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                Nenhuma instrução adicional. Clique em "Adicionar Instrução" para começar.
+                Nenhuma instrução adicional. Clique em &quot;Adicionar Instrução&quot; para começar.
               </p>
             )}
 

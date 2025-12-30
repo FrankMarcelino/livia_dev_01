@@ -97,7 +97,7 @@ export function GuidelineSectionV2({ form }: GuidelineSectionProps) {
           <div className="space-y-3">
             {fields.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                Nenhum guideline configurado. Clique em "Adicionar Guideline" para começar.
+                Nenhum guideline configurado. Clique em &quot;Adicionar Guideline&quot; para começar.
               </p>
             )}
 

@@ -88,7 +88,7 @@ export class ConversationRepository implements IConversationRepository {
       .single();
 
     // Converter estrutura (contacts -> contact)
-    const conversation = data as any;
+    const conversation = data as unknown as { contacts: unknown; [key: string]: unknown };
     const { contacts, ...conversationData } = conversation;
 
     return {

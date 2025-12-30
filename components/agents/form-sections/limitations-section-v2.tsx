@@ -100,7 +100,7 @@ export function LimitationsSectionV2({ form }: LimitationsSectionProps) {
           <div className="space-y-3">
             {fields.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                Nenhuma limitação configurada. Clique em "Adicionar Limitação" para começar.
+                Nenhuma limitação configurada. Clique em &quot;Adicionar Limitação&quot; para começar.
               </p>
             )}
 

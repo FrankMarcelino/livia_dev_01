@@ -1,21 +1,44 @@
 -- Tags Data Function
--- Created: 2025-12-19
+-- Updated: 2025-12-30
 -- Purpose: Fetch tags metrics for categorization analysis
+-- Note: Tags are now associated with neurocores, not tenants
 
 CREATE OR REPLACE FUNCTION get_tags_data(
   p_tenant_id UUID,
   p_days_ago INTEGER DEFAULT 30,
-  p_channel_id UUID DEFAULT NULL
+  p_channel_id UUID DEFAULT NULL,
+  p_start_date TIMESTAMP DEFAULT NULL,
+  p_end_date TIMESTAMP DEFAULT NULL
 )
 RETURNS JSON AS $$
 DECLARE
   v_start_date TIMESTAMP;
   v_end_date TIMESTAMP;
+  v_neurocore_id UUID;
   v_result JSON;
 BEGIN
+  -- ================================================================
+  -- Get neurocore_id from tenant
+  -- ================================================================
+  SELECT neurocore_id INTO v_neurocore_id
+  FROM tenants
+  WHERE id = p_tenant_id;
+
+  IF v_neurocore_id IS NULL THEN
+    RAISE EXCEPTION 'Tenant not found or has no neurocore associated';
+  END IF;
+
+  -- ================================================================
   -- Calculate date range
-  v_end_date := CURRENT_TIMESTAMP;
-  v_start_date := v_end_date - (p_days_ago || ' days')::INTERVAL;
+  -- ================================================================
+  -- Use custom dates if provided, otherwise calculate from p_days_ago
+  IF p_start_date IS NOT NULL AND p_end_date IS NOT NULL THEN
+    v_start_date := p_start_date;
+    v_end_date := p_end_date;
+  ELSE
+    v_end_date := CURRENT_TIMESTAMP;
+    v_start_date := v_end_date - (p_days_ago || ' days')::INTERVAL;
+  END IF;
 
   WITH
 
@@ -69,7 +92,7 @@ BEGIN
   ),
 
   -- ================================================================
-  -- ALL TAGS: Get all tags for the tenant
+  -- ALL TAGS: Get all tags for the neurocore
   -- ================================================================
   all_tags AS (
     SELECT
@@ -77,7 +100,8 @@ BEGIN
       t.tag_name,
       t.created_at
     FROM tags t
-    WHERE t.id_tenant = p_tenant_id
+    WHERE t.id_neurocore = v_neurocore_id
+      AND t.active = true
   ),
 
   -- ================================================================
@@ -87,21 +111,21 @@ BEGIN
     SELECT
       -- Total active tags
       (SELECT COUNT(*)::INTEGER FROM all_tags) AS "totalActiveTags",
-      
+
       -- Conversations with tags
       COUNT(DISTINCT ec.id) FILTER (
         WHERE EXISTS (
           SELECT 1 FROM conversation_tags ct WHERE ct.conversation_id = ec.id
         )
       )::INTEGER AS "conversationsWithTags",
-      
+
       -- Conversations without tags
       COUNT(DISTINCT ec.id) FILTER (
         WHERE NOT EXISTS (
           SELECT 1 FROM conversation_tags ct WHERE ct.conversation_id = ec.id
         )
       )::INTEGER AS "conversationsWithoutTags",
-      
+
       -- Categorization rate
       ROUND(
         (COUNT(DISTINCT ec.id) FILTER (
@@ -109,7 +133,7 @@ BEGIN
         )::DECIMAL / NULLIF(COUNT(DISTINCT ec.id), 0)) * 100,
         1
       ) AS "categorizationRate"
-      
+
     FROM enriched_conversations ec
   ),
 
@@ -140,6 +164,8 @@ BEGIN
       WHERE EXISTS (
         SELECT 1 FROM base_conversations bc WHERE bc.id = ct.conversation_id
       )
+        AND t.id_neurocore = v_neurocore_id
+        AND t.active = true
       GROUP BY t.id, t.tag_name
       ORDER BY tag_count DESC
       LIMIT 10
@@ -183,6 +209,8 @@ BEGIN
       FROM conversation_tags ct
       INNER JOIN tags t ON t.id = ct.tag_id
       INNER JOIN enriched_conversations ec ON ec.id = ct.conversation_id
+      WHERE t.id_neurocore = v_neurocore_id
+        AND t.active = true
       GROUP BY t.id, t.tag_name
       HAVING COUNT(DISTINCT ec.id) > 0
       ORDER BY total_conversations DESC
@@ -211,7 +239,7 @@ BEGIN
         (SELECT COUNT(*) FROM base_conversations)::INTEGER AS total_convs
       FROM base_conversations bc
       LEFT JOIN conversation_tags ct ON ct.conversation_id = bc.id
-      LEFT JOIN tags t ON t.id = ct.tag_id
+      LEFT JOIN tags t ON t.id = ct.tag_id AND t.id_neurocore = v_neurocore_id AND t.active = true
       GROUP BY t.tag_name
       ORDER BY tag_count DESC
     ) dist_data
@@ -239,7 +267,7 @@ BEGIN
         COUNT(DISTINCT bc.id)::INTEGER AS tag_count
       FROM base_conversations bc
       LEFT JOIN conversation_tags ct ON ct.conversation_id = bc.id
-      LEFT JOIN tags t ON t.id = ct.tag_id
+      LEFT JOIN tags t ON t.id = ct.tag_id AND t.id_neurocore = v_neurocore_id AND t.active = true
       GROUP BY DATE(bc.created_at), t.tag_name
       ORDER BY tag_date, tag_name
     ) tag_time_data
@@ -262,7 +290,7 @@ BEGIN
     ) AS data
     FROM all_tags t
     WHERE NOT EXISTS (
-      SELECT 1 
+      SELECT 1
       FROM conversation_tags ct
       INNER JOIN base_conversations bc ON bc.id = ct.conversation_id
       WHERE ct.tag_id = t.id
@@ -301,9 +329,5 @@ EXCEPTION WHEN OTHERS THEN
   );
 END;
 $$ LANGUAGE plpgsql;
-
-
-
-
 
 

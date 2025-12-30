@@ -219,7 +219,7 @@ export function SortableGuidelineStep({
                 </DndContext>
               ) : (
                 <p className="text-sm text-muted-foreground ml-6 italic">
-                  Nenhuma sub-instrução. Clique em "Adicionar" acima.
+                  Nenhuma sub-instrução. Clique em &quot;Adicionar&quot; acima.
                 </p>
               )}
             </div>

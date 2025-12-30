@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Loader2 } from 'lucide-react';
 import {
@@ -72,7 +72,10 @@ export function TagSelector({
   };
 
   // IDs das tags selecionadas para busca rápida
-  const selectedTagIds = new Set(selectedTags.map(t => t.id));
+  const selectedTagIds = useMemo(
+    () => new Set(selectedTags.map(t => t.id)),
+    [selectedTags]
+  );
 
   // Limpar estados otimistas quando as tags reais forem atualizadas
   useEffect(() => {
