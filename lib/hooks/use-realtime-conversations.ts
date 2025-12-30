@@ -80,6 +80,8 @@ export function useRealtimeConversations(
               // IMPORTANTE: Preservar dados que não vêm no payload realtime
               contact: existing.contact,
               lastMessage: existing.lastMessage,
+              conversation_tags: existing.conversation_tags, // FIX: Preservar tags
+              category: existing.category, // FIX: Preservar categoria
             };
 
             // Reordenar lista
@@ -222,6 +224,8 @@ export function useRealtimeConversations(
           const { data: tagsData, error: tagsError } = await supabase
             .from('conversation_tags')
             .select(`
+              id,
+              tag_id,
               tag:tags(
                 id,
                 tag_name,

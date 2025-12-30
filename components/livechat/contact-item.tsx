@@ -38,11 +38,8 @@ export function ContactItem({
   const displayName = getContactDisplayName(contact.name, contact.phone);
   const initials = getContactInitials(contact.name, contact.phone);
 
-  // Extrair tags da conversa (excluindo categorias antigas)
-  const tags = conversation_tags?.map(ct => ct.tag).filter(tag => !tag.is_category) || [];
-  const maxVisibleTags = 2;
-  const visibleTags = tags.slice(0, maxVisibleTags);
-  const remainingTagsCount = Math.max(0, tags.length - maxVisibleTags);
+  // Extrair tags da conversa EXCLUINDO a category (que já é mostrada ao lado do nome)
+  const tags = conversation_tags?.map(ct => ct.tag).filter(tag => tag && tag.id && tag.id !== category?.id) || [];
 
   const statusColors = {
     open: 'bg-green-600',
@@ -88,15 +85,10 @@ export function ContactItem({
 
           {/* Tags da conversa */}
           {tags.length > 0 && (
-            <div className="flex items-center gap-1 mb-2 flex-wrap">
-              {visibleTags.map((tag) => (
+            <div className="flex flex-wrap items-start gap-1 mb-2 min-h-fit">
+              {tags.map((tag) => (
                 <TagBadge key={tag.id} tag={tag} size="sm" />
               ))}
-              {remainingTagsCount > 0 && (
-                <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                  +{remainingTagsCount}
-                </Badge>
-              )}
             </div>
           )}
 

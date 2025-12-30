@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Loader2 } from 'lucide-react';
 import {
@@ -61,6 +61,8 @@ export function TagSelector({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loadingTags, setLoadingTags] = useState<Set<string>>(new Set());
+  const [optimisticallyRemovedTags, setOptimisticallyRemovedTags] = useState<Set<string>>(new Set());
+  const [optimisticallyAddedTags, setOptimisticallyAddedTags] = useState<Map<string, Tag>>(new Map());
 
   // Agrupar tags disponíveis por tipo
   const tagsByType = {
@@ -71,6 +73,35 @@ export function TagSelector({
 
   // IDs das tags selecionadas para busca rápida
   const selectedTagIds = new Set(selectedTags.map(t => t.id));
+
+  // Limpar estados otimistas quando as tags reais forem atualizadas
+  useEffect(() => {
+    // Limpar tags adicionadas otimisticamente que agora estão em selectedTags
+    setOptimisticallyAddedTags(prev => {
+      const next = new Map(prev);
+      let changed = false;
+      for (const tagId of next.keys()) {
+        if (selectedTagIds.has(tagId)) {
+          next.delete(tagId);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    // Limpar tags removidas otimisticamente que não estão mais em selectedTags
+    setOptimisticallyRemovedTags(prev => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const tagId of next) {
+        if (!selectedTagIds.has(tagId)) {
+          next.delete(tagId);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [selectedTagIds]);
 
   // Filtrar tags disponíveis (remover as já selecionadas em modo assign)
   const getAvailableTagsForType = (type: 'description' | 'success' | 'fail') => {
@@ -88,12 +119,21 @@ export function TagSelector({
 
     if (mode === 'assign') {
       // Modo assign: chamar API
-      setLoadingTags(prev => new Set([...prev, tagId]));
+      // Verificar se está adicionando ou removendo
+      const isRemoving = selectedTagIds.has(tagId);
+
+      if (isRemoving) {
+        // Optimistic update: remover imediatamente da UI
+        setOptimisticallyRemovedTags(prev => new Set([...prev, tagId]));
+      } else {
+        // Optimistic update: adicionar imediatamente à UI
+        const tagToAdd = availableTags.find(t => t.id === tagId);
+        if (tagToAdd) {
+          setOptimisticallyAddedTags(prev => new Map([...prev, [tagId, tagToAdd]]));
+        }
+      }
 
       try {
-        // Verificar se está adicionando ou removendo
-        const isRemoving = selectedTagIds.has(tagId);
-
         // Chamar API
         const response = await fetch('/api/conversations/update-tag', {
           method: 'POST',
@@ -101,6 +141,7 @@ export function TagSelector({
           body: JSON.stringify({
             conversationId,
             tagId: isRemoving ? null : tagId,
+            tagIdToRemove: isRemoving ? tagId : null,
             tenantId,
           }),
         });
@@ -111,9 +152,11 @@ export function TagSelector({
           throw new Error(data.error || 'Erro ao atualizar tag');
         }
 
+        // Mostrar toast de confirmação
         toast.success(data.message);
 
-        // Revalidar
+        // Revalidar (vai atualizar com dados reais do servidor)
+        // O useEffect vai limpar os estados otimistas quando os dados reais chegarem
         router.refresh();
 
         // Fechar popover após adicionar tag (opcional)
@@ -122,6 +165,22 @@ export function TagSelector({
         }
       } catch (error) {
         console.error('[TagSelector] Error:', error);
+        
+        // Reverter optimistic update em caso de erro
+        if (isRemoving) {
+          setOptimisticallyRemovedTags(prev => {
+            const next = new Set(prev);
+            next.delete(tagId);
+            return next;
+          });
+        } else {
+          setOptimisticallyAddedTags(prev => {
+            const next = new Map(prev);
+            next.delete(tagId);
+            return next;
+          });
+        }
+        
         toast.error(
           error instanceof Error ? error.message : 'Erro ao atualizar tag'
         );
@@ -147,9 +206,23 @@ export function TagSelector({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <div className="flex items-center gap-2 flex-wrap border rounded-lg p-2 min-h-[44px] cursor-pointer hover:bg-accent/50 transition-colors">
-          {/* Tags selecionadas */}
-          {selectedTags.length > 0 ? (
-            selectedTags.map((tag) => (
+          {/* Tags selecionadas (combinando reais + otimisticamente adicionadas - otimisticamente removidas) */}
+          {(() => {
+            // Combinar tags reais com otimisticamente adicionadas (evitando duplicatas)
+            const tagMap = new Map<string, Tag>();
+            
+            // Adicionar tags reais
+            selectedTags.forEach(tag => tagMap.set(tag.id, tag));
+            
+            // Adicionar tags otimisticamente adicionadas (sobrescreve se já existir)
+            optimisticallyAddedTags.forEach((tag, id) => tagMap.set(id, tag));
+            
+            // Filtrar as removidas otimisticamente
+            const visibleTags = Array.from(tagMap.values()).filter(
+              tag => !optimisticallyRemovedTags.has(tag.id)
+            );
+            
+            return visibleTags.length > 0 ? visibleTags.map((tag) => (
               <div
                 key={tag.id}
                 className="group relative"
@@ -170,8 +243,8 @@ export function TagSelector({
                   </div>
                 )}
               </div>
-            ))
-          ) : null}
+            )) : null;
+          })()}
 
           {/* Botão adicionar */}
           <Button

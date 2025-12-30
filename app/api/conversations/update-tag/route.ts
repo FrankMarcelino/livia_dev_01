@@ -27,7 +27,8 @@ import { createClient } from '@/lib/supabase/server';
 
 interface UpdateTagPayload {
   conversationId: string;
-  tagId: string | null; // null = remover tag
+  tagId: string | null; // ID da tag a adicionar (null se apenas removendo)
+  tagIdToRemove?: string | null; // ID específico da tag a remover
   tenantId: string;
 }
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Parse payload
     const body: UpdateTagPayload = await request.json();
-    const { conversationId, tagId, tenantId } = body;
+    const { conversationId, tagId, tagIdToRemove, tenantId } = body;
 
     if (!conversationId || !tenantId) {
       return NextResponse.json(
@@ -111,7 +112,34 @@ export async function POST(request: NextRequest) {
     const validationTime = Date.now() - startTime;
     console.log(`[update-tag] ✅ Validation took ${validationTime}ms`);
 
-    // 6. Remover tag antiga do MESMO tipo (se existir)
+    // 6a. Se tagIdToRemove especificado, remover essa tag específica
+    if (tagIdToRemove) {
+      const { error: deleteSpecificError } = await supabase
+        .from('conversation_tags')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('tag_id', tagIdToRemove);
+
+      if (deleteSpecificError) {
+        console.error('[update-tag] Error deleting specific tag:', deleteSpecificError);
+        throw deleteSpecificError;
+      }
+
+      console.log(`[update-tag] 🗑️ Removed specific tag ${tagIdToRemove}`);
+      
+      // Se só está removendo (sem adicionar nova), retornar aqui
+      if (!tagId) {
+        const totalTime = Date.now() - startTime;
+        console.log(`[update-tag] ⏱️ Total time: ${totalTime}ms`);
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Tag removida com sucesso',
+        });
+      }
+    }
+
+    // 6b. Remover tag antiga do MESMO tipo (se existir e estiver adicionando nova)
     // IMPORTANTE: Apenas remove tags do mesmo tipo, permitindo múltiplos tipos simultaneamente
     if (tagType) {
       const { data: oldTags, error: fetchOldError } = await supabase

@@ -239,7 +239,7 @@ export async function getConversationsWithContact(
   });
 
   // ===== PASSO 4: Montar estrutura final =====
-  return conversationsData.map((conv: any) => {
+  const result = conversationsData.map((conv: any) => {
     // Extrair categoria (primeira tag com is_category=true)
     const category = conv.conversation_tags
       ?.map((ct: any) => ct.tag)
@@ -253,7 +253,9 @@ export async function getConversationsWithContact(
       conversation_tags: conv.conversation_tags || [],
       category,
     };
-  }) as ConversationWithContact[];
+  });
+
+  return result as ConversationWithContact[];
 }
 
 /**
