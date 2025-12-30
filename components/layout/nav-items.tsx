@@ -50,24 +50,6 @@ export const navItems: NavItem[] = [
     title: 'Meus Agentes IA',
     url: '/meus-agentes',
     icon: Bot,
-    items: [
-      {
-        title: 'Principais',
-        url: '/meus-agentes?category=main',
-      },
-      {
-        title: 'Intenção',
-        url: '/meus-agentes?category=intention',
-      },
-      {
-        title: 'Observadores',
-        url: '/meus-agentes?category=observer',
-      },
-      {
-        title: 'Guard Rails',
-        url: '/meus-agentes?category=guard-rails',
-      },
-    ],
   },
   {
     title: 'Relatórios',

@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAgentsByTenant } from '@/lib/queries/agents';
 import { AgentsList } from '@/components/agents/agents-list';
-import { AgentCategory } from '@/components/agents/navigation/agent-category-selector';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -14,20 +13,10 @@ export const metadata = {
   description: 'Gerencie as configurações dos seus agentes de inteligência artificial',
 };
 
-// Interface correta para Next.js 16+ Server Components
-// searchParams é uma Promise em Next.js 16+
-interface PageProps {
-  searchParams: Promise<{
-    category?: string;
-  }>;
-}
-
-export default async function MeusAgentesPage({ searchParams }: PageProps) {
+export default async function MeusAgentesPage() {
   const supabase = await createClient();
-  const resolvedParams = await searchParams;
-  const category = (resolvedParams.category as AgentCategory) || 'main';
 
-  console.warn('[MeusAgentesPage] Starting... Category:', category);
+  console.warn('[MeusAgentesPage] Starting...');
 
   // Verificar autenticação
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -60,29 +49,15 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
 
   console.warn('[MeusAgentesPage] Tenant ID:', userData.tenant_id);
 
-  // Buscar agents do tenant
+  // Buscar agents do tenant (apenas tipo 'attendant')
   let agents;
   try {
     agents = await getAgentsByTenant(userData.tenant_id);
-    
-    // Filtrar agents por categoria usando a coluna TYPE (Confirmed via User Screenshot)
-    switch (category) {
-      case 'intention':
-        agents = agents.filter(a => a.type === 'intention');
-        break;
-      case 'observer':
-        agents = agents.filter(a => a.type === 'observer');
-        break;
-      case 'guard-rails':
-        agents = agents.filter(a => a.type === 'in_guard_rails');
-        break;
-      case 'main':
-      default:
-        agents = agents.filter(a => a.type === 'attendant');
-        break;
-    }
-    
-    console.warn('[MeusAgentesPage] Agents loaded:', agents.length, 'for category:', category);
+
+    // Filtrar apenas agentes principais (tipo 'attendant')
+    agents = agents.filter(a => a.type === 'attendant');
+
+    console.warn('[MeusAgentesPage] Agents loaded:', agents.length);
   } catch (error) {
     console.error('[MeusAgentesPage] Error loading agents:', error);
     return (
@@ -108,9 +83,9 @@ export default async function MeusAgentesPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      
-      {/* Lista de Agents - Passamos a categoria atual */}
-      <AgentsList key={category} agents={agents} currentCategory={category} />
+
+      {/* Lista de Agents */}
+      <AgentsList agents={agents} />
     </div>
   );
 }
