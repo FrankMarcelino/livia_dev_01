@@ -4,14 +4,24 @@
 **API:** `/api/relatorios/funil`
 **Função SQL:** `get_relatorio_funil()`
 
-**Versão:** 1.0
-**Última atualização:** 2025-12-19
+**Versão:** 2.0
+**Última atualização:** 2025-12-31
 
 ---
 
 ## 🎯 Objetivo
 
 Analisar a **jornada do cliente** através do funil de conversão, identificando gargalos, tempos médios em cada etapa e principais motivos de pausa/fechamento.
+
+## ⚠️ Dados Utilizados
+
+**100% Dados Reais** - Este relatório consulta apenas dados reais do banco de dados:
+- **KPIs**: Baseados em contagens diretas da tabela `conversations`
+- **Evolução de Status**: Timeline real de criação de conversas por status
+- **Tempo por Etapa**: Cálculos baseados em `created_at` e `updated_at`
+- **Motivos de Pausa/Fechamento**: Dados da tabela `conversation_reasons_pauses_and_closures`
+  - Se não houver motivos cadastrados, os gráficos correspondentes são **ocultados automaticamente**
+  - Conversas sem motivo aparecem como "Não especificado"
 
 ---
 
@@ -114,7 +124,9 @@ ROUND(
 
 ---
 
-## 📊 Gráficos - 6 Visualizações
+## 📊 Gráficos - 5 Visualizações
+
+**Nota:** Os gráficos de "Motivos de Pausa" e "Motivos de Fechamento" são ocultados automaticamente quando não há dados reais na tabela `conversation_reasons_pauses_and_closures`.
 
 ### 1. Funil de Status (Funnel Chart)
 
@@ -440,84 +452,6 @@ LIMIT 10
 
 ---
 
-### 6. Taxa de Reativação (Metric Card + Trend)
-
-**Tipo:** Card customizado com mini-gráfico
-**Componente:** `ReactivationRateCard.tsx`
-
-**Dados:**
-```typescript
-interface ReactivationData {
-  totalReactivations: number;    // Conversas reativadas
-  totalPaused: number;            // Total pausadas
-  reactivationRate: number;       // % reativadas / pausadas
-  trend: Array<{                  // Histórico para mini-gráfico
-    date: string;
-    rate: number;
-  }>;
-}
-```
-
-**SQL:**
-```sql
--- NOTA: Requer rastreamento de mudanças de status
--- Por enquanto, estimativa baseada em:
--- Conversas que foram pausadas e depois tiveram novas mensagens
-
-WITH paused_conversations AS (
-  SELECT id, created_at, updated_at
-  FROM conversations
-  WHERE tenant_id = p_tenant_id
-    AND status = 'paused'
-    AND created_at >= p_start_date
-),
-reactivated AS (
-  SELECT DISTINCT pc.id
-  FROM paused_conversations pc
-  JOIN messages m ON m.conversation_id = pc.id
-  WHERE m.timestamp > pc.updated_at  -- Mensagem após pausar
-)
-SELECT
-  COUNT(DISTINCT r.id) AS totalReactivations,
-  COUNT(DISTINCT pc.id) AS totalPaused,
-  ROUND(
-    COUNT(DISTINCT r.id)::DECIMAL / NULLIF(COUNT(DISTINCT pc.id), 0) * 100,
-    1
-  ) AS reactivationRate
-FROM paused_conversations pc
-LEFT JOIN reactivated r ON r.id = pc.id
-```
-
-**Implementação:**
-```tsx
-<Card>
-  <CardHeader className="flex flex-row items-center justify-between">
-    <CardTitle className="text-sm font-medium">Taxa de Reativação</CardTitle>
-    <RefreshCcw className="h-4 w-4 text-muted-foreground" />
-  </CardHeader>
-  <CardContent>
-    <div className="text-2xl font-bold">{data.reactivationRate}%</div>
-    <p className="text-xs text-muted-foreground">
-      {data.totalReactivations} de {data.totalPaused} conversas pausadas
-    </p>
-    {/* Mini trend chart */}
-    <ResponsiveContainer width="100%" height={40}>
-      <LineChart data={data.trend}>
-        <Line
-          type="monotone"
-          dataKey="rate"
-          stroke="hsl(var(--primary))"
-          strokeWidth={2}
-          dot={false}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </CardContent>
-</Card>
-```
-
----
-
 ## 🎨 Layout da Página
 
 ```tsx
@@ -604,12 +538,6 @@ export function FunilContainer() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Taxa de Reativação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ReactivationRateCard data={data?.reactivationData} />
-        {/* Pode adicionar mais cards aqui */}
-      </div>
     </div>
   );
 }
@@ -677,17 +605,12 @@ BEGIN
 
   -- Motivos pausa
   pause_reasons AS (
-    -- SQL do gráfico 4
+    -- SQL do gráfico 4 - Consulta dados reais de conversation_reasons_pauses_and_closures
   ),
 
   -- Motivos fechamento
   closure_reasons AS (
-    -- SQL do gráfico 5
-  ),
-
-  -- Reativação
-  reactivation AS (
-    -- SQL do gráfico 6
+    -- SQL do gráfico 5 - Consulta dados reais de conversation_reasons_pauses_and_closures
   )
 
   SELECT json_build_object(
@@ -696,8 +619,7 @@ BEGIN
     'evolutionData', (SELECT json_agg(evolution.*) FROM evolution),
     'timeByStage', (SELECT json_agg(time_by_stage.*) FROM time_by_stage),
     'pauseReasons', (SELECT json_agg(pause_reasons.*) FROM pause_reasons),
-    'closureReasons', (SELECT json_agg(closure_reasons.*) FROM closure_reasons),
-    'reactivationData', (SELECT row_to_json(reactivation.*) FROM reactivation)
+    'closureReasons', (SELECT json_agg(closure_reasons.*) FROM closure_reasons)
   ) INTO v_result;
 
   RETURN v_result;
@@ -725,9 +647,10 @@ CREATE TABLE conversation_status_history (
 ```
 
 Isso permitiria:
-- Tempo exato em cada etapa
-- Cálculo preciso de reativações
-- Análise de padrões de transição
+- Tempo exato em cada etapa do funil
+- Rastreamento de conversas que mudam de status múltiplas vezes
+- Análise de padrões de transição entre estados
+- Cálculo preciso de taxa de reativação (conversas pausadas que voltam a abrir)
 
 ### 2. Gráfico de Sankey (Fluxo de Status)
 Visualização de transições:

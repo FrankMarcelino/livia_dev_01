@@ -102,115 +102,67 @@ BEGIN
   ),
 
   -- ================================================================
-  -- PAUSE REASONS: Mock data for MVP
-  -- Note: Replace with actual data when reason field is available
+  -- PAUSE REASONS: Real data from database
   -- ================================================================
   pause_reasons AS (
-    SELECT json_agg(
-      json_build_object(
-        'reason', reason,
-        'count', count,
-        'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
-      )
-      ORDER BY count DESC
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'reason', reason,
+          'count', count,
+          'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
+        )
+        ORDER BY count DESC
+      ),
+      '[]'::json
     ) AS data
     FROM (
       SELECT
-        'Aguardando resposta do cliente' AS reason,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER AS count,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER AS total
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Aguardando informações internas',
-        ROUND(COUNT(*) FILTER (WHERE status = 'paused') * 0.3)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Aguardando aprovação',
-        ROUND(COUNT(*) FILTER (WHERE status = 'paused') * 0.2)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Cliente solicitou pausa',
-        ROUND(COUNT(*) FILTER (WHERE status = 'paused') * 0.15)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Fora do horário',
-        ROUND(COUNT(*) FILTER (WHERE status = 'paused') * 0.10)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'paused')::INTEGER
-      FROM base_conversations
+        COALESCE(r.description, 'Não especificado') AS reason,
+        COUNT(*)::INTEGER AS count,
+        (SELECT COUNT(*) FROM base_conversations WHERE status = 'paused')::INTEGER AS total
+      FROM base_conversations c
+      LEFT JOIN conversation_reasons_pauses_and_closures r
+        ON r.id = c.conversation_pause_reason_id
+        AND r.reason_type = 'pause'
+      WHERE c.status = 'paused'
+      GROUP BY r.description
+      ORDER BY count DESC
+      LIMIT 10
     ) reasons
-    WHERE count > 0
-    LIMIT 10
+    WHERE total > 0
   ),
 
   -- ================================================================
-  -- CLOSURE REASONS: Mock data for MVP
-  -- Note: Replace with actual data when reason field is available
+  -- CLOSURE REASONS: Real data from database
   -- ================================================================
   closure_reasons AS (
-    SELECT json_agg(
-      json_build_object(
-        'reason', reason,
-        'count', count,
-        'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
-      )
-      ORDER BY count DESC
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'reason', reason,
+          'count', count,
+          'percentage', ROUND((count::DECIMAL / NULLIF(total, 0)) * 100, 1)
+        )
+        ORDER BY count DESC
+      ),
+      '[]'::json
     ) AS data
     FROM (
       SELECT
-        'Problema resolvido' AS reason,
-        ROUND(COUNT(*) FILTER (WHERE status = 'closed') * 0.5)::INTEGER AS count,
-        COUNT(*) FILTER (WHERE status = 'closed')::INTEGER AS total
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Cliente não respondeu',
-        ROUND(COUNT(*) FILTER (WHERE status = 'closed') * 0.2)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'closed')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Resolvido pela IA',
-        ROUND(COUNT(*) FILTER (WHERE status = 'closed') * 0.15)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'closed')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Cliente satisfeito',
-        ROUND(COUNT(*) FILTER (WHERE status = 'closed') * 0.10)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'closed')::INTEGER
-      FROM base_conversations
-      UNION ALL
-      SELECT
-        'Transferido para outro canal',
-        ROUND(COUNT(*) FILTER (WHERE status = 'closed') * 0.05)::INTEGER,
-        COUNT(*) FILTER (WHERE status = 'closed')::INTEGER
-      FROM base_conversations
+        COALESCE(r.description, 'Não especificado') AS reason,
+        COUNT(*)::INTEGER AS count,
+        (SELECT COUNT(*) FROM base_conversations WHERE status = 'closed')::INTEGER AS total
+      FROM base_conversations c
+      LEFT JOIN conversation_reasons_pauses_and_closures r
+        ON r.id = c.conversation_closure_reason_id
+        AND r.reason_type = 'closure'
+      WHERE c.status = 'closed'
+      GROUP BY r.description
+      ORDER BY count DESC
+      LIMIT 10
     ) reasons
-    WHERE count > 0
-    LIMIT 10
-  ),
-
-  -- ================================================================
-  -- REACTIVATION RATE: Conversations reopened after pause
-  -- Note: This is a simplified calculation for MVP
-  -- ================================================================
-  reactivation_rate AS (
-    SELECT COALESCE(
-      ROUND(
-        (COUNT(*) FILTER (WHERE status = 'open' AND updated_at > created_at + INTERVAL '1 hour')::DECIMAL 
-         / NULLIF(COUNT(*) FILTER (WHERE status = 'paused'), 0)) * 100,
-        1
-      ),
-      0
-    ) AS rate
-    FROM base_conversations
+    WHERE total > 0
   )
 
   -- ================================================================
@@ -220,8 +172,7 @@ BEGIN
     'kpis', (SELECT row_to_json(funnel_kpis.*) FROM funnel_kpis),
     'statusEvolution', (SELECT data FROM status_evolution),
     'pauseReasons', (SELECT COALESCE(data, '[]'::json) FROM pause_reasons),
-    'closureReasons', (SELECT COALESCE(data, '[]'::json) FROM closure_reasons),
-    'reactivationRate', (SELECT rate FROM reactivation_rate)
+    'closureReasons', (SELECT COALESCE(data, '[]'::json) FROM closure_reasons)
   ) INTO v_result;
 
   RETURN v_result;
@@ -240,8 +191,7 @@ EXCEPTION WHEN OTHERS THEN
     ),
     'statusEvolution', '[]'::json,
     'pauseReasons', '[]'::json,
-    'closureReasons', '[]'::json,
-    'reactivationRate', 0
+    'closureReasons', '[]'::json
   );
 END;
 $$ LANGUAGE plpgsql;

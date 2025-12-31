@@ -36,7 +36,6 @@ interface RawFunilResponse {
     count: number;
     percentage: number;
   }>;
-  reactivationRate: number;
 }
 
 // ============================================================================
@@ -99,7 +98,6 @@ export async function getFunilData({
       statusEvolution: rawData.statusEvolution || [],
       pauseReasons: rawData.pauseReasons || [],
       closureReasons: rawData.closureReasons || [],
-      reactivationRate: rawData.reactivationRate || 0,
     };
 
     return result;

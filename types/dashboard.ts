@@ -343,7 +343,6 @@ export interface FunnelData {
   statusEvolution: StatusEvolutionData[];
   pauseReasons: ReasonData[];
   closureReasons: ReasonData[];
-  reactivationRate: number;
 }
 
 /**

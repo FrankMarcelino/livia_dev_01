@@ -10,7 +10,6 @@ import { StatusEvolutionChart } from './charts/status-evolution-chart';
 import { TimeByStageChart } from './charts/time-by-stage-chart';
 import { ReasonsChart } from './charts/reasons-chart';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface FunilContainerProps {
   tenantId: string;
@@ -85,36 +84,25 @@ export function FunilContainer({ tenantId }: FunilContainerProps) {
         avgTimeToClose={kpis.avgTimeToCloseSeconds}
       />
 
-      {/* Row 3: Motivos de Pausa e Fechamento */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ReasonsChart
-          data={data.pauseReasons || []}
-          title="Top Motivos de Pausa"
-          type="pause"
-        />
-        <ReasonsChart
-          data={data.closureReasons || []}
-          title="Top Motivos de Fechamento"
-          type="closure"
-        />
-      </div>
-
-      {/* Row 4: Taxa de Reativação */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Taxa de Reativação</h3>
-              <p className="text-sm text-muted-foreground">
-                Percentual de conversas que foram reativadas após pausa
-              </p>
-            </div>
-            <div className="text-4xl font-bold text-primary">
-              {(data.reactivationRate || 0).toFixed(1)}%
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Row 3: Motivos de Pausa e Fechamento - OCULTAR SE VAZIO */}
+      {(data.pauseReasons.length > 0 || data.closureReasons.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {data.pauseReasons.length > 0 && (
+            <ReasonsChart
+              data={data.pauseReasons}
+              title="Top Motivos de Pausa"
+              type="pause"
+            />
+          )}
+          {data.closureReasons.length > 0 && (
+            <ReasonsChart
+              data={data.closureReasons}
+              title="Top Motivos de Fechamento"
+              type="closure"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
