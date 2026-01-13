@@ -17,8 +17,7 @@ import { createClient } from '@/lib/supabase/server';
  * 3. Valida associação usuário-tenant
  * 4. Atualiza tenants.ia_active = false
  * 5. Atualiza conversas com status='open':
- *    - ia_active = false
- *    - status = 'paused' (move para aguardando)
+ *    - ia_active = false (status permanece 'open')
  *    - pause_notes = 'IA pausada pelo usuário via Perfil'
  *
  * Fluxo de RETOMAR (isPaused=false):
@@ -27,7 +26,7 @@ import { createClient } from '@/lib/supabase/server';
  * 3. Valida associação usuário-tenant
  * 4. Atualiza tenants.ia_active = true
  * 5. NÃO atualiza conversas existentes
- *    - Conversas com status='paused' permanecem aguardando
+ *    - Conversas permanecem com ia_active=false (modo manual)
  *    - IA funciona apenas para NOVAS conversas
  *
  * @param userId - ID do usuário
@@ -94,14 +93,12 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
 
     if (isPaused) {
       // PAUSAR IA: Atualiza conversas abertas
-      // - Define ia_active=false
-      // - Move status para 'paused' (aguardando atendimento manual)
+      // - Define ia_active=false (status permanece 'open')
       // - Adiciona nota de pausa
       const { error, count: affectedCount } = await supabase
         .from('conversations')
         .update({
           ia_active: false,
-          status: 'paused',
           pause_notes: 'IA pausada pelo usuário via Perfil',
         })
         .eq('tenant_id', tenantId)
@@ -111,7 +108,7 @@ export async function toggleAIPause(userId: string, tenantId: string, isPaused: 
       count = affectedCount || 0;
     } else {
       // RETOMAR IA: NÃO atualiza conversas existentes
-      // Conversas com status='paused' permanecem aguardando atendimento manual
+      // Conversas permanecem com ia_active=false (modo manual)
       // IA funcionará apenas para NOVAS conversas
       count = 0; // Nenhuma conversa afetada
     }

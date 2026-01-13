@@ -35,10 +35,24 @@ export function CRMKanbanColumn({
 
       if (!hasTag) return false;
 
-      // Aplicar filtro de status
+      // Aplicar filtro de status (consolidado)
       if (currentFilter === 'all') return true;
 
-      return conv.status === currentFilter;
+      if (currentFilter === 'ia') {
+        // IA: conversas com IA ativa e não encerradas
+        return conv.ia_active && conv.status !== 'closed';
+      }
+
+      if (currentFilter === 'manual') {
+        // Modo Manual: conversas sem IA e não encerradas (inclui open e paused)
+        return !conv.ia_active && conv.status !== 'closed';
+      }
+
+      if (currentFilter === 'closed') {
+        return conv.status === 'closed';
+      }
+
+      return false;
     });
   }, [conversations, tag.id, currentFilter]);
 

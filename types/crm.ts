@@ -1,4 +1,4 @@
-import type { Conversation, Contact, Tag, ConversationStatus } from './database-helpers';
+import type { Conversation, Contact, Tag } from './database-helpers';
 
 /**
  * CRM Types - Feature Kanban Board
@@ -37,7 +37,7 @@ export interface KanbanColumn {
  * Filtros de status para o CRM
  * Define quais conversas são exibidas
  */
-export type CRMStatusFilter = ConversationStatus | 'all';
+export type CRMStatusFilter = 'ia' | 'manual' | 'closed' | 'all';
 
 /**
  * Props para componentes CRM
@@ -46,8 +46,8 @@ export interface CRMFiltersProps {
   currentFilter: CRMStatusFilter;
   onFilterChange: (filter: CRMStatusFilter) => void;
   statusCounts: {
-    open: number;
-    paused: number;
+    open: number; // Mantido para compatibilidade, mas representa "ia"
+    paused: number; // Mantido para compatibilidade, mas representa "manual"
     closed: number;
     all: number;
   };

@@ -12,7 +12,6 @@ import { usePrefetchQuickReplies } from '@/hooks/use-quick-replies-cache';
 import type { Conversation } from '@/types/database-helpers';
 import { PauseIAConfirmDialog } from './pause-ia-confirm-dialog';
 import { useApiCall } from '@/lib/hooks';
-import { SEARCH_DEBOUNCE_DELAY } from '@/config/constants';
 
 interface MessageInputProps {
   conversation: Conversation;
@@ -95,23 +94,7 @@ export function MessageInput({
     if (!messageContent || isSending) return;
 
     try {
-      // 1. Se conversa está pausada, retomar automaticamente
-      if (conversation.status === 'paused') {
-        const resumeResult = await resumeConversation.execute({
-          conversationId: conversation.id,
-          tenantId: tenantId,
-        });
-
-        if (!resumeResult) {
-          toast.error('Erro ao retomar conversa');
-          return;
-        }
-
-        // Aguarda um momento para garantir que o realtime atualizou
-        await new Promise((resolve) => setTimeout(resolve, SEARCH_DEBOUNCE_DELAY));
-      }
-
-      // 2. Enviar mensagem normalmente
+      // Enviar mensagem normalmente
       const result = await sendMessageApi.execute({
         conversationId: conversation.id,
         tenantId: tenantId,

@@ -2,10 +2,9 @@
 /**
  * API Route: Update Conversation Status
  *
- * Atualiza status da conversa de forma genérica (open/paused/closed)
+ * Atualiza status da conversa de forma genérica (open/closed)
  * POST /api/conversations/update-status
  *
- * Diferente das APIs /pause, /resume, /reopen:
  * - Update direto no Supabase (sem chamar n8n)
  * - Permite TODAS as transições de status
  * - Focada em controle manual rápido via UI
@@ -14,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-const VALID_STATUSES = ['open', 'paused', 'closed'] as const;
+const VALID_STATUSES = ['open', 'closed'] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
 export async function POST(request: NextRequest) {

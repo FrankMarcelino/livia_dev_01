@@ -1829,7 +1829,7 @@ export type Database = {
       agent_gender_enum: "male" | "female"
       agent_type_enum: "in_guard_rails" | "intention" | "attendant" | "observer"
       contact_status_enum: "open" | "with_ai" | "paused" | "closed"
-      conversation_status_enum: "open" | "paused" | "closed"
+      conversation_status_enum: "open" | "closed"
       feedback_process_status_enum: "open" | "in_progress" | "closed"
       feedback_type_enum: "like" | "dislike"
       message_sender_type_enum: "customer" | "attendant" | "ai"
@@ -2002,7 +2002,7 @@ export const Constants = {
       agent_gender_enum: ["male", "female"],
       agent_type_enum: ["in_guard_rails", "intention", "attendant", "observer"],
       contact_status_enum: ["open", "with_ai", "paused", "closed"],
-      conversation_status_enum: ["open", "paused", "closed"],
+      conversation_status_enum: ["open", "closed"],
       feedback_process_status_enum: ["open", "in_progress", "closed"],
       feedback_type_enum: ["like", "dislike"],
       message_sender_type_enum: ["customer", "attendant", "ai"],

@@ -10,7 +10,7 @@ import { Search } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import type { ConversationWithContact } from '@/types/livechat';
-import type { ConversationStatus, Tag } from '@/types/database-helpers';
+import type { Tag } from '@/types/database-helpers';
 
 interface ContactListProps {
   initialConversations: ConversationWithContact[];
@@ -32,8 +32,9 @@ export function ContactList({
 
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<ConversationStatus | 'all'>('open');
+  const [statusFilter, setStatusFilter] = useState<
+    'ia' | 'manual' | 'closed' | 'all'
+  >('ia');
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
 
   // Filtros
@@ -46,8 +47,20 @@ export function ContactList({
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === 'all' || conversation.status === statusFilter;
+    // Nova lógica de filtro baseada em ia_active
+    let matchesStatus = false;
+    if (statusFilter === 'all') {
+      matchesStatus = true;
+    } else if (statusFilter === 'ia') {
+      // IA Ativa: conversas com IA respondendo (geralmente open, mas pode ter outros status)
+      matchesStatus = conversation.ia_active && conversation.status !== 'closed';
+    } else if (statusFilter === 'manual') {
+      // Modo Manual: TODAS conversas sem IA (inclui open com ia_active=false E paused)
+      matchesStatus = !conversation.ia_active && conversation.status !== 'closed';
+    } else if (statusFilter === 'closed') {
+      // Encerradas
+      matchesStatus = conversation.status === 'closed';
+    }
 
     // Filtro de tags: se nenhuma tag selecionada, mostra todas
     // Se há tags selecionadas, mostra apenas conversas que têm PELO MENOS UMA das tags
@@ -60,11 +73,13 @@ export function ContactList({
     return matchesSearch && matchesStatus && matchesTags;
   });
 
-  // Contadores de status
+  // Contadores de status (consolidados)
   const statusCounts = {
     all: conversations.length,
-    open: conversations.filter((c) => c.status === 'open').length,
-    paused: conversations.filter((c) => c.status === 'paused').length,
+    ia: conversations.filter((c) => c.ia_active && c.status !== 'closed')
+      .length,
+    manual: conversations.filter((c) => !c.ia_active && c.status !== 'closed')
+      .length,
     closed: conversations.filter((c) => c.status === 'closed').length,
   };
 
@@ -99,18 +114,18 @@ export function ContactList({
 
         <div className="flex gap-2 flex-wrap">
           <Badge
-            variant={statusFilter === 'open' ? 'default' : 'outline'}
+            variant={statusFilter === 'ia' ? 'default' : 'outline'}
             className="cursor-pointer"
-            onClick={() => setStatusFilter('open')}
+            onClick={() => setStatusFilter('ia')}
           >
-            Ativas ({statusCounts.open})
+            IA ({statusCounts.ia})
           </Badge>
           <Badge
-            variant={statusFilter === 'paused' ? 'default' : 'outline'}
+            variant={statusFilter === 'manual' ? 'default' : 'outline'}
             className="cursor-pointer"
-            onClick={() => setStatusFilter('paused')}
+            onClick={() => setStatusFilter('manual')}
           >
-            Aguardando ({statusCounts.paused})
+            Modo Manual ({statusCounts.manual})
           </Badge>
           <Badge
             variant={statusFilter === 'closed' ? 'default' : 'outline'}

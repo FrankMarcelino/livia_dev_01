@@ -33,14 +33,32 @@ export function CRMConversationCard({ conversation }: CRMConversationCardProps) 
   // Determinar ícone: Bot se IA ativa, User caso contrário
   const Icon = conversation.ia_active ? Bot : User;
 
-  // Badge variant baseado no status
-  const statusConfig = {
-    open: { variant: 'default' as const, label: 'Ativa', className: 'bg-green-500' },
-    paused: { variant: 'secondary' as const, label: 'Aguardando', className: 'bg-yellow-500' },
-    closed: { variant: 'outline' as const, label: 'Encerrada', className: 'bg-gray-500' },
+  // Badge variant baseado no status + ia_active
+  const getStatusConfig = () => {
+    if (conversation.status === 'closed') {
+      return {
+        variant: 'outline' as const,
+        label: 'Encerrada',
+        className: 'bg-gray-500',
+      };
+    }
+    // status === 'open' (único status ativo agora)
+    if (conversation.ia_active) {
+      return {
+        variant: 'default' as const,
+        label: 'IA Ativa',
+        className: 'bg-green-500',
+      };
+    } else {
+      return {
+        variant: 'default' as const,
+        label: 'Modo Manual',
+        className: 'bg-blue-500',
+      };
+    }
   };
 
-  const status = statusConfig[conversation.status] || statusConfig.open;
+  const status = getStatusConfig();
 
   // Usar função utilitária para obter nome de exibição com fallback
   const displayName = getContactDisplayName(

@@ -43,19 +43,23 @@ export function CRMKanbanBoard({
   const tags = initialTags;
   const conversations = initialConversations;
 
-  // Calcular contadores de status
+  // Calcular contadores de status (consolidados)
   const statusCounts = useMemo(() => {
     const counts = {
-      open: 0,
-      paused: 0,
+      open: 0, // IA (ia_active=true)
+      paused: 0, // Manual (ia_active=false, status não closed)
       closed: 0,
       all: conversations.length,
     };
 
     conversations.forEach((conv) => {
-      if (conv.status === 'open') counts.open++;
-      else if (conv.status === 'paused') counts.paused++;
-      else if (conv.status === 'closed') counts.closed++;
+      if (conv.status === 'closed') {
+        counts.closed++;
+      } else if (conv.ia_active) {
+        counts.open++; // IA Ativa
+      } else {
+        counts.paused++; // Modo Manual (inclui open e paused)
+      }
     });
 
     return counts;

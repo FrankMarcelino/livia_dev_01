@@ -143,7 +143,7 @@ export const mockConversation2: ConversationWithContact = {
   tenant_id: 'tenant-1',
   contact_id: 'contact-2',
   channel_id: 'channel-1',
-  status: 'paused',
+  status: 'open',
   ia_active: false,
   last_message_at: '2025-11-23T11:00:00Z',
   created_at: '2025-11-22T08:00:00Z',

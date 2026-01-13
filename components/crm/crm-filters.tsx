@@ -23,19 +23,19 @@ export function CRMFilters({
   return (
     <div className="flex gap-2 flex-wrap">
       <Badge
-        variant={currentFilter === 'open' ? 'default' : 'outline'}
+        variant={currentFilter === 'ia' ? 'default' : 'outline'}
         className="cursor-pointer hover:bg-primary/90 transition-colors"
-        onClick={() => onFilterChange('open')}
+        onClick={() => onFilterChange('ia')}
       >
-        Ativas ({statusCounts.open})
+        IA ({statusCounts.open})
       </Badge>
 
       <Badge
-        variant={currentFilter === 'paused' ? 'default' : 'outline'}
+        variant={currentFilter === 'manual' ? 'default' : 'outline'}
         className="cursor-pointer hover:bg-primary/90 transition-colors"
-        onClick={() => onFilterChange('paused')}
+        onClick={() => onFilterChange('manual')}
       >
-        Aguardando ({statusCounts.paused})
+        Modo Manual ({statusCounts.paused})
       </Badge>
 
       <Badge

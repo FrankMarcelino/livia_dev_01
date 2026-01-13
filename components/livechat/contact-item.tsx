@@ -41,17 +41,20 @@ export function ContactItem({
   // Extrair tags da conversa EXCLUINDO a category (que já é mostrada ao lado do nome)
   const tags = conversation_tags?.map(ct => ct.tag).filter(tag => tag && tag.id && tag.id !== category?.id) || [];
 
-  const statusColors = {
-    open: 'bg-green-600',
-    paused: 'bg-yellow-600',
-    closed: 'bg-gray-400',
+  // Determinar label e cor baseado em status + ia_active
+  const getStatusDisplay = () => {
+    if (status === 'closed') {
+      return { label: 'Encerrada', color: 'bg-gray-400' };
+    }
+    // status === 'open' (único status ativo agora)
+    if (ia_active) {
+      return { label: 'IA Ativa', color: 'bg-green-600' };
+    } else {
+      return { label: 'Modo Manual', color: 'bg-blue-600' };
+    }
   };
 
-  const statusLabels = {
-    open: 'Conversa Ativa',
-    paused: 'Conversa Aguardando',
-    closed: 'Encerrada',
-  };
+  const statusDisplay = getStatusDisplay();
 
   return (
     <Card
@@ -95,16 +98,10 @@ export function ContactItem({
           <div className="flex items-center gap-2">
             <Badge
               variant="secondary"
-              className={cn(
-                'text-white',
-                statusColors[status]
-              )}
+              className={cn('text-white', statusDisplay.color)}
             >
-              {statusLabels[status]}
+              {statusDisplay.label}
             </Badge>
-            {!ia_active && (
-              <Badge variant="outline">IA Desativada</Badge>
-            )}
           </div>
         </div>
       </div>
