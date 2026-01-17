@@ -5,15 +5,25 @@
  *
  * Subscreve em tempo real às mudanças de estado de uma conversa
  * (status, ia_active, etc)
+ *
+ * Inclui reconexão automática com backoff exponencial
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Conversation } from '@/types/database-helpers';
+
+const MAX_RETRIES = 5;
+const BASE_DELAY = 1000;
 
 export function useRealtimeConversation(initialConversation: Conversation) {
   const [conversation, setConversation] = useState<Conversation>(initialConversation);
   const supabase = createClient();
+
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset conversation when it changes
   useEffect(() => {
@@ -21,7 +31,19 @@ export function useRealtimeConversation(initialConversation: Conversation) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialConversation.id]);
 
-  useEffect(() => {
+  // Handler for conversation updates
+  const handleUpdate = useCallback((payload: { new: Conversation }) => {
+    setConversation(payload.new);
+  }, []);
+
+  // Subscribe with retry logic
+  const subscribe = useCallback(() => {
+    // Clean up existing channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
     const channel = supabase
       .channel(`conversation:${initialConversation.id}:state`)
       .on<Conversation>(
@@ -32,20 +54,49 @@ export function useRealtimeConversation(initialConversation: Conversation) {
           table: 'conversations',
           filter: `id=eq.${initialConversation.id}`,
         },
-        (payload) => {
-          setConversation(payload.new);
-        }
+        handleUpdate
       )
       .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[realtime-conversation] ❌ Channel error:', err);
-        } else if (status === 'TIMED_OUT') {
-          console.error('[realtime-conversation] ⏱️ Subscription timed out');
+        if (status === 'SUBSCRIBED') {
+          console.log('[realtime-conversation] Connected');
+          retryCountRef.current = 0; // Reset retry count on success
+        }
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[realtime-conversation] Error:', err);
+
+          if (retryCountRef.current < MAX_RETRIES) {
+            const delay = Math.min(BASE_DELAY * Math.pow(2, retryCountRef.current), 30000);
+            console.log(`[realtime-conversation] Reconnecting in ${delay}ms...`);
+
+            retryTimeoutRef.current = setTimeout(() => {
+              retryCountRef.current++;
+              subscribe();
+            }, delay);
+          } else {
+            console.error('[realtime-conversation] Max retries reached');
+          }
+        }
+
+        if (status === 'CLOSED') {
+          console.log('[realtime-conversation] Channel closed');
         }
       });
 
+    channelRef.current = channel;
+  }, [supabase, initialConversation.id, handleUpdate]);
+
+  useEffect(() => {
+    subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      // Cleanup on unmount
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialConversation.id]);

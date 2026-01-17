@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -22,31 +23,31 @@ interface ContactItemProps {
   onClick?: () => void;
 }
 
-export function ContactItem({
+function ContactItemComponent({
   conversation,
   isSelected = false,
   onClick,
 }: ContactItemProps) {
   const { contact, lastMessage, status, ia_active, category, conversation_tags } = conversation;
 
-  // Usar utilities para formatação (Single Responsibility)
+  // Use utilities for formatting (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
   const lastTimestamp = getConversationLastTimestamp(conversation);
   const timeDisplay = formatRelativeTime(lastTimestamp);
 
-  // Usar função utilitária para obter nome de exibição e iniciais com fallback
+  // Use utility functions for display name and initials with fallback
   const displayName = getContactDisplayName(contact.name, contact.phone);
   const initials = getContactInitials(contact.name, contact.phone);
 
-  // Extrair tags da conversa EXCLUINDO a category (que já é mostrada ao lado do nome)
+  // Extract tags from conversation EXCLUDING the category (which is already shown next to the name)
   const tags = conversation_tags?.map(ct => ct.tag).filter(tag => tag && tag.id && tag.id !== category?.id) || [];
 
-  // Determinar label e cor baseado em status + ia_active
+  // Determine label and color based on status + ia_active
   const getStatusDisplay = () => {
     if (status === 'closed') {
       return { label: 'Encerrada', color: 'bg-gray-400' };
     }
-    // status === 'open' (único status ativo agora)
+    // status === 'open' (only active status now)
     if (ia_active) {
       return { label: 'IA Ativa', color: 'bg-green-600' };
     } else {
@@ -86,7 +87,7 @@ export function ContactItem({
             {messagePreview}
           </p>
 
-          {/* Tags da conversa */}
+          {/* Conversation tags */}
           {tags.length > 0 && (
             <div className="flex flex-wrap items-start gap-1 mb-2 min-h-fit">
               {tags.map((tag) => (
@@ -108,3 +109,29 @@ export function ContactItem({
     </Card>
   );
 }
+
+// Custom comparison function for memo - re-render only when relevant data changes
+function arePropsEqual(prevProps: ContactItemProps, nextProps: ContactItemProps): boolean {
+  // Always re-render if selection state changes
+  if (prevProps.isSelected !== nextProps.isSelected) {
+    return false;
+  }
+
+  const prevConv = prevProps.conversation;
+  const nextConv = nextProps.conversation;
+
+  // Compare essential fields
+  return (
+    prevConv.id === nextConv.id &&
+    prevConv.last_message_at === nextConv.last_message_at &&
+    prevConv.status === nextConv.status &&
+    prevConv.ia_active === nextConv.ia_active &&
+    prevConv.lastMessage?.content === nextConv.lastMessage?.content &&
+    prevConv.category?.id === nextConv.category?.id &&
+    // Compare tags by joining IDs
+    (prevConv.conversation_tags?.map(ct => ct.tag?.id).join(',') || '') ===
+    (nextConv.conversation_tags?.map(ct => ct.tag?.id).join(',') || '')
+  );
+}
+
+export const ContactItem = memo(ContactItemComponent, arePropsEqual);
