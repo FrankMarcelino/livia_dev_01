@@ -34,16 +34,20 @@ interface StatusSelectProps {
   disabled?: boolean;
 }
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   [CONVERSATION_STATUS.OPEN]: {
     label: 'Ativa',
     badgeClass: 'bg-green-600 text-white',
+  },
+  [CONVERSATION_STATUS.PAUSED]: {
+    label: 'Aguardando',
+    badgeClass: 'bg-yellow-600 text-white',
   },
   [CONVERSATION_STATUS.CLOSED]: {
     label: 'Encerrada',
     badgeClass: 'bg-gray-600 text-white',
   },
-} as const;
+};
 
 export function StatusSelect({
   conversationId,
@@ -106,7 +110,10 @@ export function StatusSelect({
     }
   };
 
-  const currentConfig = STATUS_CONFIG[selectedValue];
+  const currentConfig = STATUS_CONFIG[selectedValue] || {
+    label: selectedValue,
+    badgeClass: 'bg-gray-400 text-white',
+  };
 
   return (
     <Select
