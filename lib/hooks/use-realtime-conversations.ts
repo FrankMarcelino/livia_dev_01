@@ -21,7 +21,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { createClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresDeletePayload, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import type { ConversationWithContact, ConversationTagWithTag } from '@/types/livechat';
 import type { Conversation, Message } from '@/types/database-helpers';
 
@@ -154,7 +154,7 @@ export function useRealtimeConversations(
   }, [tenantId, supabase]);
 
   // Handle conversation DELETE
-  const handleConversationDelete = useCallback((payload: { old: { id: string } }) => {
+  const handleConversationDelete = useCallback((payload: RealtimePostgresDeletePayload<{ id: string }>) => {
     setConversations((prev) => prev.filter((c) => c.id !== payload.old.id));
   }, []);
 
@@ -183,11 +183,7 @@ export function useRealtimeConversations(
   }, [debouncedSort]);
 
   // Handle tags changes
-  const handleTagsChange = useCallback(async (payload: {
-    eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-    new?: { conversation_id?: string };
-    old?: { conversation_id?: string };
-  }) => {
+  const handleTagsChange = useCallback(async (payload: RealtimePostgresChangesPayload<{ conversation_id: string }>) => {
     const conversationId =
       payload.eventType === 'DELETE'
         ? payload.old?.conversation_id
@@ -289,7 +285,7 @@ export function useRealtimeConversations(
         },
         handleConversationInsert
       )
-      .on(
+      .on<{ id: string }>(
         'postgres_changes',
         {
           event: 'DELETE',
@@ -356,7 +352,7 @@ export function useRealtimeConversations(
     // ========================================
     const tagsChannel = supabase
       .channel(`conversation_tags:tenant:${tenantId}`)
-      .on(
+      .on<{ conversation_id: string }>(
         'postgres_changes',
         {
           event: '*',
