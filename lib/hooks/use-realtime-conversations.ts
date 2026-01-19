@@ -27,7 +27,7 @@ import type { Conversation, Message } from '@/types/database-helpers';
 
 const MAX_RETRIES = 5;
 const BASE_DELAY = 1000;
-const SORT_DEBOUNCE_MS = 300;
+const SORT_DEBOUNCE_MS = 100; // Reduzido de 300ms para 100ms para melhor responsividade
 
 export function useRealtimeConversations(
   tenantId: string,
@@ -159,6 +159,8 @@ export function useRealtimeConversations(
   }, []);
 
   // Handle message INSERT
+  // IMPORTANTE: Move a conversa para o TOPO imediatamente (sem esperar debounce)
+  // Isso garante feedback visual instantâneo quando mensagens chegam
   const handleMessageInsert = useCallback((payload: { new: Message }) => {
     setConversations((prev) => {
       const index = prev.findIndex((c) => c.id === payload.new.conversation_id);
@@ -167,18 +169,30 @@ export function useRealtimeConversations(
         return prev;
       }
 
-      const updated = [...prev];
-      const existing = updated[index];
+      const existing = prev[index];
       if (!existing) return prev;
 
-      updated[index] = {
+      // Atualiza a conversa com a nova mensagem
+      const updatedConversation: ConversationWithContact = {
         ...existing,
         lastMessage: payload.new,
         last_message_at: payload.new.timestamp || payload.new.created_at,
       };
 
-      return updated; // Sort will be triggered by debouncedSort
+      // Se já está no topo, apenas atualiza
+      if (index === 0) {
+        const updated = [...prev];
+        updated[0] = updatedConversation;
+        return updated;
+      }
+
+      // Move para o topo IMEDIATAMENTE (remove da posição atual e insere no início)
+      const withoutCurrent = prev.filter((_, i) => i !== index);
+      return [updatedConversation, ...withoutCurrent];
     });
+
+    // Debounce ainda é chamado para garantir ordenação correta
+    // caso múltiplas mensagens cheguem quase simultaneamente
     debouncedSort();
   }, [debouncedSort]);
 
@@ -412,8 +426,16 @@ function sortByLastMessage(
   convs: ConversationWithContact[]
 ): ConversationWithContact[] {
   return [...convs].sort((a, b) => {
-    const timeA = a.last_message_at || a.created_at;
-    const timeB = b.last_message_at || b.created_at;
-    return new Date(timeB).getTime() - new Date(timeA).getTime();
+    // Prioridade: lastMessage.timestamp > last_message_at > created_at
+    // Isso garante que usamos o timestamp mais recente disponível
+    const timeA = a.lastMessage?.timestamp || a.last_message_at || a.created_at;
+    const timeB = b.lastMessage?.timestamp || b.last_message_at || b.created_at;
+
+    // Usa getTime() para comparação numérica precisa
+    const dateA = new Date(timeA).getTime();
+    const dateB = new Date(timeB).getTime();
+
+    // Ordenação decrescente (mais recente primeiro)
+    return dateB - dateA;
   });
 }
