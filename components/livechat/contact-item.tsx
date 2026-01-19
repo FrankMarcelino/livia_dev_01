@@ -7,9 +7,9 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
   formatMessagePreview,
-  formatRelativeTime,
   getConversationLastTimestamp,
 } from '@/lib/utils/contact-list';
+import { RelativeTime } from '@/components/ui/relative-time';
 import {
   getContactDisplayName,
   getContactInitials,
@@ -33,7 +33,6 @@ function ContactItemComponent({
   // Use utilities for formatting (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
   const lastTimestamp = getConversationLastTimestamp(conversation);
-  const timeDisplay = formatRelativeTime(lastTimestamp);
 
   // Use utility functions for display name and initials with fallback
   const displayName = getContactDisplayName(contact.name, contact.phone);
@@ -81,11 +80,10 @@ function ContactItemComponent({
                 </span>
               )}
             </div>
-            {timeDisplay && (
-              <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                {timeDisplay}
-              </span>
-            )}
+            <RelativeTime
+              timestamp={lastTimestamp}
+              className="text-xs text-muted-foreground shrink-0 ml-2"
+            />
           </div>
 
           <p className="text-sm text-muted-foreground truncate mb-2">

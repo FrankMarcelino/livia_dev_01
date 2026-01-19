@@ -40,6 +40,8 @@ export function ContactList({
   >('ia');
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+  // ID da conversa que acabou de ser marcada como lida (mantém visível até clicar em outra)
+  const [justReadConversationId, setJustReadConversationId] = useState<string | null>(null);
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
@@ -73,10 +75,12 @@ export function ContactList({
       ) ?? false);
 
     // Filtro de não lidas - só se aplica no modo manual quando toggle está ativo
+    // Mantém a conversa "recém-lida" visível até clicar em outra
     const matchesUnread =
       statusFilter !== 'manual' || // Não aplica fora do modo manual
       !showOnlyUnread || // Toggle desligado = mostra todas
-      conversation.has_unread; // Tem não lidas
+      conversation.has_unread || // Tem não lidas
+      conversation.id === justReadConversationId; // Recém-lida (mantém visível até clicar em outra)
 
     return matchesSearch && matchesStatus && matchesTags && matchesUnread;
   });
@@ -106,9 +110,10 @@ export function ContactList({
   const handleStatusFilterChange = (newFilter: 'ia' | 'manual' | 'closed') => {
     if (newFilter !== statusFilter) {
       setStatusFilter(newFilter);
-      // Reset toggle de não lidas quando sai do modo manual
+      // Reset toggle de não lidas e justReadConversationId quando sai do modo manual
       if (newFilter !== 'manual') {
         setShowOnlyUnread(false);
+        setJustReadConversationId(null);
       }
       clearSelection();
     }
@@ -117,6 +122,10 @@ export function ContactList({
   // Handler para toggle de não lidas
   const handleUnreadToggle = (checked: boolean) => {
     setShowOnlyUnread(checked);
+    // Limpa justReadConversationId ao desligar o toggle
+    if (!checked) {
+      setJustReadConversationId(null);
+    }
     clearSelection();
   };
 
@@ -246,6 +255,14 @@ export function ContactList({
               conversation={conversation}
               isSelected={selectedConversationId === conversation.id}
               onClick={() => {
+                // No modo "apenas não lidas", mantém a conversa clicada visível até clicar em outra
+                if (showOnlyUnread && statusFilter === 'manual') {
+                  // Se clicou em uma conversa diferente, atualiza o justReadConversationId
+                  if (conversation.id !== justReadConversationId) {
+                    setJustReadConversationId(conversation.id);
+                  }
+                }
+
                 if (onConversationClick) {
                   onConversationClick(conversation.id);
                 } else {

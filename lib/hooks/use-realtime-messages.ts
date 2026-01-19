@@ -95,30 +95,20 @@ export function useRealtimeMessages(conversationId: string, initialMessages: Mes
         },
         handleUpdate
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[realtime-messages] Connected');
-          retryCountRef.current = 0; // Reset retry count on success
+          retryCountRef.current = 0;
         }
 
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[realtime-messages] Error:', err);
-
           if (retryCountRef.current < MAX_RETRIES) {
             const delay = Math.min(BASE_DELAY * Math.pow(2, retryCountRef.current), 30000);
-            console.log(`[realtime-messages] Reconnecting in ${delay}ms...`);
 
             retryTimeoutRef.current = setTimeout(() => {
               retryCountRef.current++;
               subscribe();
             }, delay);
-          } else {
-            console.error('[realtime-messages] Max retries reached');
           }
-        }
-
-        if (status === 'CLOSED') {
-          console.log('[realtime-messages] Channel closed');
         }
       });
 

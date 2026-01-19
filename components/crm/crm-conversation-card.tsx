@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Bot, User } from 'lucide-react';
-import { formatRelativeTime, formatMessagePreview } from '@/lib/utils/contact-list';
+import { formatMessagePreview } from '@/lib/utils/contact-list';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import type { CRMConversationCardProps } from '@/types/crm';
 import { cn } from '@/lib/utils';
@@ -94,7 +95,7 @@ export function CRMConversationCard({ conversation }: CRMConversationCardProps) 
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1 text-muted-foreground">
           <Icon className="h-3 w-3" />
-          <span>{formatRelativeTime(lastMessageTimestamp)}</span>
+          <RelativeTime timestamp={lastMessageTimestamp} />
         </div>
 
         <Badge variant={status.variant} className={cn('text-[10px] px-2 py-0', status.className)}>

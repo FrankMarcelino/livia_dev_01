@@ -133,7 +133,6 @@ export function useRealtimeConversations(
       .single();
 
     if (error || !data) {
-      console.error('[realtime-conversations] Error fetching new conversation:', error);
       return;
     }
 
@@ -228,7 +227,6 @@ export function useRealtimeConversations(
       .eq('conversation_id', conversationId);
 
     if (tagsError) {
-      console.error('[realtime-conversations] Error fetching tags:', tagsError);
       return;
     }
 
@@ -311,27 +309,22 @@ export function useRealtimeConversations(
         },
         handleConversationDelete
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[realtime-conversations] Conversations channel connected');
           subscriptionReadyRef.current = true;
           retryCountRef.current = 0;
         }
 
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[realtime-conversations] Conversations channel error:', err);
           subscriptionReadyRef.current = false;
 
           if (retryCountRef.current < MAX_RETRIES) {
             const delay = Math.min(BASE_DELAY * Math.pow(2, retryCountRef.current), 30000);
-            console.log(`[realtime-conversations] Reconnecting in ${delay}ms...`);
 
             retryTimeoutRef.current = setTimeout(() => {
               retryCountRef.current++;
               subscribe();
             }, delay);
-          } else {
-            console.error('[realtime-conversations] Max retries reached');
           }
         }
       });
@@ -352,14 +345,7 @@ export function useRealtimeConversations(
         },
         handleMessageInsert
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[realtime-conversations] Messages channel connected');
-        }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[realtime-conversations] Messages channel error:', err);
-        }
-      });
+      .subscribe();
 
     messagesChannelRef.current = messagesChannel;
 
@@ -377,14 +363,7 @@ export function useRealtimeConversations(
         },
         handleTagsChange
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[realtime-conversations] Tags channel connected');
-        }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[realtime-conversations] Tags channel error:', err);
-        }
-      });
+      .subscribe();
 
     tagsChannelRef.current = tagsChannel;
   }, [

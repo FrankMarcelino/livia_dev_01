@@ -56,30 +56,20 @@ export function useRealtimeConversation(initialConversation: Conversation) {
         },
         handleUpdate
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[realtime-conversation] Connected');
-          retryCountRef.current = 0; // Reset retry count on success
+          retryCountRef.current = 0;
         }
 
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[realtime-conversation] Error:', err);
-
           if (retryCountRef.current < MAX_RETRIES) {
             const delay = Math.min(BASE_DELAY * Math.pow(2, retryCountRef.current), 30000);
-            console.log(`[realtime-conversation] Reconnecting in ${delay}ms...`);
 
             retryTimeoutRef.current = setTimeout(() => {
               retryCountRef.current++;
               subscribe();
             }, delay);
-          } else {
-            console.error('[realtime-conversation] Max retries reached');
           }
-        }
-
-        if (status === 'CLOSED') {
-          console.log('[realtime-conversation] Channel closed');
         }
       });
 
