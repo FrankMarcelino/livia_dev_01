@@ -134,6 +134,8 @@ export const mockConversation: ConversationWithContact = {
   overall_feedback_type: null,
   consecutive_reactivations: 0,
   total_reactivations: 0,
+  has_unread: false,
+  unread_count: 0,
   contact: mockContact,
   lastMessage: mockMessage2,
 };
@@ -157,6 +159,8 @@ export const mockConversation2: ConversationWithContact = {
   overall_feedback_type: null,
   consecutive_reactivations: 0,
   total_reactivations: 0,
+  has_unread: true,
+  unread_count: 3,
   contact: mockContact2,
   lastMessage: mockMessage3,
 };
@@ -180,6 +184,8 @@ export const mockConversation3: ConversationWithContact = {
   overall_feedback_type: null,
   consecutive_reactivations: 0,
   total_reactivations: 0,
+  has_unread: false,
+  unread_count: 0,
   contact: mockContact,
   lastMessage: null,
 };

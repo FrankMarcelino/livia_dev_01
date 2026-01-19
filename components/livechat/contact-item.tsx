@@ -28,7 +28,7 @@ function ContactItemComponent({
   isSelected = false,
   onClick,
 }: ContactItemProps) {
-  const { contact, lastMessage, status, ia_active, category, conversation_tags } = conversation;
+  const { contact, lastMessage, status, ia_active, category, conversation_tags, has_unread, unread_count } = conversation;
 
   // Use utilities for formatting (Single Responsibility)
   const messagePreview = formatMessagePreview(lastMessage?.content);
@@ -39,8 +39,8 @@ function ContactItemComponent({
   const displayName = getContactDisplayName(contact.name, contact.phone);
   const initials = getContactInitials(contact.name, contact.phone);
 
-  // Extract tags from conversation EXCLUDING the category (which is already shown next to the name)
-  const tags = conversation_tags?.map(ct => ct.tag).filter(tag => tag && tag.id && tag.id !== category?.id) || [];
+  // Extract all tags from conversation (including category which will be shown after preview)
+  const allTags = conversation_tags?.map(ct => ct.tag).filter(tag => tag && tag.id) || [];
 
   // Determine label and color based on status + ia_active
   const getStatusDisplay = () => {
@@ -74,7 +74,12 @@ function ContactItemComponent({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-medium truncate">{displayName}</span>
-              {category && <TagBadge tag={category} size="sm" />}
+              {/* Badge de mensagens não lidas - só aparece no modo manual */}
+              {!ia_active && has_unread && unread_count > 0 && (
+                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-green-500 rounded-full">
+                  {unread_count > 99 ? '99+' : unread_count}
+                </span>
+              )}
             </div>
             {timeDisplay && (
               <span className="text-xs text-muted-foreground shrink-0 ml-2">
@@ -87,10 +92,11 @@ function ContactItemComponent({
             {messagePreview}
           </p>
 
-          {/* Conversation tags */}
-          {tags.length > 0 && (
+          {/* All tags (including category) - shown after message preview */}
+          {(category || allTags.length > 0) && (
             <div className="flex flex-wrap items-start gap-1 mb-2 min-h-fit">
-              {tags.map((tag) => (
+              {category && <TagBadge tag={category} size="sm" />}
+              {allTags.filter(tag => tag.id !== category?.id).map((tag) => (
                 <TagBadge key={tag.id} tag={tag} size="sm" />
               ))}
             </div>
@@ -126,6 +132,8 @@ function arePropsEqual(prevProps: ContactItemProps, nextProps: ContactItemProps)
     prevConv.last_message_at === nextConv.last_message_at &&
     prevConv.status === nextConv.status &&
     prevConv.ia_active === nextConv.ia_active &&
+    prevConv.has_unread === nextConv.has_unread &&
+    prevConv.unread_count === nextConv.unread_count &&
     prevConv.lastMessage?.content === nextConv.lastMessage?.content &&
     prevConv.category?.id === nextConv.category?.id &&
     // Compare tags by joining IDs

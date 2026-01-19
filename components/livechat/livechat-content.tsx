@@ -36,6 +36,13 @@ export function LivechatContent({
     // Feedback instantâneo
     setLoadingConversationId(conversationId);
 
+    // Marcar como lida (fire and forget - não bloqueia navegação)
+    fetch('/api/conversations/mark-as-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, tenantId }),
+    }).catch(console.error);
+
     // Navegação (que vai demorar 1-2s)
     router.push(`/livechat?conversation=${conversationId}`);
   };

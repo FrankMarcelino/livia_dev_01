@@ -904,6 +904,7 @@ export type Database = {
           conversation_pause_reason_id: string | null
           created_at: string
           external_id: string | null
+          has_unread: boolean
           ia_active: boolean
           id: string
           last_message_at: string
@@ -915,6 +916,7 @@ export type Database = {
           status: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id: string
           total_reactivations: number
+          unread_count: number
           updated_at: string
         }
         Insert: {
@@ -926,6 +928,7 @@ export type Database = {
           conversation_pause_reason_id?: string | null
           created_at?: string
           external_id?: string | null
+          has_unread?: boolean
           ia_active?: boolean
           id?: string
           last_message_at?: string
@@ -937,6 +940,7 @@ export type Database = {
           status: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id: string
           total_reactivations?: number
+          unread_count?: number
           updated_at?: string
         }
         Update: {
@@ -948,6 +952,7 @@ export type Database = {
           conversation_pause_reason_id?: string | null
           created_at?: string
           external_id?: string | null
+          has_unread?: boolean
           ia_active?: boolean
           id?: string
           last_message_at?: string
@@ -959,6 +964,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["conversation_status_enum"]
           tenant_id?: string
           total_reactivations?: number
+          unread_count?: number
           updated_at?: string
         }
         Relationships: [

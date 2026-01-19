@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { ContactItem } from './contact-item';
 import { TagSelector } from '@/components/tags/tag-selector';
-import { Search } from 'lucide-react';
+import { Search, MessageCircle } from 'lucide-react';
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations';
 import { getContactDisplayName } from '@/lib/utils/contact-helpers';
 import type { ConversationWithContact } from '@/types/livechat';
@@ -33,9 +36,10 @@ export function ContactList({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
-    'ia' | 'manual' | 'closed' | 'all'
+    'ia' | 'manual' | 'closed'
   >('ia');
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
 
   // Filtros
   const filteredConversations = conversations.filter((conversation) => {
@@ -47,15 +51,13 @@ export function ContactList({
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    // Nova lógica de filtro baseada em ia_active
+    // Lógica de filtro baseada em ia_active
     let matchesStatus = false;
-    if (statusFilter === 'all') {
-      matchesStatus = true;
-    } else if (statusFilter === 'ia') {
-      // IA Ativa: conversas com IA respondendo (geralmente open, mas pode ter outros status)
+    if (statusFilter === 'ia') {
+      // IA Ativa: conversas com IA respondendo
       matchesStatus = conversation.ia_active && conversation.status !== 'closed';
     } else if (statusFilter === 'manual') {
-      // Modo Manual: TODAS conversas sem IA (inclui open com ia_active=false E paused)
+      // Modo Manual: TODAS conversas sem IA (inclui open com ia_active=false)
       matchesStatus = !conversation.ia_active && conversation.status !== 'closed';
     } else if (statusFilter === 'closed') {
       // Encerradas
@@ -70,18 +72,30 @@ export function ContactList({
         selectedTagIds.has(ct.tag.id)
       ) ?? false);
 
-    return matchesSearch && matchesStatus && matchesTags;
+    // Filtro de não lidas (UX fluida: mantém conversa selecionada visível)
+    // Só se aplica no modo manual quando toggle está ativo
+    const matchesUnread =
+      statusFilter !== 'manual' || // Não aplica fora do modo manual
+      !showOnlyUnread || // Toggle desligado = mostra todas
+      conversation.has_unread || // Tem não lidas
+      conversation.id === selectedConversationId; // É a selecionada (UX fluida)
+
+    return matchesSearch && matchesStatus && matchesTags && matchesUnread;
   });
 
   // Contadores de status (consolidados)
   const statusCounts = {
-    all: conversations.length,
     ia: conversations.filter((c) => c.ia_active && c.status !== 'closed')
       .length,
     manual: conversations.filter((c) => !c.ia_active && c.status !== 'closed')
       .length,
     closed: conversations.filter((c) => c.status === 'closed').length,
   };
+
+  // Contador de não lidas no modo manual
+  const unreadInManualCount = conversations.filter(
+    (c) => !c.ia_active && c.status !== 'closed' && c.has_unread
+  ).length;
 
   // Handler para toggle de tags (modo filtro)
   const handleTagToggle = (tagId: string) => {
@@ -126,6 +140,9 @@ export function ContactList({
             onClick={() => setStatusFilter('manual')}
           >
             Modo Manual ({statusCounts.manual})
+            {unreadInManualCount > 0 && (
+              <MessageCircle className="ml-1 h-3.5 w-3.5 fill-green-500 text-green-500" />
+            )}
           </Badge>
           <Badge
             variant={statusFilter === 'closed' ? 'default' : 'outline'}
@@ -134,14 +151,24 @@ export function ContactList({
           >
             Encerradas ({statusCounts.closed})
           </Badge>
-          <Badge
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            className="cursor-pointer"
-            onClick={() => setStatusFilter('all')}
-          >
-            Todas ({statusCounts.all})
-          </Badge>
         </div>
+
+        {/* Toggle de não lidas - só aparece no modo manual */}
+        {statusFilter === 'manual' && (
+          <>
+            <Separator className="my-2" />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="unread-toggle" className="text-sm text-muted-foreground">
+                Apenas não lidas
+              </Label>
+              <Switch
+                id="unread-toggle"
+                checked={showOnlyUnread}
+                onCheckedChange={setShowOnlyUnread}
+              />
+            </div>
+          </>
+        )}
 
         {/* Filtro de tags */}
         {allTags.length > 0 && (
