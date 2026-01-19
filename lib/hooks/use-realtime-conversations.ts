@@ -70,19 +70,17 @@ export function useRealtimeConversations(
   // ========================================
 
   // Handle conversation UPDATE
+  // Se last_message_at mudou, move para o topo imediatamente
   const handleConversationUpdate = useCallback((payload: { new: Conversation }) => {
     setConversations((prev) => {
       const index = prev.findIndex((c) => c.id === payload.new.id);
 
-      if (index === -1) {
-        return prev;
-      }
+      if (index === -1) return prev;
 
-      const updated = [...prev];
-      const existing = updated[index];
+      const existing = prev[index];
       if (!existing) return prev;
 
-      updated[index] = {
+      const updatedConversation: ConversationWithContact = {
         ...existing,
         ...payload.new,
         // Preserve data that doesn't come in realtime payload
@@ -92,7 +90,18 @@ export function useRealtimeConversations(
         category: existing.category,
       };
 
-      return updated; // Sort will be triggered by debouncedSort
+      // Se last_message_at mudou E não está no topo, move para o topo
+      const lastMessageChanged = existing.last_message_at !== payload.new.last_message_at;
+
+      if (lastMessageChanged && index !== 0) {
+        const withoutCurrent = prev.filter((_, i) => i !== index);
+        return [updatedConversation, ...withoutCurrent];
+      }
+
+      // Caso contrário, apenas atualiza no lugar
+      const updated = [...prev];
+      updated[index] = updatedConversation;
+      return updated;
     });
     debouncedSort();
   }, [debouncedSort]);
@@ -159,15 +168,12 @@ export function useRealtimeConversations(
   }, []);
 
   // Handle message INSERT
-  // IMPORTANTE: Move a conversa para o TOPO imediatamente (sem esperar debounce)
-  // Isso garante feedback visual instantâneo quando mensagens chegam
+  // Move a conversa para o TOPO imediatamente quando uma mensagem chega
   const handleMessageInsert = useCallback((payload: { new: Message }) => {
     setConversations((prev) => {
       const index = prev.findIndex((c) => c.id === payload.new.conversation_id);
 
-      if (index === -1) {
-        return prev;
-      }
+      if (index === -1) return prev;
 
       const existing = prev[index];
       if (!existing) return prev;
@@ -186,15 +192,11 @@ export function useRealtimeConversations(
         return updated;
       }
 
-      // Move para o topo IMEDIATAMENTE (remove da posição atual e insere no início)
+      // Move para o topo IMEDIATAMENTE
       const withoutCurrent = prev.filter((_, i) => i !== index);
       return [updatedConversation, ...withoutCurrent];
     });
-
-    // Debounce ainda é chamado para garantir ordenação correta
-    // caso múltiplas mensagens cheguem quase simultaneamente
-    debouncedSort();
-  }, [debouncedSort]);
+  }, []);
 
   // Handle tags changes
   const handleTagsChange = useCallback(async (payload: RealtimePostgresChangesPayload<{ conversation_id: string }>) => {
