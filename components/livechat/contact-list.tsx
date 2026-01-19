@@ -72,13 +72,11 @@ export function ContactList({
         selectedTagIds.has(ct.tag.id)
       ) ?? false);
 
-    // Filtro de não lidas (UX fluida: mantém conversa selecionada visível)
-    // Só se aplica no modo manual quando toggle está ativo
+    // Filtro de não lidas - só se aplica no modo manual quando toggle está ativo
     const matchesUnread =
       statusFilter !== 'manual' || // Não aplica fora do modo manual
       !showOnlyUnread || // Toggle desligado = mostra todas
-      conversation.has_unread || // Tem não lidas
-      conversation.id === selectedConversationId; // É a selecionada (UX fluida)
+      conversation.has_unread; // Tem não lidas
 
     return matchesSearch && matchesStatus && matchesTags && matchesUnread;
   });
@@ -97,6 +95,31 @@ export function ContactList({
     (c) => !c.ia_active && c.status !== 'closed' && c.has_unread
   ).length;
 
+  // Limpar seleção ao mudar filtros
+  const clearSelection = () => {
+    if (selectedConversationId) {
+      router.push('/livechat');
+    }
+  };
+
+  // Handler para mudança de filtro de status
+  const handleStatusFilterChange = (newFilter: 'ia' | 'manual' | 'closed') => {
+    if (newFilter !== statusFilter) {
+      setStatusFilter(newFilter);
+      // Reset toggle de não lidas quando sai do modo manual
+      if (newFilter !== 'manual') {
+        setShowOnlyUnread(false);
+      }
+      clearSelection();
+    }
+  };
+
+  // Handler para toggle de não lidas
+  const handleUnreadToggle = (checked: boolean) => {
+    setShowOnlyUnread(checked);
+    clearSelection();
+  };
+
   // Handler para toggle de tags (modo filtro)
   const handleTagToggle = (tagId: string) => {
     setSelectedTagIds((prev) => {
@@ -108,6 +131,16 @@ export function ContactList({
       }
       return next;
     });
+    clearSelection();
+  };
+
+  // Handler para busca
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    // Só limpa seleção se começou a digitar algo novo
+    if (value && value !== searchQuery) {
+      clearSelection();
+    }
   };
 
   // Converter selectedTagIds para array de Tags para o TagSelector
@@ -121,7 +154,7 @@ export function ContactList({
           <Input
             placeholder="Buscar contato..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -130,14 +163,14 @@ export function ContactList({
           <Badge
             variant={statusFilter === 'ia' ? 'default' : 'outline'}
             className="cursor-pointer"
-            onClick={() => setStatusFilter('ia')}
+            onClick={() => handleStatusFilterChange('ia')}
           >
             IA ({statusCounts.ia})
           </Badge>
           <Badge
             variant={statusFilter === 'manual' ? 'default' : 'outline'}
             className="cursor-pointer"
-            onClick={() => setStatusFilter('manual')}
+            onClick={() => handleStatusFilterChange('manual')}
           >
             Modo Manual ({statusCounts.manual})
             {unreadInManualCount > 0 && (
@@ -147,7 +180,7 @@ export function ContactList({
           <Badge
             variant={statusFilter === 'closed' ? 'default' : 'outline'}
             className="cursor-pointer"
-            onClick={() => setStatusFilter('closed')}
+            onClick={() => handleStatusFilterChange('closed')}
           >
             Encerradas ({statusCounts.closed})
           </Badge>
@@ -164,7 +197,7 @@ export function ContactList({
               <Switch
                 id="unread-toggle"
                 checked={showOnlyUnread}
-                onCheckedChange={setShowOnlyUnread}
+                onCheckedChange={handleUnreadToggle}
               />
             </div>
           </>
@@ -190,9 +223,21 @@ export function ContactList({
       <div className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth">
         {filteredConversations.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {searchQuery
-              ? 'Nenhuma conversa encontrada'
-              : 'Nenhuma conversa ativa'}
+            {searchQuery ? (
+              'Nenhuma conversa encontrada para esta busca'
+            ) : showOnlyUnread && statusFilter === 'manual' ? (
+              'Nenhuma conversa com mensagens não lidas'
+            ) : selectedTagIds.size > 0 ? (
+              'Nenhuma conversa com as tags selecionadas'
+            ) : statusFilter === 'ia' ? (
+              'Nenhuma conversa com IA ativa'
+            ) : statusFilter === 'manual' ? (
+              'Nenhuma conversa em modo manual'
+            ) : statusFilter === 'closed' ? (
+              'Nenhuma conversa encerrada'
+            ) : (
+              'Nenhuma conversa encontrada'
+            )}
           </div>
         ) : (
           filteredConversations.map((conversation) => (
