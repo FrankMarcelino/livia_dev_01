@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Brain, Kanban, Bot, BarChart3 } from 'lucide-react';
+import { MessageSquare, BookOpen, Brain, Kanban, Bot, BarChart3, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -67,6 +67,33 @@ export const navItems: NavItem[] = [
       {
         title: 'Tags',
         url: '/relatorios/tags',
+      },
+    ],
+  },
+  {
+    title: 'Financeiro',
+    url: '/financeiro/saldo',
+    icon: Wallet,
+    items: [
+      {
+        title: 'Saldo & Créditos',
+        url: '/financeiro/saldo',
+      },
+      {
+        title: 'Consumo',
+        url: '/financeiro/consumo',
+      },
+      {
+        title: 'Extrato',
+        url: '/financeiro/extrato',
+      },
+      {
+        title: 'Recarregar',
+        url: '/financeiro/recarregar',
+      },
+      {
+        title: 'Alertas',
+        url: '/financeiro/alertas',
       },
     ],
   },
