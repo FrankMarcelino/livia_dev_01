@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getDomains } from '@/lib/queries/knowledge-base';
 import { NeurocoreChat } from '@/components/neurocore';
 
 /**
- * Página de Treinamento Neurocore
+ * Página de Validação de Respostas (antigo Treinamento Neurocore)
  *
  * Interface para testar e validar respostas da IA antes de ativar em produção.
- * Permite fazer perguntas, ver synapses usadas, editar synapses e dar feedback.
+ * Permite fazer perguntas, ver bases usadas, editar bases e dar feedback.
  */
 export default async function NeurocorePage() {
   const supabase = await createClient();
@@ -40,5 +41,35 @@ export default async function NeurocorePage() {
     );
   }
 
-  return <NeurocoreChat tenantId={userData.tenant_id} />;
+  const tenantId = userData.tenant_id;
+
+  // 3. Buscar dados do tenant (incluindo neurocore)
+  const { data: tenantData } = (await supabase
+    .from('tenants')
+    .select('id, neurocore_id')
+    .eq('id', tenantId)
+    .single()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  if (!tenantData || !tenantData.neurocore_id) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">
+          Erro: Tenant sem NeuroCore configurado
+        </p>
+      </div>
+    );
+  }
+
+  const neurocoreId = tenantData.neurocore_id;
+
+  // 4. Buscar domínios para o dialog de edição
+  const allDomains = await getDomains(neurocoreId);
+
+  return (
+    <NeurocoreChat 
+      tenantId={tenantId}
+      neurocoreId={neurocoreId}
+      allDomains={allDomains}
+    />
+  );
 }

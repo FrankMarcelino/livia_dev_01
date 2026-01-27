@@ -84,6 +84,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 4. Buscar campos de teste do tenant (para billing tracking)
+    const { data: tenantData, error: tenantError } = (await supabase
+      .from('tenants')
+      .select('id, id_contato_testes, id_conversas_testes')
+      .eq('id', tenantId)
+      .single()) as {
+      data: {
+        id: string;
+        id_contato_testes: string | null;
+        id_conversas_testes: string | null;
+      } | null;
+      error: unknown;
+    };
+
+    if (tenantError || !tenantData) {
+      return NextResponse.json<NeurocoreQueryResponse>(
+        { success: false, error: 'Tenant não encontrado' },
+        { status: 404 }
+      );
+    }
+
     // 4. Modo MOCK - Desenvolvimento sem n8n
     if (NEUROCORE_MOCK) {
       const mockResponse = await generateMockResponse(question);
@@ -93,7 +114,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Modo REAL - Chamar webhook n8n
+    // 6. Modo REAL - Chamar webhook n8n
     if (!N8N_BASE_URL || !N8N_NEUROCORE_QUERY_WEBHOOK) {
       return NextResponse.json<NeurocoreQueryResponse>(
         {
@@ -118,6 +139,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           id_tenant: tenantId,
           Question: question,
+          id_contato_testes: tenantData.id_contato_testes,
+          id_conversas_testes: tenantData.id_conversas_testes,
         }),
         signal: controller.signal,
       });
@@ -185,7 +208,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           answer: data.answer,
-          synapsesUsed: data.synapsesUsed || [],
+          basesUsed: data.synapsesUsed || [], // Map synapsesUsed → basesUsed
         },
       });
     } catch (error) {
@@ -241,9 +264,9 @@ Para iniciar uma devolução, entre em contato pelo SAC: **0800-123-4567**.
 
   return {
     answer: mockAnswer,
-    synapsesUsed: [
+    basesUsed: [
       {
-        id: 'mock-synapse-1',
+        id: 'mock-base-1',
         title: 'Política de Devolução - Prazos Gerais',
         content:
           'Os clientes têm 7 dias corridos para devolução de produtos após recebimento. Para produtos eletrônicos, o prazo é de 15 dias corridos. Produtos com defeito têm garantia de 30 dias corridos.',
@@ -252,22 +275,22 @@ Para iniciar uma devolução, entre em contato pelo SAC: **0800-123-4567**.
         baseConhecimentoId: 'mock-base-1',
       },
       {
-        id: 'mock-synapse-2',
+        id: 'mock-base-2',
         title: 'Garantia de Produtos Eletrônicos',
         content:
           'Produtos eletrônicos possuem prazo de 15 dias para devolução. Em caso de defeito, a garantia é de 30 dias. O produto deve estar na embalagem original.',
         description: 'Políticas específicas para eletrônicos',
         score: 0.87,
-        baseConhecimentoId: 'mock-base-1',
+        baseConhecimentoId: 'mock-base-2',
       },
       {
-        id: 'mock-synapse-3',
+        id: 'mock-base-3',
         title: 'Produtos Não Devolúveis',
         content:
           'Produtos usados, personalizados ou sem embalagem original NÃO podem ser devolvidos. Exceção apenas para defeitos de fabricação.',
         description: 'Restrições de devolução',
         score: 0.78,
-        baseConhecimentoId: 'mock-base-1',
+        baseConhecimentoId: 'mock-base-3',
       },
     ],
     processingTime: Math.floor(delay),

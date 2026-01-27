@@ -1,12 +1,12 @@
 /**
- * Types para o módulo Treinamento Neurocore
+ * Types para o módulo Validação de Respostas (Neurocore)
  *
- * O Neurocore é uma interface de testes onde o usuário faz perguntas
+ * Interface de testes onde o usuário faz perguntas
  * para validar se a IA responde corretamente antes de ativar em produção.
  */
 
 /**
- * Query de treinamento feita pelo usuário
+ * Query de validação feita pelo usuário
  * Estado local apenas (não persiste no banco)
  */
 export interface TrainingQuery {
@@ -18,20 +18,20 @@ export interface TrainingQuery {
 }
 
 /**
- * Resposta da IA para uma query de treinamento
+ * Resposta da IA para uma query de validação
  */
 export interface TrainingResponse {
   answer: string; // Resposta em markdown
-  synapsesUsed: SynapseUsed[];
+  basesUsed: BaseUsed[]; // Bases de conhecimento usadas
   processingTime?: number; // Tempo em ms
   confidence?: number; // Score de confiança (0-1)
 }
 
 /**
- * Synapse utilizada para gerar a resposta
+ * Base de Conhecimento utilizada para gerar a resposta
  * Inclui score de similaridade vetorial
  */
-export interface SynapseUsed {
+export interface BaseUsed {
   id: string;
   title: string;
   content: string;
@@ -39,6 +39,12 @@ export interface SynapseUsed {
   score: number; // Similaridade vetorial (0-1)
   baseConhecimentoId: string;
 }
+
+/**
+ * @deprecated Use BaseUsed instead
+ * Mantido para compatibilidade temporária
+ */
+export type SynapseUsed = BaseUsed;
 
 /**
  * Feedback do usuário sobre uma resposta
@@ -58,7 +64,7 @@ export interface FeedbackContext {
   type: 'neurocore_training';
   question: string;
   answer: string;
-  synapsesUsed: string[]; // IDs das synapses
+  basesUsed: string[]; // IDs das bases de conhecimento usadas
   timestamp: string;
 }
 
@@ -103,7 +109,7 @@ export interface ActionResult {
  */
 export interface MockTrainingResponse {
   answer: string;
-  synapsesUsed: Array<{
+  basesUsed: Array<{
     id: string;
     title: string;
     content: string;

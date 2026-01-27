@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { TrainingQueryInput } from './training-query-input';
 import { TrainingResponseCard } from './training-response-card';
 import { ResponseFeedbackDialog } from './response-feedback-dialog';
+import { BaseConhecimentoFormDialog } from '@/components/knowledge-base/base-conhecimento-form-dialog';
 import { submitFeedbackAction } from '@/app/actions/neurocore';
 import { useApiCall } from '@/lib/hooks';
 import { MAX_NEUROCORE_QUERIES } from '@/config/constants';
@@ -14,19 +15,22 @@ import type {
   NeurocoreQueryResponse,
   FeedbackContext,
 } from '@/types/neurocore';
+import type { BaseConhecimento, KnowledgeDomain } from '@/types/knowledge-base';
 
 interface NeurocoreChatProps {
   tenantId: string;
+  neurocoreId: string;
+  allDomains: KnowledgeDomain[];
 }
 
 /**
- * Container principal do Treinamento Neurocore
+ * Container principal de Validação de Respostas
  *
  * Gerencia:
  * - Estado local das queries (não persiste no banco)
  * - Chamadas à API route /api/neurocore/query
  * - Feedback (like/dislike)
- * - Dialog de edição de synapse (será adicionado)
+ * - Dialog de edição de base de conhecimento
  *
  * Features:
  * - Limita histórico a 20 queries (performance)
@@ -34,7 +38,7 @@ interface NeurocoreChatProps {
  * - Loading states
  * - Error handling
  */
-export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
+export function NeurocoreChat({ tenantId, neurocoreId, allDomains }: NeurocoreChatProps) {
   const [queries, setQueries] = useState<TrainingQuery[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [feedbackDialog, setFeedbackDialog] = useState<{
@@ -45,6 +49,15 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
     open: false,
     queryId: null,
     type: null,
+  });
+  const [editBaseDialog, setEditBaseDialog] = useState<{
+    open: boolean;
+    base: BaseConhecimento | null;
+    isLoading: boolean;
+  }>({
+    open: false,
+    base: null,
+    isLoading: false,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -162,7 +175,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
       type: 'neurocore_training',
       question: query.question,
       answer: query.response.answer,
-      synapsesUsed: query.response.synapsesUsed.map((s) => s.id),
+      basesUsed: query.response.basesUsed.map((b) => b.id),
       timestamp: new Date().toISOString(),
     };
 
@@ -209,13 +222,25 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   };
 
   /**
-   * Abre dialog de edição de synapse
-   * TODO: Implementar no próximo sprint (refactor SynapseDialog)
+   * Abre dialog de edição de base de conhecimento
    */
-  const handleEditSynapse = (synapseId: string) => {
-    toast.info('Em desenvolvimento', {
-      description: `Editar synapse ${synapseId} (próximo sprint)`,
-    });
+  const handleEditBase = async (baseId: string) => {
+    try {
+      setEditBaseDialog({ open: true, base: null, isLoading: true });
+      
+      // Buscar base completa do banco
+      const response = await fetch(`/api/bases/${baseId}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar base de conhecimento');
+      }
+      
+      const base = await response.json();
+      setEditBaseDialog({ open: true, base, isLoading: false });
+    } catch (error) {
+      console.error('Erro ao buscar base:', error);
+      toast.error('Erro ao carregar base de conhecimento');
+      setEditBaseDialog({ open: false, base: null, isLoading: false });
+    }
   };
 
   return (
@@ -229,16 +254,15 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
               <span className="text-3xl">🧠</span>
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Teste o conhecimento da sua IA</h2>
+              <h2 className="text-2xl font-bold">Valide as respostas da sua IA</h2>
               <p className="text-muted-foreground max-w-md">
-                Faça perguntas para validar se a IA responde corretamente antes
-                de ativar em produção
+                Faça perguntas para testar se a IA responde corretamente usando a base de conhecimento
               </p>
             </div>
             <div className="bg-muted/50 p-4 rounded-lg max-w-md">
               <p className="text-sm text-muted-foreground">
                 💡 <strong>Dica:</strong> Teste perguntas que seus clientes
-                fariam para identificar gaps de conhecimento nas synapses
+                fariam para identificar gaps de conhecimento nas bases
               </p>
             </div>
           </div>
@@ -249,7 +273,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
           <TrainingResponseCard
             key={query.id}
             query={query}
-            onEditSynapse={handleEditSynapse}
+            onEditBase={handleEditBase}
             onFeedback={handleFeedback}
           />
         ))}
@@ -285,7 +309,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
                   </div>
                   <div className="flex items-center gap-2 text-purple-600">
                     <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse animation-delay-200" />
-                    <span>Processando synapses</span>
+                    <span>Processando bases de conhecimento</span>
                   </div>
                   <div className="flex items-center gap-2 text-purple-500">
                     <div className="h-1.5 w-1.5 rounded-full bg-purple-300 animate-pulse animation-delay-400" />
@@ -317,6 +341,22 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
           setFeedbackDialog({ open, queryId: null, type: null })
         }
         onSubmit={handleFeedbackDialogSubmit}
+      />
+
+      {/* Dialog de edição de base */}
+      <BaseConhecimentoFormDialog
+        open={editBaseDialog.open}
+        onOpenChange={(open) => 
+          !editBaseDialog.isLoading && setEditBaseDialog({ open, base: null, isLoading: false })
+        }
+        tenantId={tenantId}
+        neurocoreId={neurocoreId}
+        domains={allDomains}
+        base={editBaseDialog.base || undefined}
+        onSuccess={() => {
+          toast.success('Base de conhecimento atualizada!');
+          setEditBaseDialog({ open: false, base: null, isLoading: false });
+        }}
       />
     </div>
   );

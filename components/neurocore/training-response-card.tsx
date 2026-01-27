@@ -6,35 +6,35 @@ import { Brain, BookOpen, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { SynapseUsedCard } from './synapse-used-card';
+import { BaseUsedCard } from './base-used-card';
 import type { TrainingQuery } from '@/types/neurocore';
 
 interface TrainingResponseCardProps {
   query: TrainingQuery;
-  onEditSynapse: (synapseId: string) => void;
+  onEditBase: (baseId: string) => void;
   onFeedback: (queryId: string, type: 'like' | 'dislike') => void;
 }
 
 /**
- * Card de resposta do treinamento
+ * Card de resposta da validação
  *
  * Features:
  * - Renderiza resposta em markdown (sanitizado)
- * - Lista synapses usadas
+ * - Lista bases de conhecimento usadas
  * - Botão de feedback (like/dislike)
  * - Timestamp e tempo de processamento
  */
 export function TrainingResponseCard({
   query,
-  onEditSynapse,
+  onEditBase,
   onFeedback,
 }: TrainingResponseCardProps) {
   if (!query.response) {
     return null;
   }
 
-  const { answer, synapsesUsed, processingTime } = query.response;
-  const hasSynapses = synapsesUsed.length > 0;
+  const { answer, basesUsed, processingTime } = query.response;
+  const hasBases = basesUsed.length > 0;
 
   return (
     <div className="space-y-4">
@@ -104,25 +104,25 @@ export function TrainingResponseCard({
             </ReactMarkdown>
           </div>
 
-          {/* Synapses Usadas */}
-          {hasSynapses && (
+          {/* Bases de Conhecimento Usadas */}
+          {hasBases && (
             <>
               <Separator />
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium text-sm">
-                    Conhecimento Usado ({synapsesUsed.length}{' '}
-                    {synapsesUsed.length === 1 ? 'synapse' : 'synapses'})
+                    Conhecimento Usado ({basesUsed.length}{' '}
+                    {basesUsed.length === 1 ? 'base' : 'bases'})
                   </span>
                 </div>
 
                 <div className="grid gap-3">
-                  {synapsesUsed.map((synapse) => (
-                    <SynapseUsedCard
-                      key={synapse.id}
-                      synapse={synapse}
-                      onEdit={onEditSynapse}
+                  {basesUsed.map((base) => (
+                    <BaseUsedCard
+                      key={base.id}
+                      base={base}
+                      onEdit={onEditBase}
                     />
                   ))}
                 </div>
@@ -130,8 +130,8 @@ export function TrainingResponseCard({
             </>
           )}
 
-          {/* Empty State - Nenhuma Synapse */}
-          {!hasSynapses && (
+          {/* Empty State - Nenhuma Base */}
+          {!hasBases && (
             <>
               <Separator />
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -141,11 +141,11 @@ export function TrainingResponseCard({
                   </div>
                   <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium text-orange-900">
-                      Nenhuma synapse encontrada
+                      Nenhuma base de conhecimento encontrada
                     </p>
                     <p className="text-sm text-orange-700">
                       Não encontrei informações sobre esse assunto na base de
-                      conhecimento. Considere criar uma synapse sobre este tema.
+                      conhecimento. Considere criar uma base sobre este tema.
                     </p>
                   </div>
                 </div>

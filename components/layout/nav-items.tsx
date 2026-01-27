@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Brain, Kanban, Bot, BarChart3, Wallet } from 'lucide-react';
+import { MessageSquare, BookOpen, Kanban, Bot, BarChart3, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -40,11 +40,16 @@ export const navItems: NavItem[] = [
     title: 'Base de Conhecimento',
     url: '/knowledge-base',
     icon: BookOpen,
-  },
-  {
-    title: 'Treinamento Neurocore',
-    url: '/neurocore',
-    icon: Brain,
+    items: [
+      {
+        title: 'Gerenciar Bases',
+        url: '/knowledge-base',
+      },
+      {
+        title: 'Validar Respostas',
+        url: '/neurocore',
+      },
+    ],
   },
   {
     title: 'Meus Agentes IA',
