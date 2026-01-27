@@ -155,18 +155,6 @@ function LedgerRow({ entry }: { entry: LedgerEntry }) {
                   </p>
                 </div>
               )}
-              {entry.meta?.base_usd && (
-                <>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Custo Base (USD)</p>
-                    <p>${Number(entry.meta.base_usd).toFixed(4)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Valor Cobrado (USD)</p>
-                    <p>${Number(entry.meta.sell_usd).toFixed(4)}</p>
-                  </div>
-                </>
-              )}
             </div>
           </TableCell>
         </TableRow>

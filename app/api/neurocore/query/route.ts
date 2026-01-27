@@ -161,8 +161,19 @@ export async function POST(request: NextRequest) {
         throw new Error(`Resposta do n8n não é um JSON válido: ${responseText.substring(0, 200)}`);
       }
 
-      // Extrair campo 'return' da resposta do n8n
-      const data = parsedData.return || parsedData;
+      // Lidar com resposta que pode ser array ou objeto
+      let rawData = parsedData;
+      
+      // Se for array, pegar o primeiro elemento
+      if (Array.isArray(parsedData)) {
+        if (parsedData.length === 0) {
+          throw new Error('n8n retornou array vazio');
+        }
+        rawData = parsedData[0];
+      }
+
+      // Extrair campo 'return' da resposta do n8n (se existir)
+      const data = rawData.return || rawData;
 
       // Validar estrutura da resposta
       if (!data.answer) {

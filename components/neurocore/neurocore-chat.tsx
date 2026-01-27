@@ -37,7 +37,6 @@ interface NeurocoreChatProps {
 export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   const [queries, setQueries] = useState<TrainingQuery[]>([]);
   const [isMounted, setIsMounted] = useState(false);
-  const [currentQueryId, setCurrentQueryId] = useState<string | null>(null);
   const [feedbackDialog, setFeedbackDialog] = useState<{
     open: boolean;
     queryId: string | null;
@@ -49,32 +48,43 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const currentQueryIdRef = useRef<string | null>(null);
 
   // API call hooks
   const submitQuery = useApiCall<NeurocoreQueryResponse>('/api/neurocore/query', 'POST', {
     suppressSuccessToast: true,
     suppressErrorToast: true, // Handled manually below
     onSuccess: (data) => {
-      if (currentQueryId && data.success) {
+      console.log('[NeurocoreChat] onSuccess data:', data);
+      console.log('[NeurocoreChat] currentQueryIdRef:', currentQueryIdRef.current);
+      console.log('[NeurocoreChat] data.success:', data.success);
+      console.log('[NeurocoreChat] data.data:', data.data);
+      
+      if (currentQueryIdRef.current && data.success && data.data) {
+        const queryId = currentQueryIdRef.current;
         // Atualiza query com resposta
-        setQueries((prev) =>
-          prev.map((q) =>
-            q.id === currentQueryId
+        setQueries((prev) => {
+          const updated = prev.map((q) =>
+            q.id === queryId
               ? {
                   ...q,
                   response: data.data,
                 }
               : q
-          )
-        );
+          );
+          console.log('[NeurocoreChat] Updated queries:', updated);
+          return updated;
+        });
       }
-      setCurrentQueryId(null);
+      currentQueryIdRef.current = null;
     },
     onError: () => {
+      console.log('[NeurocoreChat] onError');
       // Remove query que falhou
-      if (currentQueryId) {
-        setQueries((prev) => prev.filter((q) => q.id !== currentQueryId));
-        setCurrentQueryId(null);
+      if (currentQueryIdRef.current) {
+        const queryId = currentQueryIdRef.current;
+        setQueries((prev) => prev.filter((q) => q.id !== queryId));
+        currentQueryIdRef.current = null;
       }
     },
   });
@@ -102,7 +112,7 @@ export function NeurocoreChat({ tenantId }: NeurocoreChatProps) {
       createdAt: new Date(), // Agora é seguro pois só executa após click do usuário
     };
 
-    setCurrentQueryId(newQuery.id);
+    currentQueryIdRef.current = newQuery.id;
 
     // Adiciona query ao estado (sem resposta ainda)
     setQueries((prev) => {
