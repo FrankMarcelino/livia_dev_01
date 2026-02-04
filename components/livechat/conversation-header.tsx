@@ -36,8 +36,11 @@ export function ConversationHeader({
   const displayName = getContactDisplayName(contactName, contactPhone || null);
 
   // Extrair tags atuais (todas as tags da conversa)
+  // Filtrar tags nulas (podem ocorrer quando tag foi deletada mas referência ainda existe)
   const selectedTags = useMemo(() => {
-    return conversationTags.map(ct => ct.tag);
+    return conversationTags
+      .map(ct => ct.tag)
+      .filter((tag): tag is Tag => tag !== null && tag !== undefined);
   }, [conversationTags]);
 
   const handlePauseIAClick = () => {

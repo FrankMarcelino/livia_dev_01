@@ -72,8 +72,9 @@ export function TagSelector({
   };
 
   // IDs das tags selecionadas para busca rápida
+  // Filtrar tags nulas defensivamente
   const selectedTagIds = useMemo(
-    () => new Set(selectedTags.map(t => t.id)),
+    () => new Set(selectedTags.filter(t => t !== null && t !== undefined).map(t => t.id)),
     [selectedTags]
   );
 
