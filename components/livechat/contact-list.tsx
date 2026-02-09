@@ -71,7 +71,7 @@ export function ContactList({
     const matchesTags =
       selectedTagIds.size === 0 ||
       (conversation.conversation_tags?.some((ct) =>
-        selectedTagIds.has(ct.tag.id)
+        ct.tag && selectedTagIds.has(ct.tag.id)
       ) ?? false);
 
     // Filtro de não lidas - só se aplica no modo manual quando toggle está ativo

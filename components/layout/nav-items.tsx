@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Kanban, Bot, BarChart3, Wallet } from 'lucide-react';
+import { MessageSquare, BookOpen, Kanban, Bot, BarChart3, Wallet, RotateCcw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
@@ -55,6 +55,11 @@ export const navItems: NavItem[] = [
     title: 'Meus Agentes IA',
     url: '/meus-agentes',
     icon: Bot,
+  },
+  {
+    title: 'Reativacao',
+    url: '/reativacao',
+    icon: RotateCcw,
   },
   {
     title: 'Relatórios',

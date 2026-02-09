@@ -120,7 +120,7 @@ export function useConversationsInfinite(
       if (filters?.selectedTagIds && filters.selectedTagIds.size > 0) {
         filtered = filtered.filter((conv) =>
           conv.conversation_tags?.some((ct) =>
-            filters.selectedTagIds?.has(ct.tag.id)
+            ct.tag && filters.selectedTagIds?.has(ct.tag.id)
           )
         );
       }
