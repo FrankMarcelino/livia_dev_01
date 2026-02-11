@@ -40,9 +40,11 @@ export async function saveReactivationConfig(formData: unknown) {
     // 3. Validar com Zod
     const validationResult = reactivationFormSchema.safeParse(formData);
     if (!validationResult.success) {
+      const zodErrors = validationResult.error.flatten();
+      console.error('Zod validation failed:', JSON.stringify(zodErrors, null, 2));
       return {
         success: false,
-        error: 'Dados invalidos',
+        error: `Dados invalidos: ${validationResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
         details: validationResult.error.format(),
       };
     }
@@ -67,7 +69,7 @@ export async function saveReactivationConfig(formData: unknown) {
 
     if (settingsError) {
       console.error('Error upserting reactivation settings:', settingsError);
-      return { success: false, error: 'Erro ao salvar configuracoes' };
+      return { success: false, error: `Erro ao salvar configuracoes: ${settingsError.message} (code: ${settingsError.code})` };
     }
 
     // 5. Delete todos os steps existentes (cascade deleta tags)
@@ -79,7 +81,7 @@ export async function saveReactivationConfig(formData: unknown) {
 
     if (deleteError) {
       console.error('Error deleting existing steps:', deleteError);
-      return { success: false, error: 'Erro ao limpar etapas anteriores' };
+      return { success: false, error: `Erro ao limpar etapas anteriores: ${deleteError.message} (code: ${deleteError.code})` };
     }
 
     // 6. Insert novos steps
@@ -101,13 +103,13 @@ export async function saveReactivationConfig(formData: unknown) {
 
       if (stepError || !insertedStep) {
         console.error(`Error inserting step ${i + 1}:`, stepError);
-        return { success: false, error: `Erro ao salvar etapa ${i + 1}` };
+        return { success: false, error: `Erro ao salvar etapa ${i + 1}: ${stepError?.message || 'insert retornou null'} (code: ${stepError?.code || 'N/A'})` };
       }
 
       // 7. Insert associacoes step-tag
       if (step.tag_ids && step.tag_ids.length > 0) {
         const tagRows = step.tag_ids.map((tagId: string) => ({
-          step_id: insertedStep.id,
+          reactivation_rule_step_id: insertedStep.id,
           tag_id: tagId,
         }));
 
@@ -118,7 +120,7 @@ export async function saveReactivationConfig(formData: unknown) {
 
         if (tagError) {
           console.error(`Error inserting tags for step ${i + 1}:`, tagError);
-          return { success: false, error: `Erro ao salvar tags da etapa ${i + 1}` };
+          return { success: false, error: `Erro ao salvar tags da etapa ${i + 1}: ${tagError.message} (code: ${tagError.code})` };
         }
       }
     }
@@ -129,6 +131,7 @@ export async function saveReactivationConfig(formData: unknown) {
     return { success: true };
   } catch (error) {
     console.error('Unexpected error saving reactivation config:', error);
-    return { success: false, error: 'Erro inesperado ao salvar configuracao' };
+    const message = error instanceof Error ? error.message : String(error);
+    return { success: false, error: `Erro inesperado: ${message}` };
   }
 }

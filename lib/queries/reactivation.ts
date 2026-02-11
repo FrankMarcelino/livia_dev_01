@@ -76,8 +76,8 @@ export async function getReactivationSteps(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: stepTagsData, error: stepTagsError } = await (supabase as any)
     .from('tenant_reactivation_rules_steps_tags')
-    .select('step_id, tag_id')
-    .in('step_id', stepIds);
+    .select('reactivation_rule_step_id, tag_id')
+    .in('reactivation_rule_step_id', stepIds);
 
   if (stepTagsError) {
     console.error('Error fetching step tags:', stepTagsError);
@@ -85,7 +85,7 @@ export async function getReactivationSteps(
     return steps.map((step) => ({ ...step, tags: [] }));
   }
 
-  const stepTags = (stepTagsData || []) as { step_id: string; tag_id: string }[];
+  const stepTags = (stepTagsData || []) as { reactivation_rule_step_id: string; tag_id: string }[];
 
   // Se nao ha tags associadas, retorna steps sem tags
   if (stepTags.length === 0) {
@@ -115,9 +115,9 @@ export async function getReactivationSteps(
   for (const st of stepTags) {
     const tag = tagsMap.get(st.tag_id);
     if (tag) {
-      const existing = stepTagsMap.get(st.step_id) || [];
+      const existing = stepTagsMap.get(st.reactivation_rule_step_id) || [];
       existing.push(tag);
-      stepTagsMap.set(st.step_id, existing);
+      stepTagsMap.set(st.reactivation_rule_step_id, existing);
     }
   }
 

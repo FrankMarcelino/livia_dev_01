@@ -110,7 +110,9 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
   async function onSubmit(data: ReactivationFormDataValidated) {
     setIsSubmitting(true);
     try {
+      console.log('[Reactivation] Submitting data:', JSON.stringify(data, null, 2));
       const result = await saveReactivationConfig(data);
+      console.log('[Reactivation] Server response:', result);
 
       if (result.success) {
         toast.success('Configuracao salva com sucesso!', {
@@ -143,9 +145,10 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
           });
         }
       }
-    } catch {
+    } catch (err) {
+      console.error('[Reactivation] Submit error:', err);
       toast.error('Erro de conexao', {
-        description: 'Verifique sua internet e tente novamente.',
+        description: err instanceof Error ? err.message : 'Verifique sua internet e tente novamente.',
       });
     } finally {
       setIsSubmitting(false);
