@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useState, useCallback } from 'react';
+import { useForm, useFieldArray, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, ListOrdered, Settings2, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { reactivationFormSchema, type ReactivationFormDataValidated } from '@/lib/validations/reactivationValidation';
 import { saveReactivationConfig } from '@/app/actions/reactivation';
 import { SettingsCard } from './settings-card';
@@ -18,8 +19,28 @@ interface ReactivationPageProps {
   initialData: ReactivationPageData;
 }
 
+/** Conta erros de validacao relacionados a tab "steps" */
+function countStepsErrors(errors: FieldErrors<ReactivationFormDataValidated>): number {
+  if (!errors.steps) return 0;
+  // Erro root do array (ex: "min 1 etapa")
+  const root = (errors.steps as { root?: { message?: string } }).root;
+  let count = root?.message ? 1 : 0;
+  // Erros individuais dos steps
+  if (Array.isArray(errors.steps)) {
+    count += errors.steps.filter(Boolean).length;
+  }
+  return count;
+}
+
+/** Conta erros de validacao relacionados a tab "settings" */
+function countSettingsErrors(errors: FieldErrors<ReactivationFormDataValidated>): number {
+  if (!errors.settings) return 0;
+  return Object.keys(errors.settings).length;
+}
+
 export function ReactivationPage({ initialData }: ReactivationPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('steps');
 
   // Converter steps do DB para form data
   const initialSteps = initialData.steps.map((step) => ({
@@ -56,73 +77,175 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
   const watchedSteps = form.watch('steps');
   const watchedSettings = form.watch('settings');
 
+  // Contagem de erros por tab
+  const errors = form.formState.errors;
+  const stepsErrorCount = countStepsErrors(errors);
+  const settingsErrorCount = countSettingsErrors(errors);
+
+  /** Ao falhar validacao client-side, navega para tab com erro */
+  const onValidationError = useCallback(
+    (formErrors: FieldErrors<ReactivationFormDataValidated>) => {
+      const hasStepsErrors = !!formErrors.steps;
+      const hasSettingsErrors = !!formErrors.settings;
+
+      // Navegar para a primeira tab com erro
+      if (hasStepsErrors && activeTab !== 'steps') {
+        setActiveTab('steps');
+      } else if (hasSettingsErrors && !hasStepsErrors && activeTab !== 'settings') {
+        setActiveTab('settings');
+      }
+
+      // Toast informativo
+      const parts: string[] = [];
+      if (hasStepsErrors) parts.push('Etapas');
+      if (hasSettingsErrors) parts.push('Configuracoes');
+
+      toast.error('Corrija os erros antes de salvar', {
+        description: `Verifique: ${parts.join(' e ')}`,
+      });
+    },
+    [activeTab]
+  );
+
   async function onSubmit(data: ReactivationFormDataValidated) {
     setIsSubmitting(true);
     try {
       const result = await saveReactivationConfig(data);
+
       if (result.success) {
-        toast.success('Configuracao salva com sucesso!');
+        toast.success('Configuracao salva com sucesso!', {
+          description: 'Todas as etapas e configuracoes foram atualizadas.',
+        });
       } else {
-        toast.error(result.error || 'Erro ao salvar configuracao');
+        // Mapear erros do servidor para mensagens amigaveis
+        const errorMessages: Record<string, { title: string; description: string }> = {
+          'Nao autenticado': {
+            title: 'Sessao expirada',
+            description: 'Faca login novamente para continuar.',
+          },
+          'Tenant nao encontrado': {
+            title: 'Conta nao encontrada',
+            description: 'Entre em contato com o suporte.',
+          },
+          'Dados invalidos': {
+            title: 'Dados invalidos',
+            description: 'Verifique os campos e tente novamente.',
+          },
+        };
+
+        const mapped = errorMessages[result.error || ''];
+
+        if (mapped) {
+          toast.error(mapped.title, { description: mapped.description });
+        } else {
+          toast.error('Erro ao salvar', {
+            description: result.error || 'Tente novamente em alguns instantes.',
+          });
+        }
       }
-    } catch (error) {
-      console.error('Error saving reactivation config:', error);
-      toast.error('Erro inesperado ao salvar');
+    } catch {
+      toast.error('Erro de conexao', {
+        description: 'Verifique sua internet e tente novamente.',
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Reativacao de Conversas</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure as regras de reativacao automatica quando o contato nao responde.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <RotateCcw className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Reativacao de Conversas</h1>
+          <p className="text-muted-foreground text-sm">
+            Configure as regras de reativacao automatica quando o contato nao responde.
+          </p>
+        </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid lg:grid-cols-5 gap-6">
-            {/* Coluna esquerda: Configuracoes */}
-            <div className="lg:col-span-3 space-y-6">
-              <SettingsCard form={form} />
-
-              <StepsList
-                form={form}
-                fieldArray={fieldArray}
-                availableTags={initialData.availableTags}
-              />
-
-              {/* Botao Salvar */}
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting} size="lg">
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar Configuracao
-                    </>
+        <form onSubmit={form.handleSubmit(onSubmit, onValidationError)}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="steps">
+                  <ListOrdered className="h-4 w-4 mr-2" />
+                  Etapas de Reativacao
+                  {stepsErrorCount > 0 && (
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                      {stepsErrorCount}
+                    </span>
                   )}
-                </Button>
-              </div>
+                </TabsTrigger>
+                <TabsTrigger value="settings">
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Configuracoes Gerais
+                  {settingsErrorCount > 0 && (
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                      {settingsErrorCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Botao Salvar no header das tabs */}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </>
+                )}
+              </Button>
             </div>
 
-            {/* Coluna direita: Timeline Preview */}
-            <div className="lg:col-span-2">
-              <TimelinePreview
-                steps={watchedSteps || []}
-                settings={watchedSettings}
-                availableTags={initialData.availableTags}
-              />
-            </div>
-          </div>
+            {/* Banner de erro global */}
+            {(stepsErrorCount > 0 || settingsErrorCount > 0) && (
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 p-3">
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">
+                  {stepsErrorCount + settingsErrorCount === 1
+                    ? 'Existe 1 erro que precisa ser corrigido antes de salvar.'
+                    : `Existem ${stepsErrorCount + settingsErrorCount} erros que precisam ser corrigidos antes de salvar.`}
+                </p>
+              </div>
+            )}
+
+            <TabsContent value="steps" className="mt-6">
+              <div className="grid lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3">
+                  <StepsList
+                    form={form}
+                    fieldArray={fieldArray}
+                    availableTags={initialData.availableTags}
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <TimelinePreview
+                    steps={watchedSteps || []}
+                    settings={watchedSettings}
+                    availableTags={initialData.availableTags}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-6">
+              <div className="max-w-2xl">
+                <SettingsCard form={form} />
+              </div>
+            </TabsContent>
+          </Tabs>
         </form>
       </Form>
     </div>

@@ -39,14 +39,8 @@ export const reactivationStepSchema = z
     tag_ids: z.array(z.string().uuid()).default([]),
   })
   .superRefine((data, ctx) => {
-    // action_parameter obrigatorio se send_message
-    if (data.action_type === 'send_message' && !data.action_parameter.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Mensagem e obrigatoria para a acao "Enviar Mensagem"',
-        path: ['action_parameter'],
-      });
-    }
+    // action_parameter e opcional para send_message
+    // Se vazio, o agente IA gera a mensagem automaticamente
 
     // start_time e end_time: ambos ou nenhum
     const hasStart = data.start_time.trim() !== '';

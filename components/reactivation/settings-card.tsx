@@ -1,12 +1,10 @@
 'use client';
 
 import type { UseFormReturn } from 'react-hook-form';
+import { ShieldAlert, Timer } from 'lucide-react';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import {
   FormField,
@@ -25,7 +23,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import type { ReactivationFormDataValidated } from '@/lib/validations/reactivationValidation';
 
 interface SettingsCardProps {
@@ -43,21 +40,23 @@ export function SettingsCard({ form }: SettingsCardProps) {
   const maxWindowAction = form.watch('settings.max_window_action');
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configuracoes Gerais</CardTitle>
-        <CardDescription>
-          Defina o comportamento quando todas as etapas forem executadas ou a janela maxima for atingida.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Secao: Etapas Esgotadas */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold">Etapas Esgotadas</h3>
-          <p className="text-xs text-muted-foreground">
-            O que fazer quando todas as etapas de reativacao forem executadas sem resposta do contato.
-          </p>
-
+    <div className="space-y-6">
+      {/* Secao: Etapas Esgotadas */}
+      <Card className="overflow-hidden">
+        <div className="border-b bg-muted/30 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Etapas Esgotadas</h3>
+              <p className="text-xs text-muted-foreground">
+                O que fazer quando todas as etapas forem executadas sem resposta.
+              </p>
+            </div>
+          </div>
+        </div>
+        <CardContent className="p-6 space-y-4">
           <FormField
             control={form.control}
             name="settings.exhausted_action"
@@ -93,7 +92,7 @@ export function SettingsCard({ form }: SettingsCardProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Mensagem enviada antes de executar a acao..."
-                      className="min-h-[80px]"
+                      className="min-h-[80px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -102,17 +101,25 @@ export function SettingsCard({ form }: SettingsCardProps) {
               )}
             />
           )}
+        </CardContent>
+      </Card>
+
+      {/* Secao: Janela Maxima */}
+      <Card className="overflow-hidden">
+        <div className="border-b bg-muted/30 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Timer className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Janela Maxima de Reativacao</h3>
+              <p className="text-xs text-muted-foreground">
+                Tempo maximo total para tentar reativar. Deixe em branco para nao limitar.
+              </p>
+            </div>
+          </div>
         </div>
-
-        <Separator />
-
-        {/* Secao: Janela Maxima */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold">Janela Maxima de Reativacao</h3>
-          <p className="text-xs text-muted-foreground">
-            Tempo maximo total para tentar reativar uma conversa. Deixe em branco para nao limitar.
-          </p>
-
+        <CardContent className="p-6 space-y-4">
           <FormField
             control={form.control}
             name="settings.max_reactivation_window_minutes"
@@ -173,7 +180,7 @@ export function SettingsCard({ form }: SettingsCardProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Mensagem enviada antes de executar a acao..."
-                      className="min-h-[80px]"
+                      className="min-h-[80px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -182,8 +189,8 @@ export function SettingsCard({ form }: SettingsCardProps) {
               )}
             />
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
