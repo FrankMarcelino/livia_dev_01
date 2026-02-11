@@ -1,24 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import {
-  MessageSquare,
-  PhoneForwarded,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Tag,
-  Eye,
-} from 'lucide-react';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { MessageSquare, PhoneForwarded, XCircle, Clock, AlertTriangle, Tag, Eye } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type {
-  ReactivationSettingsFormData,
-  ReactivationStepFormData,
-} from '@/lib/validations/reactivationValidation';
+import type { ReactivationSettingsFormData, ReactivationStepFormData } from '@/lib/validations/reactivationValidation';
 
 interface TimelinePreviewProps {
   steps: ReactivationStepFormData[];
@@ -26,37 +12,16 @@ interface TimelinePreviewProps {
   availableTags: { id: string; tag_name: string; tag_type: string; color: string | null }[];
 }
 
-const actionIcons: Record<string, typeof MessageSquare> = {
-  send_message: MessageSquare,
-  close_conversation: XCircle,
-  transfer_to_human: PhoneForwarded,
-};
-
-const actionLabels: Record<string, string> = {
-  send_message: 'Enviar Mensagem',
-  close_conversation: 'Encerrar Conversa',
-  transfer_to_human: 'Transferir para Humano',
-};
-
-const actionColors: Record<string, string> = {
-  send_message: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  close_conversation: 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400',
-  transfer_to_human: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-};
-
-const fallbackLabels: Record<string, string> = {
-  end_conversation: 'Encerrar Conversa',
-  transfer_to_human: 'Transferir para Humano',
-  do_nothing: 'Nao fazer nada',
-};
+const actionIcons: Record<string, typeof MessageSquare> = { send_message: MessageSquare, close_conversation: XCircle, transfer_to_human: PhoneForwarded };
+const actionLabels: Record<string, string> = { send_message: 'Enviar Mensagem', close_conversation: 'Encerrar Conversa', transfer_to_human: 'Transferir para Humano' };
+const actionColors: Record<string, string> = { send_message: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400', close_conversation: 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400', transfer_to_human: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' };
+const fallbackLabels: Record<string, string> = { end_conversation: 'Encerrar Conversa', transfer_to_human: 'Transferir para Humano', do_nothing: 'Nao fazer nada' };
 
 function formatWait(minutes: number): string {
   if (!minutes || minutes <= 0) return '0min';
   if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}min`;
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}min`;
 }
 
 export function TimelinePreview({ steps, settings, availableTags }: TimelinePreviewProps) {
@@ -68,13 +33,12 @@ export function TimelinePreview({ steps, settings, availableTags }: TimelinePrev
     return map;
   }, [availableTags]);
 
-  // Calcular tempo acumulado
   const stepsWithAccumulated = useMemo(() => {
-    let accumulated = 0;
-    return (steps || []).map((step) => {
-      accumulated += step.wait_time_minutes || 0;
-      return { ...step, accumulatedMinutes: accumulated };
-    });
+    return (steps || []).reduce<(ReactivationStepFormData & { accumulatedMinutes: number })[]>((acc, step) => {
+      const prev = acc.length > 0 ? acc[acc.length - 1]!.accumulatedMinutes : 0;
+      acc.push({ ...step, accumulatedMinutes: prev + (step.wait_time_minutes || 0) });
+      return acc;
+    }, []);
   }, [steps]);
 
   return (
@@ -188,28 +152,20 @@ export function TimelinePreview({ steps, settings, availableTags }: TimelinePrev
                 );
               })}
 
-              {/* Fallback: Etapas esgotadas */}
               <div className="relative flex gap-3">
                 <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm">
                   <AlertTriangle className="h-3.5 w-3.5" />
                 </div>
                 <div className="flex-1 pt-0.5">
-                  <p className="text-sm font-medium text-destructive">
-                    Etapas esgotadas
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {fallbackLabels[settings.exhausted_action] || settings.exhausted_action}
-                  </p>
+                  <p className="text-sm font-medium text-destructive">Etapas esgotadas</p>
+                  <p className="text-xs text-muted-foreground">{fallbackLabels[settings.exhausted_action] || settings.exhausted_action}</p>
                   {settings.exhausted_message && settings.exhausted_action !== 'do_nothing' && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">
-                      &ldquo;{settings.exhausted_message}&rdquo;
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">&ldquo;{settings.exhausted_message}&rdquo;</p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Info box: Janela maxima */}
             {settings.max_reactivation_window_minutes && settings.max_reactivation_window_minutes > 0 && (
               <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-4">
                 <div className="flex items-start gap-3">
@@ -217,17 +173,10 @@ export function TimelinePreview({ steps, settings, availableTags }: TimelinePrev
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-400">
-                      Janela Maxima: {formatWait(settings.max_reactivation_window_minutes)}
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">
-                      Se o tempo total exceder {formatWait(settings.max_reactivation_window_minutes)},{' '}
-                      a acao sera: {fallbackLabels[settings.max_window_action] || settings.max_window_action}
-                    </p>
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-400">Janela Maxima: {formatWait(settings.max_reactivation_window_minutes)}</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">Se o tempo total exceder {formatWait(settings.max_reactivation_window_minutes)}, a acao sera: {fallbackLabels[settings.max_window_action] || settings.max_window_action}</p>
                     {settings.max_window_message && settings.max_window_action !== 'do_nothing' && (
-                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 line-clamp-2 italic">
-                        &ldquo;{settings.max_window_message}&rdquo;
-                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 line-clamp-2 italic">&ldquo;{settings.max_window_message}&rdquo;</p>
                     )}
                   </div>
                 </div>

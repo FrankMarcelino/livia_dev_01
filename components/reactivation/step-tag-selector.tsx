@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Plus, X } from 'lucide-react';
 import {
@@ -28,7 +28,8 @@ const tagTypeLabels: Record<string, string> = {
 };
 
 export function StepTagSelector({ form, stepIndex, availableTags }: StepTagSelectorProps) {
-  const selectedTagIds: string[] = form.watch(`steps.${stepIndex}.tag_ids`) || [];
+  const rawTagIds = form.watch(`steps.${stepIndex}.tag_ids`);
+  const selectedTagIds = useMemo(() => rawTagIds || [], [rawTagIds]);
 
   const selectedTagIdsSet = useMemo(() => new Set(selectedTagIds), [selectedTagIds]);
 
@@ -48,18 +49,17 @@ export function StepTagSelector({ form, stepIndex, availableTags }: StepTagSelec
     return grouped;
   }, [availableTags]);
 
-  function addTag(tagId: string) {
-    if (!selectedTagIdsSet.has(tagId)) {
-      form.setValue(`steps.${stepIndex}.tag_ids`, [...selectedTagIds, tagId]);
+  const addTag = useCallback((tagId: string) => {
+    const current = form.getValues(`steps.${stepIndex}.tag_ids`) || [];
+    if (!current.includes(tagId)) {
+      form.setValue(`steps.${stepIndex}.tag_ids`, [...current, tagId]);
     }
-  }
+  }, [form, stepIndex]);
 
-  function removeTag(tagId: string) {
-    form.setValue(
-      `steps.${stepIndex}.tag_ids`,
-      selectedTagIds.filter((id) => id !== tagId)
-    );
-  }
+  const removeTag = useCallback((tagId: string) => {
+    const current = form.getValues(`steps.${stepIndex}.tag_ids`) || [];
+    form.setValue(`steps.${stepIndex}.tag_ids`, current.filter((id) => id !== tagId));
+  }, [form, stepIndex]);
 
   return (
     <div className="space-y-2">

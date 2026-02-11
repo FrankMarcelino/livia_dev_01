@@ -5,26 +5,10 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, ChevronRight, Trash2, MessageSquare, PhoneForwarded, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DragHandle } from '@/components/agents/sortable/drag-handle';
-import { StepTagSelector } from './step-tag-selector';
+import { StepCardFields } from './step-card-fields';
 import type { ReactivationFormDataValidated } from '@/lib/validations/reactivationValidation';
 
 interface StepCardProps {
@@ -156,121 +140,8 @@ export function StepCard({
         </div>
       </div>
 
-      {/* Campos expandidos */}
       {isExpanded && (
-        <div className="border-t bg-muted/20 p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Tempo de espera */}
-            <FormField
-              control={form.control}
-              name={`steps.${index}.wait_time_minutes`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tempo de espera (minutos)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={10080}
-                      placeholder="30"
-                      value={field.value ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === '' ? undefined : Number(val));
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Tipo de acao */}
-            <FormField
-              control={form.control}
-              name={`steps.${index}.action_type`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Acao</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(actionTypeLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Mensagem (condicional) */}
-          {actionType === 'send_message' && (
-            <FormField
-              control={form.control}
-              name={`steps.${index}.action_parameter`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mensagem</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Deixe vazio para o agente IA gerar automaticamente..."
-                      className="min-h-[80px] resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {/* Janela de horario */}
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name={`steps.${index}.start_time`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Horario inicio (opcional)</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name={`steps.${index}.end_time`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Horario fim (opcional)</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Tag Selector */}
-          <StepTagSelector
-            form={form}
-            stepIndex={index}
-            availableTags={availableTags}
-          />
-        </div>
+        <StepCardFields form={form} index={index} actionType={actionType} availableTags={availableTags} />
       )}
     </div>
   );

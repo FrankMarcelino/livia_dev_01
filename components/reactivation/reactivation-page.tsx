@@ -19,23 +19,15 @@ interface ReactivationPageProps {
   initialData: ReactivationPageData;
 }
 
-/** Conta erros de validacao relacionados a tab "steps" */
 function countStepsErrors(errors: FieldErrors<ReactivationFormDataValidated>): number {
   if (!errors.steps) return 0;
-  // Erro root do array (ex: "min 1 etapa")
   const root = (errors.steps as { root?: { message?: string } }).root;
-  let count = root?.message ? 1 : 0;
-  // Erros individuais dos steps
-  if (Array.isArray(errors.steps)) {
-    count += errors.steps.filter(Boolean).length;
-  }
-  return count;
+  const count = root?.message ? 1 : 0;
+  return Array.isArray(errors.steps) ? count + errors.steps.filter(Boolean).length : count;
 }
 
-/** Conta erros de validacao relacionados a tab "settings" */
 function countSettingsErrors(errors: FieldErrors<ReactivationFormDataValidated>): number {
-  if (!errors.settings) return 0;
-  return Object.keys(errors.settings).length;
+  return errors.settings ? Object.keys(errors.settings).length : 0;
 }
 
 export function ReactivationPage({ initialData }: ReactivationPageProps) {
@@ -53,8 +45,8 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
     tag_ids: step.tags.map((t) => t.id),
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form = useForm<ReactivationFormDataValidated>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(reactivationFormSchema) as any,
     defaultValues: {
       settings: {
@@ -77,8 +69,7 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
   const watchedSteps = form.watch('steps');
   const watchedSettings = form.watch('settings');
 
-  // Contagem de erros por tab
-  const errors = form.formState.errors;
+  const { errors } = form.formState;
   const stepsErrorCount = countStepsErrors(errors);
   const settingsErrorCount = countSettingsErrors(errors);
 
@@ -110,40 +101,22 @@ export function ReactivationPage({ initialData }: ReactivationPageProps) {
   async function onSubmit(data: ReactivationFormDataValidated) {
     setIsSubmitting(true);
     try {
-      console.log('[Reactivation] Submitting data:', JSON.stringify(data, null, 2));
       const result = await saveReactivationConfig(data);
-      console.log('[Reactivation] Server response:', result);
 
       if (result.success) {
         toast.success('Configuracao salva com sucesso!', {
           description: 'Todas as etapas e configuracoes foram atualizadas.',
         });
       } else {
-        // Mapear erros do servidor para mensagens amigaveis
-        const errorMessages: Record<string, { title: string; description: string }> = {
-          'Nao autenticado': {
-            title: 'Sessao expirada',
-            description: 'Faca login novamente para continuar.',
-          },
-          'Tenant nao encontrado': {
-            title: 'Conta nao encontrada',
-            description: 'Entre em contato com o suporte.',
-          },
-          'Dados invalidos': {
-            title: 'Dados invalidos',
-            description: 'Verifique os campos e tente novamente.',
-          },
+        const mapped: Record<string, [string, string]> = {
+          'Nao autenticado': ['Sessao expirada', 'Faca login novamente para continuar.'],
+          'Tenant nao encontrado': ['Conta nao encontrada', 'Entre em contato com o suporte.'],
+          'Dados invalidos': ['Dados invalidos', 'Verifique os campos e tente novamente.'],
         };
-
-        const mapped = errorMessages[result.error || ''];
-
-        if (mapped) {
-          toast.error(mapped.title, { description: mapped.description });
-        } else {
-          toast.error('Erro ao salvar', {
-            description: result.error || 'Tente novamente em alguns instantes.',
-          });
-        }
+        const match = mapped[result.error || ''];
+        toast.error(match?.[0] || 'Erro ao salvar', {
+          description: match?.[1] || result.error || 'Tente novamente em alguns instantes.',
+        });
       }
     } catch (err) {
       console.error('[Reactivation] Submit error:', err);
