@@ -12,7 +12,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { LogOut, Mail, Building2, User as UserIcon } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
-import { AIControl } from '@/components/profile/ai-control';
 
 /**
  * Página de Perfil do Usuário
@@ -39,19 +38,13 @@ export default async function PerfilPage() {
   // Busca dados completos do usuário e tenant
   const { data: userData } = await supabase
     .from('users')
-    .select('tenant_id, full_name, email, avatar_url, tenants(name, created_at, ia_active)')
+    .select('tenant_id, full_name, email, avatar_url, tenants(name, created_at)')
     .eq('id', authData.user.id)
     .single();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = userData as any;
   const tenant = user?.tenants;
-  const tenantId = user?.tenant_id;
-
-  // isPaused é o INVERSO de ia_active
-  // ia_active=true -> isPaused=false (IA ativa)
-  // ia_active=false -> isPaused=true (IA pausada)
-  const aiPaused = !(tenant?.ia_active ?? true); // Default: IA ativa (não pausada)
 
   // Gera iniciais do nome
   const initials = user?.full_name
@@ -136,29 +129,6 @@ export default async function PerfilPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Card de Controle da IA */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Controle da IA</CardTitle>
-          <CardDescription>
-            Gerencie o comportamento da assistente virtual
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {tenantId ? (
-            <AIControl
-              userId={authData.user.id}
-              tenantId={tenantId}
-              initialPaused={aiPaused}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Usuário não associado a nenhum tenant
-            </p>
-          )}
         </CardContent>
       </Card>
 
