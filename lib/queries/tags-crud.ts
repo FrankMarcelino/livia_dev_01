@@ -164,6 +164,18 @@ export async function createTag(
 ): Promise<TagForManagement> {
   const supabase = await createClient();
 
+  // Buscar neurocore_id do tenant (necessário para RLS policy)
+  const { data: tenantData, error: tenantError } = await supabase
+    .from('tenants')
+    .select('neurocore_id')
+    .eq('id', payload.tenant_id)
+    .single();
+
+  if (tenantError || !tenantData) {
+    console.error('[createTag] Tenant não encontrado:', tenantError);
+    throw new Error('Tenant não encontrado');
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('tags')
@@ -178,6 +190,7 @@ export async function createTag(
       send_text: payload.send_text,
       send_text_message: payload.send_text_message || null,
       tenant_id: payload.tenant_id,
+      id_neurocore: tenantData.neurocore_id,
       order_index: 0,
     })
     .select()
