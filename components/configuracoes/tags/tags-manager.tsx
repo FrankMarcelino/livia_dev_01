@@ -55,8 +55,8 @@ export function TagsManager({ initialTags, tenantId }: TagsManagerProps) {
     try {
       const response = await fetch(`/api/configuracoes/tags?tenantId=${tenantId}`);
       if (!response.ok) throw new Error('Erro ao carregar tags');
-      const result = await response.json();
-      setTags(result.data);
+      const result = await response.json().catch(() => ({}));
+      setTags(result.data ?? []);
     } catch {
       toast.error('Erro ao carregar tags');
     } finally {
@@ -74,23 +74,8 @@ export function TagsManager({ initialTags, tenantId }: TagsManagerProps) {
     setDialogOpen(true);
   }
 
-  async function handleDelete(tag: TagForManagement) {
-    try {
-      const response = await fetch(`/api/configuracoes/tags/${tag.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao deletar tag');
-      }
-
-      toast.success('Tag deletada com sucesso');
-      await refreshTags();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao deletar tag';
-      toast.error(message);
-    }
+  function handleDeleted() {
+    refreshTags();
   }
 
   function handleFormSuccess() {
@@ -166,7 +151,7 @@ export function TagsManager({ initialTags, tenantId }: TagsManagerProps) {
                         key={tag.id}
                         tag={tag}
                         onEdit={handleEdit}
-                        onDelete={handleDelete}
+                        onDeleted={handleDeleted}
                       />
                     ))}
                   </div>

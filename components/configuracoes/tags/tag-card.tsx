@@ -21,11 +21,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MoreHorizontal, Pencil, Trash2, Shield } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface TagCardProps {
   tag: TagForManagement;
   onEdit: (tag: TagForManagement) => void;
-  onDelete: (tag: TagForManagement) => void;
+  onDeleted: () => void;
 }
 
 function hexToRgb(hex: string) {
@@ -39,12 +40,36 @@ function hexToRgb(hex: string) {
     : { r: 59, g: 130, b: 246 };
 }
 
-export function TagCard({ tag, onEdit, onDelete }: TagCardProps) {
+export function TagCard({ tag, onEdit, onDeleted }: TagCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const rgb = hexToRgb(tag.color || '#3B82F6');
   const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`;
   const borderColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/configuracoes/tags/${tag.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao deletar tag');
+      }
+
+      toast.success('Tag deletada com sucesso');
+      onDeleted();
+      setShowDeleteDialog(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao deletar tag';
+      toast.error('Erro ao deletar', { description: message });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -139,12 +164,13 @@ export function TagCard({ tag, onEdit, onDelete }: TagCardProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDelete(tag)}
+              onClick={handleDelete}
+              disabled={isDeleting}
             >
-              Deletar
+              {isDeleting ? 'Deletando...' : 'Deletar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

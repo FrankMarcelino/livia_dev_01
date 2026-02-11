@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   tag_name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
@@ -114,7 +115,7 @@ export function TagFormDialog({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Erro ao salvar tag');
       }
 
@@ -123,6 +124,7 @@ export function TagFormDialog({
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao salvar tag';
       form.setError('root', { message });
+      toast.error('Erro ao salvar', { description: message });
     } finally {
       setIsSubmitting(false);
     }

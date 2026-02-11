@@ -68,6 +68,7 @@ export async function getTagsForManagement(
     .single();
 
   if (tenantError || !tenantData) {
+    console.error('[getTagsForManagement] Tenant não encontrado:', tenantError);
     throw new Error('Tenant não encontrado');
   }
 
@@ -82,7 +83,10 @@ export async function getTagsForManagement(
     .order('tag_type')
     .order('tag_name');
 
-  if (tenantTagsError) throw tenantTagsError;
+  if (tenantTagsError) {
+    console.error('[getTagsForManagement] Erro ao buscar tags do tenant:', tenantTagsError);
+    throw tenantTagsError;
+  }
 
   // Buscar tags herdadas do neurocore (id_neurocore = neurocore_id do tenant)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,7 +98,10 @@ export async function getTagsForManagement(
     .order('tag_type')
     .order('tag_name');
 
-  if (neurocoreTagsError) throw neurocoreTagsError;
+  if (neurocoreTagsError) {
+    console.error('[getTagsForManagement] Erro ao buscar tags neurocore:', neurocoreTagsError);
+    throw neurocoreTagsError;
+  }
 
   // Mapear com flag isInherited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,7 +183,10 @@ export async function createTag(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('[createTag] Erro ao criar tag:', error);
+    throw error;
+  }
 
   return {
     ...data,
@@ -206,7 +216,10 @@ export async function updateTag(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('[updateTag] Erro ao atualizar tag:', error);
+    throw error;
+  }
 
   return {
     ...data,
@@ -233,6 +246,9 @@ export async function deleteTag(
     .eq('id', id)
     .eq('tenant_id', tenantId);
 
-  if (error) throw error;
+  if (error) {
+    console.error('[deleteTag] Erro ao deletar tag:', error);
+    throw error;
+  }
   return true;
 }
