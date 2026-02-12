@@ -116,6 +116,10 @@ export const navItems: NavItem[] = [
         url: '/financeiro/recarregar',
       },
       {
+        title: 'Assinatura',
+        url: '/financeiro/assinatura',
+      },
+      {
         title: 'Alertas',
         url: '/financeiro/alertas',
       },

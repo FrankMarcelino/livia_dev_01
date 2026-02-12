@@ -1,27 +1,33 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Mail,
-  MessageCircle,
   CreditCard,
   History,
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { SubscriptionStatusCard } from './subscription-status-card';
+import { useStripeBilling } from '@/hooks/use-stripe-billing';
 import type { WalletWithComputed, LedgerEntry } from '@/types/billing';
 import { formatBRL } from '@/types/billing';
+import { CREDIT_PACKAGES } from '@/types/stripe';
+import type { SubscriptionStatus } from '@/types/stripe';
 
 interface RechargePageContentProps {
   tenantId: string;
@@ -30,9 +36,6 @@ interface RechargePageContentProps {
   rechargeHistory: LedgerEntry[];
 }
 
-/**
- * Formata data para exibição
- */
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -41,19 +44,71 @@ function formatDate(dateStr: string): string {
   });
 }
 
-/**
- * Conteúdo da página de Recarga
- *
- * MVP: Instruções para recarga manual + histórico
- */
 export function RechargePageContent({
-  tenantName,
   wallet,
   rechargeHistory,
 }: RechargePageContentProps) {
-  // Email e WhatsApp para contato (pode ser configurável)
-  const contactEmail = 'financeiro@livia.ai';
-  const contactWhatsApp = '5511999999999'; // Substituir pelo número real
+  const [loadingPackage, setLoadingPackage] = useState<string | null>(null);
+  const { data: billingData } = useStripeBilling();
+
+  const subscription = billingData?.subscription;
+  const subscriptionStatus: SubscriptionStatus = subscription?.subscription_status || 'inactive';
+  const plans = billingData?.plans || [];
+
+  async function handleBuyCredits(packageId: string) {
+    setLoadingPackage(packageId);
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'payment', packageId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao iniciar checkout');
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Falha na conexão. Verifique sua internet e tente novamente.'
+      );
+      setLoadingPackage(null);
+    }
+  }
+
+  async function handleSubscribe() {
+    const firstPlan = plans[0];
+    if (!firstPlan) {
+      toast.error('Nenhum plano disponível no momento.');
+      return;
+    }
+
+    setLoadingPackage('subscription');
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'subscription',
+          priceId: firstPlan.stripe_price_id,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao iniciar assinatura');
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Falha na conexão. Verifique sua internet e tente novamente.'
+      );
+      setLoadingPackage(null);
+    }
+  }
 
   return (
     <div className="h-full w-full overflow-y-auto p-6 md:p-8">
@@ -71,11 +126,19 @@ export function RechargePageContent({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Recarregar Créditos</h1>
           <p className="text-muted-foreground">
-            Solicite uma recarga para continuar usando os serviços
+            Compre pacotes de créditos ou gerencie sua assinatura
           </p>
         </div>
 
         <Separator />
+
+        {/* Seção 1: Status da Manutenção */}
+        <SubscriptionStatusCard
+          status={subscriptionStatus}
+          periodEnd={subscription?.subscription_current_period_end || null}
+          cancelAtPeriodEnd={subscription?.subscription_cancel_at_period_end || false}
+          onSubscribe={handleSubscribe}
+        />
 
         {/* Saldo Atual */}
         {wallet && (
@@ -109,105 +172,46 @@ export function RechargePageContent({
           </Card>
         )}
 
-        {/* Instruções de Recarga */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Como Recarregar
-            </CardTitle>
-            <CardDescription>
-              Siga as instruções abaixo para solicitar uma recarga
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Passo 1 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h4 className="font-medium">Escolha o valor da recarga</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Defina quanto deseja recarregar. Valores mínimo: R$ 50,00
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {[50, 100, 200, 500].map((value) => (
-                    <Badge key={value} variant="outline" className="text-sm">
-                      R$ {value},00
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Passo 2 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h4 className="font-medium">Entre em contato conosco</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Envie sua solicitação por email ou WhatsApp informando:
-                </p>
-                <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                  <li>Nome da empresa: <strong>{tenantName}</strong></li>
-                  <li>Valor desejado da recarga</li>
-                  <li>Forma de pagamento preferida (PIX, boleto, etc)</li>
-                </ul>
-
-                <div className="flex flex-wrap gap-3 mt-4">
-                  <Button variant="outline" asChild>
-                    <a href={`mailto:${contactEmail}?subject=Solicitação de Recarga - ${tenantName}`}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      {contactEmail}
-                    </a>
+        {/* Seção 2: Pacotes de Créditos */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            Pacotes de Créditos
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {CREDIT_PACKAGES.map((pkg) => (
+              <Card key={pkg.id} className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-2xl">
+                    R$ {(pkg.amountCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  </CardTitle>
+                  <CardDescription>
+                    {pkg.credits.toLocaleString('pt-BR')} créditos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-sm text-muted-foreground">
+                    Necessários para o Agente IA funcionar. Os créditos não expiram.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    onClick={() => handleBuyCredits(pkg.id)}
+                    disabled={loadingPackage !== null}
+                  >
+                    {loadingPackage === pkg.id ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    Comprar
                   </Button>
-                  <Button variant="outline" asChild>
-                    <a
-                      href={`https://wa.me/${contactWhatsApp}?text=Olá! Gostaria de solicitar uma recarga de créditos para ${tenantName}.`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      WhatsApp
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-            {/* Passo 3 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h4 className="font-medium">Realize o pagamento</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Após o contato, você receberá os dados para pagamento (PIX, boleto ou transferência).
-                </p>
-              </div>
-            </div>
-
-            {/* Passo 4 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                4
-              </div>
-              <div>
-                <h4 className="font-medium">Créditos liberados</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Após a confirmação do pagamento, seus créditos serão adicionados automaticamente.
-                  O prazo é de até 24 horas úteis.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Histórico de Recargas */}
+        {/* Seção 3: Histórico de Recargas */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

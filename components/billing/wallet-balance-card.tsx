@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, TrendingUp, AlertTriangle, XCircle } from 'lucide-react';
+import { CreditCard, TrendingUp, AlertTriangle, XCircle, Shield, Loader2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -13,16 +14,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { useStripeBilling } from '@/hooks/use-stripe-billing';
 import type { WalletWithComputed, WalletStatus } from '@/types/billing';
 import { formatBRL, formatCredits } from '@/types/billing';
+import type { SubscriptionStatus } from '@/types/stripe';
 
 interface WalletBalanceCardProps {
   wallet: WalletWithComputed | null;
 }
 
-/**
- * Retorna configuração visual baseada no status
- */
 function getStatusConfig(status: WalletStatus) {
   switch (status) {
     case 'ok':
@@ -52,18 +54,42 @@ function getStatusConfig(status: WalletStatus) {
   }
 }
 
-/**
- * Card de Saldo da Carteira
- *
- * Exibe:
- * - Saldo atual em reais e créditos
- * - Saldo disponível (com overdraft)
- * - Status visual (OK/Low/Critical)
- * - Barra de progresso até threshold
- * - Link para recarregar
- */
+function getSubscriptionBadge(status: SubscriptionStatus) {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+      return { label: 'Ativa', className: 'bg-green-100 text-green-800 hover:bg-green-100' };
+    case 'past_due':
+      return { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' };
+    case 'canceled':
+      return { label: 'Cancelada', className: 'bg-red-100 text-red-800 hover:bg-red-100' };
+    default:
+      return { label: 'Inativa', className: 'bg-gray-100 text-gray-800 hover:bg-gray-100' };
+  }
+}
+
 export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
-  // Estado sem carteira
+  const [loadingPortal, setLoadingPortal] = useState(false);
+  const { data: billingData } = useStripeBilling();
+
+  const subscription = billingData?.subscription;
+  const subscriptionStatus: SubscriptionStatus = subscription?.subscription_status || 'inactive';
+  const subBadge = getSubscriptionBadge(subscriptionStatus);
+
+  async function handlePortal() {
+    setLoadingPortal(true);
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao abrir portal');
+      window.location.href = data.url;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao abrir portal');
+      setLoadingPortal(false);
+    }
+  }
+
+  // No wallet state
   if (!wallet) {
     return (
       <Card>
@@ -85,8 +111,6 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
 
   const statusConfig = getStatusConfig(wallet.status);
   const StatusIcon = statusConfig.icon;
-
-  // Calcula progresso (saldo em relação ao threshold)
   const progressPercent = wallet.low_balance_threshold_credits > 0
     ? Math.min(100, (wallet.available_credits / wallet.low_balance_threshold_credits) * 100)
     : 100;
@@ -162,6 +186,43 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
               {wallet.hard_stop_active ? 'Ativo' : 'Inativo'}
             </p>
           </div>
+        </div>
+
+        {/* Manutenção - Subscription Status */}
+        <Separator />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Manutenção</span>
+            </div>
+            <Badge variant="outline" className={subBadge.className}>
+              {subBadge.label}
+            </Badge>
+          </div>
+          {subscription?.subscription_current_period_end &&
+            (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && (
+            <p className="text-xs text-muted-foreground">
+              Renova em{' '}
+              {new Date(subscription.subscription_current_period_end).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })}
+            </p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto p-0 text-xs text-primary"
+            onClick={handlePortal}
+            disabled={loadingPortal}
+          >
+            {loadingPortal ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : null}
+            Gerenciar
+          </Button>
         </div>
       </CardContent>
 

@@ -146,7 +146,7 @@ export interface UsageByAgentSummary {
 
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
 
-export type NotificationType = 'low_balance' | 'hard_stop' | 'recovered';
+export type NotificationType = 'low_balance' | 'hard_stop' | 'recovered' | 'payment_failed';
 
 export type NotificationStatus = 'pending' | 'processing' | 'sent' | 'failed';
 
