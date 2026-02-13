@@ -165,13 +165,28 @@ export async function handleInvoicePaid(
       ? subscriptionDetails.subscription
       : subscriptionDetails.subscription.id;
 
+    // Extract period_end from invoice lines or invoice fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoiceAny = invoice as any;
+    const linePeriodEnd = invoice.lines?.data?.[0]?.period?.end;
+    const rawPeriodEnd = linePeriodEnd || invoiceAny.period_end;
+    const periodEnd = rawPeriodEnd
+      ? new Date(rawPeriodEnd * 1000).toISOString()
+      : null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {
+      subscription_status: 'active',
+      stripe_subscription_id: subscriptionId,
+    };
+    if (periodEnd) {
+      updateData.subscription_current_period_end = periodEnd;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabaseAdmin as any)
       .from('tenants')
-      .update({
-        subscription_status: 'active',
-        stripe_subscription_id: subscriptionId,
-      })
+      .update(updateData)
       .eq('id', tenantId);
   }
 
@@ -251,11 +266,14 @@ export async function handleSubscriptionUpdated(
     return;
   }
 
-  // Stripe SDK v20.3.1: current_period_end removed, use items period or billing_cycle_anchor
+  // Stripe SDK v20.3.1: current_period_end moved to subscription items
+  // Try items first, then fallback to top-level (via any) for older API versions
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subAny = subscription as any;
-  const periodEnd = subAny.current_period_end
-    ? new Date(subAny.current_period_end * 1000).toISOString()
+  const itemPeriodEnd = subscription.items?.data?.[0]?.current_period_end;
+  const rawPeriodEnd = itemPeriodEnd || subAny.current_period_end;
+  const periodEnd = rawPeriodEnd
+    ? new Date(rawPeriodEnd * 1000).toISOString()
     : null;
 
   const statusMap: Record<string, string> = {
