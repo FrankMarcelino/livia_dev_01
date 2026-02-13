@@ -8,6 +8,7 @@ import { WalletBalanceCard } from './wallet-balance-card';
 import { BalanceForecastCard } from './balance-forecast-card';
 import { UsageSummaryMiniCards } from './usage-summary-mini-cards';
 import { AutoRechargeConfigCard } from './auto-recharge-config';
+import { useStripeBilling } from '@/hooks/use-stripe-billing';
 import type { WalletWithComputed, UsageSummary } from '@/types/billing';
 
 interface WalletDashboardProps {
@@ -47,9 +48,12 @@ export function WalletDashboard({
     refetchOnWindowFocus: false,
   });
 
+  const { data: billingData } = useStripeBilling();
+
   const wallet = data.wallet;
   const usageSummary = data.usageSummary;
   const usageTotals = data.usageTotals;
+  const subscription = billingData?.subscription;
 
   // Calcular média diária (7 dias)
   const dailyAvgCredits = usageTotals.calls > 0
@@ -85,7 +89,12 @@ export function WalletDashboard({
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Coluna principal (3/5) */}
           <div className="lg:col-span-3 space-y-6">
-            <WalletBalanceCard wallet={wallet} dailyAvgCredits={dailyAvgCredits} />
+            <WalletBalanceCard
+              wallet={wallet}
+              dailyAvgCredits={dailyAvgCredits}
+              subscriptionPeriodEnd={subscription?.subscription_current_period_end}
+              subscriptionStatus={subscription?.subscription_status}
+            />
             <UsageSummaryMiniCards
               usageSummary={usageSummary}
               usageTotals={usageTotals}
