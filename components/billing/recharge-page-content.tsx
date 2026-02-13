@@ -6,6 +6,7 @@ import {
   CreditCard,
   History,
   ArrowLeft,
+  AlertTriangle,
   CheckCircle2,
   Clock,
   Loader2,
@@ -29,6 +30,13 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SubscriptionStatusCard } from './subscription-status-card';
 import { CustomAmountInput } from './custom-amount-input';
 import { useStripeBilling } from '@/hooks/use-stripe-billing';
@@ -65,6 +73,7 @@ export function RechargePageContent({
   const subscription = billingData?.subscription;
   const subscriptionStatus: SubscriptionStatus = subscription?.subscription_status || 'inactive';
   const plans = billingData?.plans || [];
+  const isSubscriptionBlocked = subscriptionStatus === 'canceled' || subscriptionStatus === 'inactive';
 
   async function handleBuyCredits(packageId: string) {
     setLoadingPackage(packageId);
@@ -146,6 +155,50 @@ export function RechargePageContent({
 
   return (
     <div className="h-full w-full overflow-y-auto p-6 md:p-8">
+      {/* Modal bloqueante — assinatura vencida/cancelada */}
+      <Dialog open={isSubscriptionBlocked}>
+        <DialogContent
+          className="sm:max-w-lg [&>button]:hidden"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="text-center sm:text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+            </div>
+            <DialogTitle className="text-xl">
+              Assinatura Inativa
+            </DialogTitle>
+            <DialogDescription className="text-base mt-2">
+              Sua assinatura de manutenção está{' '}
+              {subscriptionStatus === 'canceled' ? 'cancelada' : 'inativa'}.
+              Para continuar utilizando o sistema, é necessário ativar sua assinatura.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-sm text-muted-foreground">
+              <p>A assinatura inclui:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Sistema online 24/7</li>
+                <li>Suporte técnico</li>
+                <li>Atualizações e melhorias contínuas</li>
+              </ul>
+            </div>
+            <Button
+              className="w-full text-base py-6"
+              size="lg"
+              onClick={handleSubscribe}
+              disabled={loadingPackage === 'subscription'}
+            >
+              {loadingPackage === 'subscription' ? (
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              ) : null}
+              Assinar Agora — R$ 300,00/mês
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="container max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
