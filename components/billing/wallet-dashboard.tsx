@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { WalletBalanceCard } from './wallet-balance-card';
+import { BalanceForecastCard } from './balance-forecast-card';
 import { UsageSummaryMiniCards } from './usage-summary-mini-cards';
+import { AutoRechargeConfigCard } from './auto-recharge-config';
 import type { WalletWithComputed, UsageSummary } from '@/types/billing';
 
-/**
- * Props do WalletDashboard
- */
 interface WalletDashboardProps {
   tenantId: string;
   initialWallet: WalletWithComputed | null;
@@ -18,48 +17,49 @@ interface WalletDashboardProps {
   initialUsageTotals: { total_credits: number; total_brl: number; calls: number };
 }
 
-/**
- * Dashboard de Carteira - Container Client
- *
- * Princípios SOLID:
- * - Single Responsibility: Orquestra componentes de billing
- * - Open/Closed: Extensível para novos cards sem modificar existentes
- *
- * Recebe dados iniciais do Server Component e gerencia refresh.
- * Futuramente pode usar TanStack Query para cache e refetch.
- */
+interface WalletApiResponse {
+  wallet: WalletWithComputed | null;
+  usageSummary: UsageSummary[];
+  usageTotals: { total_credits: number; total_brl: number; calls: number };
+}
+
+async function fetchWalletData(tenantId: string): Promise<WalletApiResponse> {
+  const res = await fetch(`/api/billing/wallet?tenantId=${tenantId}`);
+  if (!res.ok) throw new Error('Falha ao carregar dados');
+  return res.json();
+}
+
 export function WalletDashboard({
   tenantId,
   initialWallet,
   initialUsageSummary,
   initialUsageTotals,
 }: WalletDashboardProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [wallet, setWallet] = useState(initialWallet);
-  const [usageSummary, setUsageSummary] = useState(initialUsageSummary);
-  const [usageTotals, setUsageTotals] = useState(initialUsageTotals);
+  const { data, isRefetching, refetch } = useQuery({
+    queryKey: ['wallet-dashboard', tenantId],
+    queryFn: () => fetchWalletData(tenantId),
+    initialData: {
+      wallet: initialWallet,
+      usageSummary: initialUsageSummary,
+      usageTotals: initialUsageTotals,
+    },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-  // Função para atualizar dados via API Route (a ser implementada)
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      const response = await fetch(`/api/billing/wallet?tenantId=${tenantId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.wallet) setWallet(data.wallet);
-        if (data.usageSummary) setUsageSummary(data.usageSummary);
-        if (data.usageTotals) setUsageTotals(data.usageTotals);
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const wallet = data.wallet;
+  const usageSummary = data.usageSummary;
+  const usageTotals = data.usageTotals;
+
+  // Calcular média diária (7 dias)
+  const dailyAvgCredits = usageTotals.calls > 0
+    ? Math.round(usageTotals.total_credits / 7)
+    : 0;
+  const dailyAvgBrl = dailyAvgCredits / 100;
 
   return (
     <div className="h-full w-full overflow-y-auto p-6 md:p-8">
-      <div className="container max-w-4xl mx-auto space-y-6">
+      <div className="container max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -71,25 +71,38 @@ export function WalletDashboard({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
+            onClick={() => refetch()}
+            disabled={isRefetching}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
 
         <Separator />
 
-        {/* Card Principal - Saldo */}
-        <WalletBalanceCard wallet={wallet} />
+        {/* Layout 2 colunas */}
+        <div className="grid gap-6 lg:grid-cols-5">
+          {/* Coluna principal (3/5) */}
+          <div className="lg:col-span-3 space-y-6">
+            <WalletBalanceCard wallet={wallet} dailyAvgCredits={dailyAvgCredits} />
+            <UsageSummaryMiniCards
+              usageSummary={usageSummary}
+              usageTotals={usageTotals}
+              days={7}
+            />
+          </div>
 
-        {/* Resumo de Consumo (7 dias) */}
-        <UsageSummaryMiniCards
-          usageSummary={usageSummary}
-          usageTotals={usageTotals}
-          days={7}
-        />
+          {/* Coluna lateral (2/5) */}
+          <div className="lg:col-span-2 space-y-6">
+            <BalanceForecastCard
+              availableCredits={wallet?.available_credits || 0}
+              dailyAvgCredits={dailyAvgCredits}
+              dailyAvgBrl={dailyAvgBrl}
+            />
+            <AutoRechargeConfigCard />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -302,20 +302,29 @@ export async function getUsageDaily(
  */
 export async function getUsageTotals(
   tenantId: string,
-  days = 7
+  days = 7,
+  offsetDays = 0
 ): Promise<{ total_credits: number; total_brl: number; calls: number }> {
   const supabase = await createClient();
 
-  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - offsetDays);
+  const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - days);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  let query = (supabase as any)
     .from('usages')
     .select('debited_credits')
     .eq('id_tenant', tenantId)
     .gte('created_at', startDate.toISOString())
     .not('debited_credits', 'is', null);
+
+  if (offsetDays > 0) {
+    query = query.lte('created_at', endDate.toISOString());
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching usage totals:', error);

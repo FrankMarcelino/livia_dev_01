@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
@@ -25,52 +26,50 @@ interface UsageChartProps {
   isLoading: boolean;
 }
 
-/**
- * Formata data para exibição no gráfico
- */
 function formatDateShort(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-/**
- * Tooltip customizado
- */
 function CustomTooltip({
   active,
   payload,
   label,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; name: string }>;
+  payload?: Array<{ value: number; name: string; payload: { chamadas: number } }>;
   label?: string;
 }) {
   if (!active || !payload || !payload.length) return null;
 
   const value = payload[0]?.value || 0;
+  const calls = payload[0]?.payload?.chamadas || 0;
 
   return (
-    <div className="bg-background border rounded-lg shadow-lg p-3">
+    <div className="bg-background border rounded-lg shadow-lg p-3 space-y-1">
       <p className="text-sm font-medium">{label}</p>
-      <p className="text-sm text-primary">
+      <p className="text-sm text-primary font-semibold">
         R$ {value.toFixed(2)}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {calls} chamada{calls !== 1 ? 's' : ''}
       </p>
     </div>
   );
 }
 
-/**
- * Gráfico de Consumo Diário
- */
 export function UsageChart({ data, isLoading }: UsageChartProps) {
-  // Prepara dados para o gráfico
   const chartData = data.map((item) => ({
     date: formatDateShort(item.date),
     valor: item.total_brl,
     chamadas: item.calls,
   }));
 
-  // Loading state
+  // Calcular média
+  const avgValue = data.length > 0
+    ? data.reduce((sum, d) => sum + d.total_brl, 0) / data.length
+    : 0;
+
   if (isLoading && data.length === 0) {
     return (
       <Card>
@@ -87,7 +86,6 @@ export function UsageChart({ data, isLoading }: UsageChartProps) {
     );
   }
 
-  // Empty state
   if (data.length === 0) {
     return (
       <Card>
@@ -117,7 +115,9 @@ export function UsageChart({ data, isLoading }: UsageChartProps) {
           <BarChart3 className="h-5 w-5" />
           Consumo Diário
         </CardTitle>
-        <CardDescription>Valor consumido por dia (em R$)</CardDescription>
+        <CardDescription>
+          Valor consumido por dia (em R$) — Média: R$ {avgValue.toFixed(2)}/dia
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -148,6 +148,20 @@ export function UsageChart({ data, isLoading }: UsageChartProps) {
                 className="text-muted-foreground"
               />
               <Tooltip content={<CustomTooltip />} />
+              {avgValue > 0 && (
+                <ReferenceLine
+                  y={avgValue}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="5 5"
+                  strokeOpacity={0.5}
+                  label={{
+                    value: `Média`,
+                    position: 'right',
+                    fill: 'hsl(var(--muted-foreground))',
+                    fontSize: 11,
+                  }}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="valor"

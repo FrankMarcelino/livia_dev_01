@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout';
 import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-collapse-wrapper';
 import { QueryProvider } from '@/providers/query-provider';
+import { SubscriptionWarningBanner } from '@/components/layout/subscription-warning-banner';
 
 /**
  * Layout do Dashboard (rotas autenticadas)
@@ -43,6 +44,20 @@ export default async function DashboardLayout({
   const user = userData as any;
   const tenantName = user?.tenants?.name;
 
+  // Fetch subscription status for warning banner
+  let subscriptionStatus: string | null = null;
+  let subscriptionPeriodEnd: string | null = null;
+  if (user?.tenant_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: tenant } = await (supabase as any)
+      .from('tenants')
+      .select('subscription_status, subscription_current_period_end')
+      .eq('id', user.tenant_id)
+      .single();
+    subscriptionStatus = tenant?.subscription_status || null;
+    subscriptionPeriodEnd = tenant?.subscription_current_period_end || null;
+  }
+
   return (
     <QueryProvider>
       <SidebarProvider defaultOpen={true}>
@@ -52,6 +67,10 @@ export default async function DashboardLayout({
           avatarUrl={user?.avatar_url}
         />
         <SidebarInset className="flex flex-col w-full h-screen overflow-x-hidden pl-4 md:pl-6">
+          <SubscriptionWarningBanner
+            subscriptionStatus={subscriptionStatus}
+            periodEnd={subscriptionPeriodEnd}
+          />
           <SidebarAutoCollapseWrapper>
             <div className="flex-1 overflow-y-auto">
               {children}

@@ -8,6 +8,7 @@ import {
   handleInvoicePaymentFailed,
   handleSubscriptionUpdated,
   handleSubscriptionDeleted,
+  handlePaymentIntentSucceeded,
 } from '@/lib/stripe/webhook-handlers';
 
 /**
@@ -77,6 +78,10 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event, supabaseAdmin);
+        break;
+
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(event, supabaseAdmin);
         break;
 
       default:

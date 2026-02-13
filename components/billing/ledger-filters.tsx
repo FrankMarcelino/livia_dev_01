@@ -21,16 +21,43 @@ interface LedgerFiltersProps {
   isLoading: boolean;
 }
 
-/**
- * Componente de Filtros do Extrato
- */
+function formatDateISO(date: Date): string {
+  return date.toISOString().split('T')[0]!;
+}
+
+function getPresetDates(preset: string): { startDate: string; endDate: string } {
+  const now = new Date();
+  const endDate = formatDateISO(now);
+
+  switch (preset) {
+    case 'today': {
+      return { startDate: endDate, endDate };
+    }
+    case '7d': {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      return { startDate: formatDateISO(start), endDate };
+    }
+    case '30d': {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      return { startDate: formatDateISO(start), endDate };
+    }
+    case 'month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { startDate: formatDateISO(start), endDate };
+    }
+    default:
+      return { startDate: '', endDate: '' };
+  }
+}
+
 export function LedgerFilters({
   filters,
   onFiltersChange,
   availableProviders,
   isLoading,
 }: LedgerFiltersProps) {
-  // Handler para mudança de campo
   const handleChange = (key: keyof LedgerFiltersType, value: string | undefined) => {
     const newFilters = { ...filters };
     if (value && value !== 'all') {
@@ -41,14 +68,21 @@ export function LedgerFilters({
     onFiltersChange(newFilters);
   };
 
-  // Verifica se há filtros ativos
+  const handlePreset = (preset: string) => {
+    const { startDate, endDate } = getPresetDates(preset);
+    onFiltersChange({
+      ...filters,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    });
+  };
+
   const hasActiveFilters =
     filters.startDate ||
     filters.endDate ||
     (filters.direction && filters.direction !== 'all') ||
     filters.sourceType;
 
-  // Limpa todos os filtros
   const clearFilters = () => {
     onFiltersChange({});
   };
@@ -71,6 +105,27 @@ export function LedgerFilters({
               Limpar
             </Button>
           )}
+        </div>
+
+        {/* Presets de Data */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {[
+            { key: 'today', label: 'Hoje' },
+            { key: '7d', label: '7 dias' },
+            { key: '30d', label: '30 dias' },
+            { key: 'month', label: 'Este mês' },
+          ].map(({ key, label }) => (
+            <Button
+              key={key}
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => handlePreset(key)}
+              disabled={isLoading}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

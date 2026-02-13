@@ -20,6 +20,7 @@ interface UsageAPIResponse {
   usageDaily: UsageDailySummary[];
   usageSummary: UsageSummary[];
   usageTotals: { total_credits: number; total_brl: number; calls: number };
+  previousTotals: { total_credits: number; total_brl: number; calls: number } | null;
   error: string | null;
 }
 
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
           usageDaily: [],
           usageSummary: [],
           usageTotals: { total_credits: 0, total_brl: 0, calls: 0 },
+          previousTotals: null,
           error: 'Unauthorized',
         },
         { status: 401 }
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
           usageDaily: [],
           usageSummary: [],
           usageTotals: { total_credits: 0, total_brl: 0, calls: 0 },
+          previousTotals: null,
           error: 'User tenant not found',
         },
         { status: 404 }
@@ -85,6 +88,7 @@ export async function GET(request: NextRequest) {
           usageDaily: [],
           usageSummary: [],
           usageTotals: { total_credits: 0, total_brl: 0, calls: 0 },
+          previousTotals: null,
           error: 'Forbidden: Tenant mismatch',
         },
         { status: 403 }
@@ -99,10 +103,11 @@ export async function GET(request: NextRequest) {
     // ========================================
     // 5. FETCH DATA
     // ========================================
-    const [usageDaily, usageSummary, usageTotals] = await Promise.all([
+    const [usageDaily, usageSummary, usageTotals, previousTotals] = await Promise.all([
       getUsageDaily(userTenantId, days),
       getUsageSummaryByProvider(userTenantId, days),
       getUsageTotals(userTenantId, days),
+      getUsageTotals(userTenantId, days, days),
     ]);
 
     // ========================================
@@ -113,6 +118,7 @@ export async function GET(request: NextRequest) {
         usageDaily,
         usageSummary,
         usageTotals,
+        previousTotals,
         error: null,
       },
       {
@@ -130,6 +136,7 @@ export async function GET(request: NextRequest) {
         usageDaily: [],
         usageSummary: [],
         usageTotals: { total_credits: 0, total_brl: 0, calls: 0 },
+        previousTotals: null,
         error: 'Internal server error. Please try again later.',
       },
       { status: 500 }

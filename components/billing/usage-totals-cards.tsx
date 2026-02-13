@@ -1,19 +1,40 @@
 'use client';
 
-import { DollarSign, Zap, TrendingUp } from 'lucide-react';
+import { DollarSign, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatBRL } from '@/types/billing';
 
 interface UsageTotalsCardsProps {
   totals: { total_credits: number; total_brl: number; calls: number };
+  previousTotals?: { total_credits: number; total_brl: number; calls: number } | null;
   period: number;
 }
 
-/**
- * Cards com totais de consumo
- */
-export function UsageTotalsCards({ totals, period }: UsageTotalsCardsProps) {
-  // Calcula média diária
+function ComparisonBadge({ current, previous }: { current: number; previous: number }) {
+  if (previous === 0) return null;
+
+  const pctChange = ((current - previous) / previous) * 100;
+  const isUp = pctChange > 0;
+  const isFlat = Math.abs(pctChange) < 1;
+
+  if (isFlat) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Minus className="h-3 w-3" />
+        estável
+      </span>
+    );
+  }
+
+  return (
+    <span className={`flex items-center gap-1 text-xs ${isUp ? 'text-red-600' : 'text-green-600'}`}>
+      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {Math.abs(pctChange).toFixed(0)}% vs anterior
+    </span>
+  );
+}
+
+export function UsageTotalsCards({ totals, previousTotals, period }: UsageTotalsCardsProps) {
   const avgDaily = period > 0 ? totals.total_brl / period : 0;
 
   return (
@@ -28,9 +49,17 @@ export function UsageTotalsCards({ totals, period }: UsageTotalsCardsProps) {
             <div>
               <p className="text-sm text-muted-foreground">Total Consumido</p>
               <p className="text-2xl font-bold">{formatBRL(totals.total_brl)}</p>
-              <p className="text-xs text-muted-foreground">
-                {totals.total_credits.toLocaleString('pt-BR')} créditos
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  {totals.total_credits.toLocaleString('pt-BR')} créditos
+                </p>
+                {previousTotals && (
+                  <ComparisonBadge
+                    current={totals.total_brl}
+                    previous={previousTotals.total_brl}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -48,9 +77,17 @@ export function UsageTotalsCards({ totals, period }: UsageTotalsCardsProps) {
               <p className="text-2xl font-bold">
                 {totals.calls.toLocaleString('pt-BR')}
               </p>
-              <p className="text-xs text-muted-foreground">
-                nos últimos {period} dias
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  nos últimos {period} dias
+                </p>
+                {previousTotals && (
+                  <ComparisonBadge
+                    current={totals.calls}
+                    previous={previousTotals.calls}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -67,7 +104,7 @@ export function UsageTotalsCards({ totals, period }: UsageTotalsCardsProps) {
               <p className="text-sm text-muted-foreground">Média Diária</p>
               <p className="text-2xl font-bold">{formatBRL(avgDaily)}</p>
               <p className="text-xs text-muted-foreground">
-                {(totals.calls / period).toFixed(1)} chamadas/dia
+                {period > 0 ? (totals.calls / period).toFixed(1) : '0'} chamadas/dia
               </p>
             </div>
           </div>

@@ -59,7 +59,8 @@ export async function createCreditCheckoutSession(
   packageAmountCents: number,
   packageCredits: number,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  isCustom = false
 ): Promise<string> {
   const customerId = await getOrCreateStripeCustomer(tenantId);
 
@@ -84,6 +85,7 @@ export async function createCreditCheckoutSession(
       type: 'credit_purchase',
       package_amount_cents: String(packageAmountCents),
       package_credits: String(packageCredits),
+      is_custom: String(isCustom),
     },
     success_url: successUrl,
     cancel_url: cancelUrl,

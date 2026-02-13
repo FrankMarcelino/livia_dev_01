@@ -14,6 +14,7 @@ import {
 import { UsageChart } from './usage-chart';
 import { UsageByProviderTable } from './usage-by-provider-table';
 import { UsageTotalsCards } from './usage-totals-cards';
+import { CostProjectionCard } from './cost-projection-card';
 import type { UsageDailySummary, UsageSummary } from '@/types/billing';
 
 interface UsageDashboardProps {
@@ -21,29 +22,27 @@ interface UsageDashboardProps {
   initialUsageDaily: UsageDailySummary[];
   initialUsageSummary: UsageSummary[];
   initialUsageTotals: { total_credits: number; total_brl: number; calls: number };
+  initialPreviousTotals?: { total_credits: number; total_brl: number; calls: number } | null;
 }
 
 type PeriodOption = '7' | '15' | '30';
 
-/**
- * Dashboard de Consumo com gráficos
- */
 export function UsageDashboard({
   tenantId,
   initialUsageDaily,
   initialUsageSummary,
   initialUsageTotals,
+  initialPreviousTotals = null,
 }: UsageDashboardProps) {
   const [period, setPeriod] = useState<PeriodOption>('30');
   const [isLoading, setIsLoading] = useState(false);
   const [usageDaily, setUsageDaily] = useState(initialUsageDaily);
   const [usageSummary, setUsageSummary] = useState(initialUsageSummary);
   const [usageTotals, setUsageTotals] = useState(initialUsageTotals);
+  const [previousTotals, setPreviousTotals] = useState(initialPreviousTotals);
 
-  // Filtra dados pelo período selecionado
   const filteredDaily = usageDaily.slice(-parseInt(period));
 
-  // Busca dados atualizados
   const fetchData = async (days: number) => {
     setIsLoading(true);
     try {
@@ -55,6 +54,7 @@ export function UsageDashboard({
         if (data.usageDaily) setUsageDaily(data.usageDaily);
         if (data.usageSummary) setUsageSummary(data.usageSummary);
         if (data.usageTotals) setUsageTotals(data.usageTotals);
+        if (data.previousTotals !== undefined) setPreviousTotals(data.previousTotals);
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -63,20 +63,18 @@ export function UsageDashboard({
     }
   };
 
-  // Handler para mudança de período
   const handlePeriodChange = (value: PeriodOption) => {
     setPeriod(value);
     fetchData(parseInt(value));
   };
 
-  // Handler para refresh
   const handleRefresh = () => {
     fetchData(parseInt(period));
   };
 
   return (
     <div className="h-full w-full overflow-y-auto p-6 md:p-8">
-      <div className="container max-w-6xl mx-auto space-y-6">
+      <div className="container max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -117,11 +115,25 @@ export function UsageDashboard({
 
         <Separator />
 
-        {/* Cards de Totais */}
-        <UsageTotalsCards totals={usageTotals} period={parseInt(period)} />
+        {/* Cards de Totais + Projeção */}
+        <UsageTotalsCards
+          totals={usageTotals}
+          previousTotals={previousTotals}
+          period={parseInt(period)}
+        />
 
-        {/* Gráfico de Consumo Diário */}
-        <UsageChart data={filteredDaily} isLoading={isLoading} />
+        {/* Layout: Gráfico + Projeção */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <UsageChart data={filteredDaily} isLoading={isLoading} />
+          </div>
+          <div>
+            <CostProjectionCard
+              totalBrl={usageTotals.total_brl}
+              period={parseInt(period)}
+            />
+          </div>
+        </div>
 
         {/* Tabela por Provider */}
         <UsageByProviderTable data={usageSummary} isLoading={isLoading} />

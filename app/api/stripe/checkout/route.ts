@@ -87,6 +87,16 @@ export async function POST(request: NextRequest) {
         successUrl,
         cancelUrl
       );
+    } else if (input.mode === 'custom_payment') {
+      const customCredits = input.customAmountCents; // 1 crédito = R$ 0,01
+      url = await createCreditCheckoutSession(
+        tenantId,
+        input.customAmountCents,
+        customCredits,
+        successUrl,
+        cancelUrl,
+        true
+      );
     } else {
       url = await createSubscriptionCheckoutSession(
         tenantId,

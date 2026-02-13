@@ -103,8 +103,8 @@ export async function handleCheckoutCompleted(
     }
 
     // Credit wallet via RPC
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     console.log('[STRIPE] Calling credit_wallet RPC:', { tenantId, credits, sourceRef });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: rpcError, data: rpcData } = await (supabaseAdmin as any).rpc('credit_wallet', {
       p_tenant_id: tenantId,
       p_amount_credits: credits,
@@ -277,6 +277,69 @@ export async function handleSubscriptionUpdated(
     .eq('id', tenantId);
 
   logStripeEvent('customer.subscription.updated', eventId, tenantId, 'success');
+}
+
+// ============================================================================
+// payment_intent.succeeded (auto-recharge)
+// ============================================================================
+
+export async function handlePaymentIntentSucceeded(
+  event: Stripe.Event,
+  supabaseAdmin: SupabaseClient
+) {
+  const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  const eventId = event.id;
+
+  // Only process auto-recharge payments
+  if (paymentIntent.metadata?.type !== 'auto_recharge') {
+    return;
+  }
+
+  const tenantId = paymentIntent.metadata.tenant_id;
+  const credits = Number(paymentIntent.metadata.credits || 0);
+
+  if (!tenantId || credits <= 0) {
+    logStripeError('handlePaymentIntentSucceeded', 'Invalid auto-recharge metadata', {
+      paymentIntentId: paymentIntent.id,
+      eventId,
+    });
+    return;
+  }
+
+  const sourceRef = `stripe_pi_${paymentIntent.id}`;
+
+  // Idempotency check
+  if (await isAlreadyProcessed(supabaseAdmin, sourceRef)) {
+    logStripeEvent('payment_intent.succeeded', eventId, tenantId, 'skipped');
+    return;
+  }
+
+  // Credit wallet via RPC
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: rpcError } = await (supabaseAdmin as any).rpc('credit_wallet', {
+    p_tenant_id: tenantId,
+    p_amount_credits: credits,
+    p_source_type: 'purchase',
+    p_source_ref: sourceRef,
+    p_description: `Recarga automática de ${credits.toLocaleString('pt-BR')} créditos`,
+    p_meta: {
+      stripe_payment_intent_id: paymentIntent.id,
+      stripe_event_id: eventId,
+      is_auto_recharge: true,
+      auto_recharge_config_id: paymentIntent.metadata.auto_recharge_config_id,
+    },
+  });
+
+  if (rpcError) {
+    logStripeError('handlePaymentIntentSucceeded.credit_wallet', rpcError, {
+      tenantId,
+      credits,
+      sourceRef,
+    });
+    throw rpcError;
+  }
+
+  logStripeEvent('payment_intent.succeeded', eventId, tenantId, 'success');
 }
 
 // ============================================================================

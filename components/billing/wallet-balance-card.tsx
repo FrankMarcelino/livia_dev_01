@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, TrendingUp, AlertTriangle, XCircle, Shield, Loader2 } from 'lucide-react';
+import { CreditCard, TrendingUp, AlertTriangle, XCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,15 +13,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { useStripeBilling } from '@/hooks/use-stripe-billing';
 import type { WalletWithComputed, WalletStatus } from '@/types/billing';
 import { formatBRL, formatCredits } from '@/types/billing';
-import type { SubscriptionStatus } from '@/types/stripe';
 
 interface WalletBalanceCardProps {
   wallet: WalletWithComputed | null;
+  dailyAvgCredits?: number;
 }
 
 function getStatusConfig(status: WalletStatus) {
@@ -54,42 +50,7 @@ function getStatusConfig(status: WalletStatus) {
   }
 }
 
-function getSubscriptionBadge(status: SubscriptionStatus) {
-  switch (status) {
-    case 'active':
-    case 'trialing':
-      return { label: 'Ativa', className: 'bg-green-100 text-green-800 hover:bg-green-100' };
-    case 'past_due':
-      return { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' };
-    case 'canceled':
-      return { label: 'Cancelada', className: 'bg-red-100 text-red-800 hover:bg-red-100' };
-    default:
-      return { label: 'Inativa', className: 'bg-gray-100 text-gray-800 hover:bg-gray-100' };
-  }
-}
-
-export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
-  const [loadingPortal, setLoadingPortal] = useState(false);
-  const { data: billingData } = useStripeBilling();
-
-  const subscription = billingData?.subscription;
-  const subscriptionStatus: SubscriptionStatus = subscription?.subscription_status || 'inactive';
-  const subBadge = getSubscriptionBadge(subscriptionStatus);
-
-  async function handlePortal() {
-    setLoadingPortal(true);
-    try {
-      const res = await fetch('/api/stripe/portal', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao abrir portal');
-      window.location.href = data.url;
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao abrir portal');
-      setLoadingPortal(false);
-    }
-  }
-
-  // No wallet state
+export function WalletBalanceCard({ wallet, dailyAvgCredits = 0 }: WalletBalanceCardProps) {
   if (!wallet) {
     return (
       <Card>
@@ -115,6 +76,11 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
     ? Math.min(100, (wallet.available_credits / wallet.low_balance_threshold_credits) * 100)
     : 100;
 
+  // Estimativa de duração do saldo
+  const estimatedDays = dailyAvgCredits > 0
+    ? Math.floor(wallet.available_credits / dailyAvgCredits)
+    : null;
+
   return (
     <Card>
       <CardHeader>
@@ -134,10 +100,10 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Saldo Principal */}
-        <div className="space-y-1">
+        {/* Saldo Principal - Hero */}
+        <div className={`rounded-lg p-4 ${statusConfig.bgColor}`}>
           <p className="text-sm font-medium text-muted-foreground">Saldo Atual</p>
-          <p className="text-4xl font-bold tracking-tight">
+          <p className={`text-4xl font-bold tracking-tight ${statusConfig.color}`}>
             {formatBRL(wallet.balance_brl)}
           </p>
           <p className="text-sm text-muted-foreground">
@@ -161,6 +127,16 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
           </div>
         )}
 
+        {/* Estimativa de duração */}
+        {estimatedDays !== null && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Estimativa de duração</span>
+            <span className={`font-medium ${estimatedDays <= 7 ? 'text-red-600' : estimatedDays <= 14 ? 'text-yellow-600' : 'text-green-600'}`}>
+              ~{estimatedDays} dia{estimatedDays !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+
         {/* Barra de Progresso */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -170,59 +146,6 @@ export function WalletBalanceCard({ wallet }: WalletBalanceCardProps) {
             </span>
           </div>
           <Progress value={progressPercent} className="h-2" />
-        </div>
-
-        {/* Informações Adicionais */}
-        <div className="grid grid-cols-2 gap-4 pt-2">
-          <div className="text-center p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground">Overdraft</p>
-            <p className="text-lg font-semibold">
-              {(wallet.overdraft_percent * 100).toFixed(0)}%
-            </p>
-          </div>
-          <div className="text-center p-3 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground">Hard Stop</p>
-            <p className="text-lg font-semibold">
-              {wallet.hard_stop_active ? 'Ativo' : 'Inativo'}
-            </p>
-          </div>
-        </div>
-
-        {/* Manutenção - Subscription Status */}
-        <Separator />
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Manutenção</span>
-            </div>
-            <Badge variant="outline" className={subBadge.className}>
-              {subBadge.label}
-            </Badge>
-          </div>
-          {subscription?.subscription_current_period_end &&
-            (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && (
-            <p className="text-xs text-muted-foreground">
-              Renova em{' '}
-              {new Date(subscription.subscription_current_period_end).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-            </p>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-0 text-xs text-primary"
-            onClick={handlePortal}
-            disabled={loadingPortal}
-          >
-            {loadingPortal ? (
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            ) : null}
-            Gerenciar
-          </Button>
         </div>
       </CardContent>
 

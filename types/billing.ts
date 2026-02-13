@@ -209,6 +209,23 @@ export interface MarkupRule {
   updated_at: string;
 }
 
+// ===== AUTO-RECHARGE =====
+
+export interface AutoRechargeConfig {
+  id: string;
+  tenant_id: string;
+  is_enabled: boolean;
+  threshold_credits: number;
+  recharge_amount_cents: number;
+  stripe_payment_method_id: string;
+  card_last4: string | null;
+  card_brand: string | null;
+  last_triggered_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ===== FX HISTORY =====
 
 export interface FxUsdBrlHistory {
