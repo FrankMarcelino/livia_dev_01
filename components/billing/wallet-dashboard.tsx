@@ -8,6 +8,7 @@ import { WalletBalanceCard } from './wallet-balance-card';
 import { BalanceForecastCard } from './balance-forecast-card';
 import { UsageSummaryMiniCards } from './usage-summary-mini-cards';
 import { AutoRechargeConfigCard } from './auto-recharge-config';
+import { SubscriptionInfoCard } from './subscription-info-card';
 import { useStripeBilling } from '@/hooks/use-stripe-billing';
 import type { WalletWithComputed, UsageSummary } from '@/types/billing';
 
@@ -89,12 +90,7 @@ export function WalletDashboard({
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Coluna principal (3/5) */}
           <div className="lg:col-span-3 space-y-6">
-            <WalletBalanceCard
-              wallet={wallet}
-              dailyAvgCredits={dailyAvgCredits}
-              subscriptionPeriodEnd={subscription?.subscription_current_period_end}
-              subscriptionStatus={subscription?.subscription_status}
-            />
+            <WalletBalanceCard wallet={wallet} dailyAvgCredits={dailyAvgCredits} />
             <UsageSummaryMiniCards
               usageSummary={usageSummary}
               usageTotals={usageTotals}
@@ -104,6 +100,13 @@ export function WalletDashboard({
 
           {/* Coluna lateral (2/5) */}
           <div className="lg:col-span-2 space-y-6">
+            {subscription && (
+              <SubscriptionInfoCard
+                status={subscription.subscription_status}
+                periodEnd={subscription.subscription_current_period_end}
+                cancelAtPeriodEnd={subscription.subscription_cancel_at_period_end}
+              />
+            )}
             <BalanceForecastCard
               availableCredits={wallet?.available_credits || 0}
               dailyAvgCredits={dailyAvgCredits}

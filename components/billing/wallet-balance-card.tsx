@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CreditCard, TrendingUp, AlertTriangle, XCircle, CalendarClock } from 'lucide-react';
+import { CreditCard, TrendingUp, AlertTriangle, XCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -19,8 +19,6 @@ import { formatBRL, formatCredits } from '@/types/billing';
 interface WalletBalanceCardProps {
   wallet: WalletWithComputed | null;
   dailyAvgCredits?: number;
-  subscriptionPeriodEnd?: string | null;
-  subscriptionStatus?: string | null;
 }
 
 function getStatusConfig(status: WalletStatus) {
@@ -52,12 +50,7 @@ function getStatusConfig(status: WalletStatus) {
   }
 }
 
-export function WalletBalanceCard({
-  wallet,
-  dailyAvgCredits = 0,
-  subscriptionPeriodEnd,
-  subscriptionStatus,
-}: WalletBalanceCardProps) {
+export function WalletBalanceCard({ wallet, dailyAvgCredits = 0 }: WalletBalanceCardProps) {
   if (!wallet) {
     return (
       <Card>
@@ -155,25 +148,6 @@ export function WalletBalanceCard({
           <Progress value={progressPercent} className="h-2" />
         </div>
       </CardContent>
-
-      {/* Próxima cobrança da assinatura */}
-      {subscriptionPeriodEnd && (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && (
-        <CardContent className="pt-0">
-          <div className="flex items-center justify-between text-sm rounded-lg border p-3">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <CalendarClock className="h-4 w-4" />
-              <span>Próxima cobrança</span>
-            </div>
-            <span className="font-medium">
-              {new Date(subscriptionPeriodEnd).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-            </span>
-          </div>
-        </CardContent>
-      )}
 
       <CardFooter className="border-t pt-4">
         <Button asChild className="w-full">
