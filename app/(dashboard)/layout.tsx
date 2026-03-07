@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout';
 import { SidebarAutoCollapseWrapper } from '@/components/layout/sidebar-auto-collapse-wrapper';
@@ -49,7 +50,7 @@ export default async function DashboardLayout({
   let subscriptionPeriodEnd: string | null = null;
   if (user?.tenant_id) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: tenant } = await (supabase as any)
+    const { data: tenant } = await (createAdminClient() as any)
       .from('tenants')
       .select('subscription_status, subscription_current_period_end')
       .eq('id', user.tenant_id)

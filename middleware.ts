@@ -118,10 +118,11 @@ export async function middleware(request: NextRequest) {
   const cachedStatus = request.cookies.get('x-sub-status')?.value;
   const cachedPeriodEnd = request.cookies.get('x-sub-period-end')?.value;
 
+  const shouldRefresh = !cachedStatus || cachedStatus === 'inactive';
   let subscriptionStatus: string | null = cachedStatus || null;
   let periodEnd: string | null = cachedPeriodEnd || null;
 
-  if (!subscriptionStatus) {
+  if (shouldRefresh) {
     const adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -141,6 +142,7 @@ export async function middleware(request: NextRequest) {
       tenantId: userData!.tenant_id,
       tenantData: tenant,
       tenantError: tenantError?.message || null,
+      previousCachedStatus: cachedStatus || null,
     });
     // #endregion
 
