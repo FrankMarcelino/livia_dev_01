@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     // 3. Validar conversa
     const { data: conversation, error: fetchError } = await supabase
       .from('conversations')
-      .select('id, tenant_id')
+      .select('id, tenant_id, ia_active')
       .eq('id', conversationId)
       .eq('tenant_id', tenantId)
       .single();
@@ -82,11 +82,14 @@ export async function POST(request: NextRequest) {
 
     // 5. Se tagId fornecido, validar e buscar tipo da tag
     let tagType: 'description' | 'success' | 'fail' | null = null;
+    let tagPauseIa = false;
+    let tagName = '';
 
     if (tagId) {
-      const { data: tag, error: tagError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: tag, error: tagError } = await (supabase as any)
         .from('tags')
-        .select('id, tag_type, active')
+        .select('id, tag_type, active, pause_ia_on_apply, tag_name')
         .eq('id', tagId)
         .eq('id_neurocore', neurocoreId)
         .single();
@@ -101,6 +104,8 @@ export async function POST(request: NextRequest) {
       }
 
       tagType = tag.tag_type as 'description' | 'success' | 'fail';
+      tagPauseIa = tag.pause_ia_on_apply === true;
+      tagName = tag.tag_name ?? '';
 
       if (!tagType) {
         return NextResponse.json({ error: 'Tag sem tipo definido' }, { status: 400 });
@@ -177,6 +182,18 @@ export async function POST(request: NextRequest) {
           console.error('[update-tag] Error inserting new tag:', insertError);
           throw insertError;
         }
+      }
+
+      // Pausar IA na conversa se a tag tiver pause_ia_on_apply e a conversa estiver com IA ativa
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conv = conversation as any;
+      if (tagPauseIa && conv?.ia_active === true) {
+        const pauseNotes = `Pausado automaticamente ao aplicar tag ${tagName}`.trim();
+        await supabase
+          .from('conversations')
+          .update({ ia_active: false, pause_notes: pauseNotes })
+          .eq('id', conversationId)
+          .eq('tenant_id', tenantId);
       }
     }
 

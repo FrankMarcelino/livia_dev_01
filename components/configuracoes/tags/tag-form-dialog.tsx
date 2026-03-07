@@ -46,6 +46,7 @@ const formSchema = z.object({
   prompt_to_ai: z.string().max(2000).optional().nullable(),
   is_category: z.boolean(),
   change_conversation_status: z.string().optional().nullable(),
+  pause_ia_on_apply: z.boolean(),
   send_text: z.boolean(),
   send_text_message: z.string().max(1000).optional().nullable(),
 }).refine(
@@ -83,6 +84,7 @@ export function TagFormDialog({
       prompt_to_ai: tag?.prompt_to_ai ?? '',
       is_category: tag?.is_category ?? false,
       change_conversation_status: tag?.change_conversation_status ?? '',
+      pause_ia_on_apply: tag?.pause_ia_on_apply ?? false,
       send_text: tag?.send_text ?? false,
       send_text_message: tag?.send_text_message ?? '',
     },
@@ -97,6 +99,7 @@ export function TagFormDialog({
         ...values,
         prompt_to_ai: values.prompt_to_ai || null,
         change_conversation_status: values.change_conversation_status || null,
+        pause_ia_on_apply: values.pause_ia_on_apply,
         send_text_message: values.send_text ? (values.send_text_message || null) : null,
       };
 
@@ -272,6 +275,25 @@ export function TagFormDialog({
                     Ao aplicar esta tag, alterar o status da conversa automaticamente
                   </FormDescription>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Pausar IA ao aplicar */}
+            <FormField
+              control={form.control}
+              name="pause_ia_on_apply"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <FormLabel className="text-sm">Pausar IA ao aplicar</FormLabel>
+                    <FormDescription className="text-xs">
+                      Ao aplicar esta tag, pausar a IA automaticamente na conversa
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />

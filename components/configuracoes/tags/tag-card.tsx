@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Pencil, Trash2, Shield } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Shield, Pause } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -97,6 +97,12 @@ export function TagCard({ tag, onEdit, onDeleted }: TagCardProps) {
               {tag.active === false && (
                 <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
                   Inativo
+                </Badge>
+              )}
+              {tag.pause_ia_on_apply && (
+                <Badge variant="secondary" className="gap-1 text-xs shrink-0">
+                  <Pause className="h-3 w-3" />
+                  Pausa IA
                 </Badge>
               )}
             </div>

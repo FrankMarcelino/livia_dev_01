@@ -20,6 +20,7 @@ export interface TagForManagement {
   change_conversation_status: string | null;
   send_text: boolean;
   send_text_message: string | null;
+  pause_ia_on_apply: boolean;
   id_neurocore: string | null;
   tenant_id: string | null;
   order_index: number;
@@ -37,6 +38,7 @@ export interface CreateTagPayload {
   change_conversation_status?: string | null;
   send_text: boolean;
   send_text_message?: string | null;
+  pause_ia_on_apply?: boolean;
   tenant_id: string;
 }
 
@@ -50,6 +52,7 @@ export interface UpdateTagPayload {
   change_conversation_status?: string | null;
   send_text?: boolean;
   send_text_message?: string | null;
+  pause_ia_on_apply?: boolean;
 }
 
 /**
@@ -109,6 +112,7 @@ export async function getTagsForManagement(
     ...tag,
     send_text: tag.send_text ?? false,
     send_text_message: tag.send_text_message ?? null,
+    pause_ia_on_apply: tag.pause_ia_on_apply ?? false,
     tenant_id: tag.tenant_id ?? null,
     isInherited: false,
   }));
@@ -118,6 +122,7 @@ export async function getTagsForManagement(
     ...tag,
     send_text: tag.send_text ?? false,
     send_text_message: tag.send_text_message ?? null,
+    pause_ia_on_apply: tag.pause_ia_on_apply ?? false,
     tenant_id: tag.tenant_id ?? null,
     isInherited: true,
   }));
@@ -151,6 +156,7 @@ export async function getTagById(
     ...data,
     send_text: data.send_text ?? false,
     send_text_message: data.send_text_message ?? null,
+    pause_ia_on_apply: data.pause_ia_on_apply ?? false,
     tenant_id: data.tenant_id ?? null,
     isInherited: false,
   };
@@ -189,6 +195,7 @@ export async function createTag(
       change_conversation_status: payload.change_conversation_status || null,
       send_text: payload.send_text,
       send_text_message: payload.send_text_message || null,
+      pause_ia_on_apply: payload.pause_ia_on_apply ?? false,
       tenant_id: payload.tenant_id,
       id_neurocore: tenantData.neurocore_id,
       order_index: 0,
@@ -205,6 +212,7 @@ export async function createTag(
     ...data,
     send_text: data.send_text ?? false,
     send_text_message: data.send_text_message ?? null,
+    pause_ia_on_apply: data.pause_ia_on_apply ?? false,
     tenant_id: data.tenant_id ?? null,
     isInherited: false,
   };
@@ -238,6 +246,7 @@ export async function updateTag(
     ...data,
     send_text: data.send_text ?? false,
     send_text_message: data.send_text_message ?? null,
+    pause_ia_on_apply: data.pause_ia_on_apply ?? false,
     tenant_id: data.tenant_id ?? null,
     isInherited: false,
   };

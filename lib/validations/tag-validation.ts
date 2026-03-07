@@ -12,6 +12,7 @@ const baseTagFields = {
   change_conversation_status: z.enum(['open', 'closed']).optional().nullable(),
   send_text: z.boolean().default(false),
   send_text_message: z.string().max(1000, 'Mensagem muito longa').optional().nullable(),
+  pause_ia_on_apply: z.boolean().default(false),
 };
 
 export const createTagSchema = z.object({
