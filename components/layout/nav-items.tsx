@@ -73,6 +73,10 @@ export const navItems: NavItem[] = [
         title: 'Controle da IA',
         url: '/configuracoes/controle-ia',
       },
+      {
+        title: 'Gerenciar Usuários',
+        url: '/gerenciar-usuarios',
+      },
     ],
   },
   {

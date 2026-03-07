@@ -1707,13 +1707,14 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          invite_code: string | null
           is_active: boolean
           last_sign_in_at: string | null
           modules: string[]
           role: Database["public"]["Enums"]["access_user_role"]
           tenant_id: string | null
           updated_at: string
-          whatsapp_number: string
+          whatsapp_number: string | null
         }
         Insert: {
           ai_paused?: boolean
@@ -1722,13 +1723,14 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          invite_code?: string | null
           is_active?: boolean
           last_sign_in_at?: string | null
           modules?: string[]
           role?: Database["public"]["Enums"]["access_user_role"]
           tenant_id?: string | null
           updated_at?: string
-          whatsapp_number: string
+          whatsapp_number?: string | null
         }
         Update: {
           ai_paused?: boolean
@@ -1737,13 +1739,14 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          invite_code?: string | null
           is_active?: boolean
           last_sign_in_at?: string | null
           modules?: string[]
           role?: Database["public"]["Enums"]["access_user_role"]
           tenant_id?: string | null
           updated_at?: string
-          whatsapp_number?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
