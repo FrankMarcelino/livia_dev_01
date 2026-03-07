@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { ManageUsersContent } from '@/components/admin/manage-users-content';
 
 export default async function GerenciarUsuariosPage() {
@@ -29,8 +30,8 @@ export default async function GerenciarUsuariosPage() {
     .select('id, key, name, description, icon')
     .order('name');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: tenantUsers } = await (supabase as any)
+  const adminClient = createAdminClient();
+  const { data: tenantUsers } = await adminClient
     .from('users')
     .select('id, full_name, email, avatar_url, modules, role, is_active')
     .eq('tenant_id', tenantId)
